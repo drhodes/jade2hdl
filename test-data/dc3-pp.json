@@ -1,0 +1,458 @@
+[
+  "Jade",
+  {
+    "/user/dc3": {
+      "properties": {
+        "name": {
+          "edit": "yes",
+          "type": "name",
+          "value": "",
+          "label": "Name"
+        }
+      },
+      "schematic": [
+        [
+          "port",
+          [
+            -136,
+            -64,
+            1
+          ],
+          {
+            "signal": "wd"
+          }
+        ],
+        [
+          "port",
+          [
+            -120,
+            -64,
+            1
+          ],
+          {
+            "signal": "nd"
+          }
+        ],
+        [
+          "/gates/mux4",
+          [
+            -40,
+            -144,
+            0
+          ]
+        ],
+        [
+          "wire",
+          [
+            -32,
+            -80,
+            0,
+            -16,
+            0
+          ],
+          {
+            "signal": "wf,nf"
+          }
+        ],
+        [
+          "wire",
+          [
+            -24,
+            -120,
+            0,
+            24,
+            0
+          ],
+          {
+            "signal": "sd,ed",
+            "width": "2"
+          }
+        ],
+        [
+          "/gates/nand2",
+          [
+            -120,
+            -64,
+            1
+          ]
+        ],
+        [
+          "wire",
+          [
+            -40,
+            -144,
+            0,
+            -16,
+            0
+          ],
+          {
+            "signal": "nf,wf"
+          }
+        ],
+        [
+          "wire",
+          [
+            -40,
+            -128,
+            0,
+            -16,
+            0
+          ],
+          {
+            "signal": "nand_nw#2"
+          }
+        ],
+        [
+          "wire",
+          [
+            -40,
+            -96,
+            0,
+            -16,
+            0
+          ],
+          {
+            "signal": "nd,wd"
+          }
+        ],
+        [
+          "wire",
+          [
+            -40,
+            -112,
+            0,
+            -16,
+            0
+          ],
+          {
+            "signal": "wd,nd"
+          }
+        ],
+        [
+          "wire",
+          [
+            -128,
+            -16,
+            0,
+            0,
+            8
+          ],
+          {
+            "signal": "nand_nw"
+          }
+        ],
+        [
+          "/gates/mux4",
+          [
+            -40,
+            -16,
+            0
+          ]
+        ],
+        [
+          "wire",
+          [
+            -32,
+            48,
+            0,
+            -16,
+            0
+          ],
+          {
+            "signal": "wf,nf"
+          }
+        ],
+        [
+          "wire",
+          [
+            -24,
+            8,
+            0,
+            24,
+            0
+          ],
+          {
+            "signal": "sf,ef",
+            "width": "2"
+          }
+        ],
+        [
+          "wire",
+          [
+            -40,
+            16,
+            0,
+            -16,
+            0
+          ],
+          {
+            "signal": "wf,nf"
+          }
+        ],
+        [
+          "wire",
+          [
+            -40,
+            32,
+            0,
+            -16,
+            0
+          ],
+          {
+            "signal": "nf,wf"
+          }
+        ],
+        [
+          "wire",
+          [
+            -40,
+            0,
+            0,
+            -16,
+            0
+          ],
+          {
+            "signal": "nf,wf"
+          }
+        ],
+        [
+          "wire",
+          [
+            -40,
+            -16,
+            0,
+            -16,
+            0
+          ],
+          {
+            "signal": "nd,wd"
+          }
+        ]
+      ],
+      "icon": [
+        [
+          "box",
+          [
+            8,
+            -8,
+            0,
+            48,
+            48
+          ]
+        ],
+        [
+          "terminal",
+          [
+            40,
+            -16,
+            1
+          ],
+          {
+            "name": "nf"
+          }
+        ],
+        [
+          "terminal",
+          [
+            48,
+            -16,
+            1
+          ],
+          {
+            "name": "nd"
+          }
+        ],
+        [
+          "terminal",
+          [
+            0,
+            8,
+            0
+          ],
+          {
+            "name": "wd"
+          }
+        ],
+        [
+          "terminal",
+          [
+            0,
+            0,
+            0
+          ],
+          {
+            "name": "wf"
+          }
+        ],
+        [
+          "terminal",
+          [
+            48,
+            48,
+            3
+          ],
+          {
+            "name": "sd"
+          }
+        ],
+        [
+          "terminal",
+          [
+            40,
+            48,
+            3
+          ],
+          {
+            "name": "sf"
+          }
+        ],
+        [
+          "terminal",
+          [
+            64,
+            0,
+            2
+          ],
+          {
+            "name": "ef"
+          }
+        ],
+        [
+          "terminal",
+          [
+            64,
+            8,
+            2
+          ],
+          {
+            "name": "ed"
+          }
+        ],
+        [
+          "text",
+          [
+            17,
+            -5,
+            0
+          ],
+          {
+            "text": "nf",
+            "font": "4pt sans-serif"
+          }
+        ],
+        [
+          "text",
+          [
+            42,
+            -5,
+            0
+          ],
+          {
+            "text": "nd",
+            "font": "4pt sans-serif"
+          }
+        ],
+        [
+          "text",
+          [
+            17,
+            37,
+            0
+          ],
+          {
+            "text": "sf",
+            "font": "4pt sans-serif"
+          }
+        ],
+        [
+          "text",
+          [
+            42,
+            37,
+            0
+          ],
+          {
+            "text": "sd",
+            "font": "4pt sans-serif"
+          }
+        ],
+        [
+          "text",
+          [
+            12,
+            1,
+            1
+          ],
+          {
+            "text": "wf",
+            "font": "4pt sans-serif"
+          }
+        ],
+        [
+          "text",
+          [
+            12,
+            27,
+            1
+          ],
+          {
+            "text": "wd",
+            "font": "4pt sans-serif"
+          }
+        ],
+        [
+          "text",
+          [
+            53,
+            0,
+            1
+          ],
+          {
+            "text": "ef",
+            "font": "4pt sans-serif"
+          }
+        ],
+        [
+          "text",
+          [
+            52,
+            26,
+            1
+          ],
+          {
+            "text": "ed",
+            "font": "4pt sans-serif"
+          }
+        ],
+        [
+          "text",
+          [
+            19,
+            16,
+            0
+          ],
+          {
+            "text": "DC3",
+            "font": "10pt sans-serif"
+          }
+        ],
+        [
+          "line",
+          [
+            48,
+            40,
+            0,
+            8,
+            -8
+          ]
+        ]
+      ],
+      "test": [
+        [
+          "test",
+          ".power Vdd=1\n.thresholds Vol=0 Vil=0.1 Vih=0.9 Voh=1\n\n.group inputs wf nf wd nd // no carry in\n.group outputs ef sf ed sd\n\n.mode gate\n\n.cycle assert inputs tran 99n sample outputs tran 1n\n\n\n// wf nf wd nd   ef sf ed sd\n// |  |  |  |    |  |  |  |\n   0  0  0  0    L  L  L  L // thru\n   0  0  1  0    L  L  H  L\n   0  0  0  1    L  L  L  H\n   0  0  1  1    L  L  H  H  \n\n   0  1  0  0    H  L  L  L // flip\n   0  1  1  0    H  L  L  H\n   0  1  0  1    H  L  H  L\n   0  1  1  1    H  L  H  H\n\n   1  0  0  0    H  L  H  H // nand\n   1  0  1  0    H  L  H  H\n   1  0  0  1    H  L  H  H\n   1  0  1  1    H  L  L  L\n\n   1  1  0  0    L  L  H  H // swap\n   1  1  1  0    H  L  H  H\n   1  1  0  1    L  H  H  H\n   1  1  1  1    H  H  H  H\n\n\n\n.plot wf\n.plot wd\n.plot nf\n.plot nd\n\n.plot ef\n.plot ed\n.plot sf\n.plot sd\n"
+        ]
+      ]
+    }
+  }
+]
