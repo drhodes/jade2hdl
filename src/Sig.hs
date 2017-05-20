@@ -26,7 +26,7 @@ data Sig = SigSimple String
          | SigHash String Integer
          | SigRange String Integer Integer
          | SigRangeStep String Integer Integer Integer
-         | SigQuote String Integer
+         | SigQuote Integer Integer
          deriving (Show, Eq)
 
 -- := sig#count         replicate sig specified number of times 
