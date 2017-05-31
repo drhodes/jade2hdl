@@ -1,7 +1,8 @@
-module Sig where
+module Jade.Sig where
 
 import Text.Parsec.String
 import Text.Parsec
+import Jade.Types
 
 {-
 signal names need to be parsed.
@@ -12,7 +13,6 @@ signal names need to be parsed.
     //      := sig#count         replicate sig specified number of times 
     //      := sig[start:stop:step]   expands to sig[start],sig[start+step],...,sig[end] 
     //      := number'size       generate appropriate list of vdd, gnd to represent number
-
 -}
 
 symbol :: Parser String
@@ -20,14 +20,6 @@ symbol = do
   x <- letter <|> char '_'
   rest <- many (alphaNum <|> char '_')
   return $ x:rest
-
-data Sig = SigSimple String
-         | SigIndex String Integer
-         | SigHash String Integer
-         | SigRange String Integer Integer
-         | SigRangeStep String Integer Integer Integer
-         | SigQuote Integer Integer
-         deriving (Show, Eq)
 
 -- := sig#count         replicate sig specified number of times 
 sigHash :: Parser Sig
@@ -89,7 +81,6 @@ sig = choice $ map try [ sigQuote
                        , sigIndex
                        , sigSimple
                        ] 
-
 
 parseSig :: String -> Either ParseError Sig
 parseSig s = parse sig "signal" s

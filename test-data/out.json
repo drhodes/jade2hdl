@@ -1,0 +1,14 @@
+[
+  "Jade",
+  {
+      "/user/AND2":
+      { "properties": { "name": { "edit": "yes", "type": "name", "value": "", "label": "Name" }},
+        "schematic": [ [ "/gates/and2", [ -40, -176, 0 ] ],
+                       [ "port", [ -40, -176, 0 ], { "signal": "in1" }],
+                       [ "port", [ -40, -160, 0 ], { "signal": "in2" }],
+                       [ "port", [ 8, -168, 4 ], { "signal": "out", "direction": "out" }]],
+        "test": [ [ "test","" ]
+      ]
+    }
+  }
+]

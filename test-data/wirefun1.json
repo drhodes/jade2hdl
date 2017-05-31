@@ -1,0 +1,1 @@
+["Jade",{"/user/wirefun1":{"properties":{"name":{"edit":"yes","type":"name","value":"","label":"Name"}},"schematic":[["wire",[-56,-40,0,-16,0]],["wire",[-56,-40,0,0,16]],["wire",[-56,-40,2,-16,0]],["wire",[-56,-40,2,0,16],{"signal":"A"}]],"test":[["test",""]]}}]

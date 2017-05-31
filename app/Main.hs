@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import Jade.Decode
 
 main :: IO ()
-main = someFunc
+main = undefined
