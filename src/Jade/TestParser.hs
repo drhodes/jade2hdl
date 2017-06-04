@@ -1,10 +1,11 @@
-module Jade.Sig where
+module Jade.TestParser where
 
 import Text.Parsec.String
 import qualified Text.Parsec.Number as TPN
 import Text.Parsec
 import Jade.Types
 import qualified Numeric as N
+
 {-
 signal names need to be parsed.
 

@@ -39,7 +39,6 @@ the tests as HDL tests.
  Wire(Coord5(x, y, rot, dx, dy), SignalName) 
 -}
 
-
 instance FromJSON Direction where
   parseJSON (String txt) =
     return $ case txt of
@@ -94,6 +93,11 @@ instance FromJSON SubModule where
     sub <- parseJSON $ v V.! 1
     return $ SubModule name sub
 
+instance FromJSON Jumper where
+  parseJSON (Array v) = do
+    c3 <- parseJSON $ v V.! 1
+    return $ Jumper c3 
+
 instance FromJSON Component where
   parseJSON v@(Array arr) = do
     ctype <- parseJSON $ arr V.! 0 :: Parser String
@@ -104,6 +108,9 @@ instance FromJSON Component where
       "port" ->
         do p <- parseJSON v
            return $ PortC p
+      "jumper" ->
+        do p <- parseJSON v
+           return $ JumperC p
       _ -> -- this is probably not safe.
         do sub <- parseJSON v
            return $ SubModuleC sub

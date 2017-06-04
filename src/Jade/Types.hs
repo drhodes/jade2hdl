@@ -11,7 +11,13 @@ import qualified Data.Vector as V
 import qualified Data.Map as DM
 import qualified System.Environment as SE
 
+------------------------------------------------------------------
+-- Schematic Types
+
 data Direction = In | Out | InOut deriving (Show, Eq)
+
+data SigNum = Bin String
+            | Num Integer
 
 data Sig = SigSimple String
          | SigIndex String Integer
@@ -60,9 +66,12 @@ data SubModule = SubModule { subName :: String
                            , subCoord3 :: Coord3
                            } deriving (Show, Eq)
 
+data Jumper = Jumper Coord3 deriving (Show, Eq)
+
 data Component = PortC Port
                | SubModuleC SubModule
                | WireC Wire
+               | JumperC Jumper
                | Nop
                  deriving (Show, Eq)
 
@@ -74,3 +83,58 @@ data Module = Module Schematic deriving (Show, Eq) -- todo add test
 
 data TopLevel = TopLevel (DM.Map String (Maybe Module))
               deriving  (Show, Eq)
+
+
+------------------------------------------------------------------
+-- Test Types
+
+data Power = Power { powerVdd :: Double } deriving (Show, Eq)
+  
+data Thresholds = Thresholds { thVol :: Double
+                             , thVil :: Double
+                             , thVih :: Double
+                             , thVoh :: Double
+                             } deriving (Show, Eq)
+
+data Inputs = Inputs [Sig] deriving (Show, Eq)
+data Outputs = Outputs [Sig] deriving (Show, Eq)
+
+data Mode = Device | Gate deriving (Show, Eq)
+
+data Duration = Nanosecond Double
+              | Millisecond Double
+                deriving (Show, Eq)
+
+data Action = Assert String
+            | Deassert String
+            | Sample String
+            | Tran Duration
+            | SetSignal Sig Double
+              deriving (Show, Eq)
+
+data CycleLine = CycleLine [Action] deriving (Show, Eq)
+
+data BinVal = L | H | Z deriving (Show, Eq)
+
+data TestLine = TestLine { testLineAsserts :: [BinVal]                         
+                         , testLineSamples :: [BinVal]
+                         , testLineComment :: Maybe String
+                         } deriving (Show, Eq)
+
+data PlotDef = PlotDef Signal String deriving (Show, Eq)
+
+data PlotStyle = BinStyle Sig
+               | HexStyle Sig
+               | DecStyle Sig
+                 deriving (Show, Eq)
+
+data ModTest = ModTest { modPower :: Maybe Power
+                       , modThresholds :: Maybe Thresholds
+                       , modInputs :: Maybe Inputs
+                       , modOutputs :: Maybe Outputs
+                       , modMode :: Maybe Mode
+                       , modCycleLine :: Maybe CycleLine
+                       , modTestLines :: [TestLine]
+                       , modPlotDef :: Maybe [PlotDef]
+                       , modPlotStyles :: Maybe [PlotStyle]
+                       } deriving (Show, Eq)

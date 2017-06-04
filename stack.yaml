@@ -41,7 +41,7 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
   - language-vhdl-0.1.2.8
-
+  - parsec3-numbers-0.1.0
 # Override default flag values for local packages and extra-deps
 flags: {}
 

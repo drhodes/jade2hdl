@@ -19,3 +19,4 @@ testConnected = do
   let edges = map wireToEdge wires
   let g = G.fromEdges edges
   return  g
+
