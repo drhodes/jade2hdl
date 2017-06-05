@@ -26,8 +26,53 @@ strAndNum s =
 
 power :: Parser Power
 power = do string ".power"
-           spaces
+           hspaces
            liftM Power $ strAndNum "Vdd"
+
+
+
+plotDef :: Parser PlotDef
+plotDef = do string ".plotdef"
+             hspaces
+             sig <- Sig.sig
+             labels <- many1 $ try (hspaces >> (many1 alphaNum <|> string "?"))
+             return $ PlotDef sig labels
+
+simplePlot :: Parser PlotStyle
+simplePlot = do string ".plot"
+                hspaces
+                sig <- Sig.sig
+                return $ SimplePlot sig
+
+basePlot :: Parser PlotStyle
+basePlot = do string ".plot"
+              hspaces
+              base <- oneOf "XDB"
+              char '('
+              hspaces
+              sig <- Sig.sig
+              hspaces
+              char ')'
+              return $ case base of
+                         'X' -> HexStyle sig
+                         'B' -> BinStyle sig
+                         'D' -> DecStyle sig
+
+plotDefStyle :: Parser PlotStyle
+plotDefStyle = do string ".plot"
+                  hspaces
+                  name <- ident
+                  char '('
+                  hspaces
+                  sig <- Sig.sig
+                  hspaces 
+                  char ')'
+                  return $ PlotDefStyle name sig
+
+plot :: Parser PlotStyle
+plot = choice $ map try [ simplePlot
+                        , basePlot
+                        , plotDefStyle ]
 
 thresholds :: Parser Thresholds
 thresholds = do string ".thresholds"
@@ -41,8 +86,7 @@ inputs :: Parser Inputs
 inputs = do string ".group"
             hspaces
             string "inputs"
-            hspaces 
-            ins <- many1 (hspaces >> Sig.sig)
+            ins <- many1 $ try (hspaces >> Sig.sig)
             return $ Inputs ins
 
 outputs :: Parser Outputs
@@ -50,7 +94,7 @@ outputs = do string ".group"
              hspaces
              string "outputs"
              hspaces
-             outs <- many1 (hspaces >> Sig.sig)
+             outs <- many1 $ try (hspaces >> Sig.sig)
              return $ Outputs outs
 
 mode :: Parser Mode
@@ -140,6 +184,8 @@ lineSamples = many $ do b <- binLetter
                         hspaces
                         return b
 
+
+
 comment :: Parser String
 comment = do string "//"
              xs <- many $ noneOf "\n"             
@@ -177,13 +223,30 @@ acretePower filename mt lineNum line =
     Left msg -> mt
     Right p -> mt { modPower = Just p }
 
+acretePlotDef filename mt lineNum line =
+  case parse plotDef filename line of
+    Left msg -> mt
+    Right pdef -> let pdefs = modPlotDef mt
+                  in mt { modPlotDef = pdef:pdefs }
+
+acretePlot filename mt lineNum line =
+  case parse plot filename line of
+    Left msg -> mt
+    Right p -> let ps = modPlotStyles mt
+               in mt { modPlotStyles = p:ps }
+
 acreteThresholds filename mt lineNum line =
   case parse thresholds filename line of
     Left msg -> mt
     Right p -> mt { modThresholds = Just p }
 
+commented c = do x <- c
+                 hspaces
+                 optional comment
+                 return x
+
 acreteInputs filename mt lineNum line =
-  case parse inputs filename line of
+  case parse (commented inputs) filename line of
     Left msg -> mt
     Right p -> mt { modInputs = Just p }
   
@@ -207,7 +270,10 @@ acreteOne filename mt lineNum line =
            , acretePower
            , acreteThresholds
            , acreteInputs
-           , acreteOutputs ]
+           , acreteOutputs
+           , acretePlotDef
+           , acretePlot
+           ]
   in acreteTry fs filename mt lineNum line
 
 acreteAll _ mt [] = Right mt
@@ -221,4 +287,10 @@ parseModTestFile filename = do
   xs <- liftM lines (readFile filename)
   let linePairs = zip [1..] xs
   return $ acreteAll filename defaultModTest linePairs
+  
+parseModTestString :: String -> Either [Char] ModTest
+parseModTestString s =
+  let xs = lines s
+      linePairs = zip [1..] xs
+  in acreteAll "change-me" defaultModTest linePairs
 

@@ -14,6 +14,7 @@ import qualified Data.Vector as V
 import qualified Data.Map as DM
 import qualified System.Environment as SE
 import qualified Jade.Sig as Sig
+import qualified Jade.ModTest as MT
 import Jade.Types
 
 {-
@@ -123,7 +124,11 @@ instance FromJSON Schematic where
 instance FromJSON Module where
   parseJSON (Object o) = do
     schem <- o .: "schematic"
-    return $ Module schem 
+    [["test", tstring]] <- o .: "test"
+
+    case MT.parseModTestString tstring of
+      Right mt -> return $ Module schem mt
+      Left msg -> fail msg
 
 instance FromJSON TopLevel where
   parseJSON (Array arr) = do

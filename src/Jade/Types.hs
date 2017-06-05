@@ -79,7 +79,7 @@ type Test = String
 
 data Schematic = Schematic (V.Vector Component) deriving (Show, Eq)
 
-data Module = Module Schematic deriving (Show, Eq) -- todo add test
+data Module = Module Schematic ModTest deriving (Show, Eq) -- todo add test
 
 data TopLevel = TopLevel (DM.Map String (Maybe Module))
               deriving  (Show, Eq)
@@ -121,11 +121,13 @@ data TestLine = TestLine { testLineAsserts :: [BinVal]
                          , testLineComment :: Maybe String
                          } deriving (Show, Eq)
 
-data PlotDef = PlotDef Signal String deriving (Show, Eq)
+data PlotDef = PlotDef Sig [String] deriving (Show, Eq)
 
 data PlotStyle = BinStyle Sig
                | HexStyle Sig
                | DecStyle Sig
+               | SimplePlot Sig
+               | PlotDefStyle String Sig
                  deriving (Show, Eq)
 
 data ModTest = ModTest { modPower :: Maybe Power
