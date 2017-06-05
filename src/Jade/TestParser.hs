@@ -17,6 +17,11 @@ signal names need to be parsed.
     //      := number'size       generate appropriate list of vdd, gnd to represent number
 -}
 
+
+
+
+
+
 symbol :: Parser String
 symbol = do
   x <- letter <|> char '_'

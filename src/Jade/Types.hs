@@ -135,6 +135,6 @@ data ModTest = ModTest { modPower :: Maybe Power
                        , modMode :: Maybe Mode
                        , modCycleLine :: Maybe CycleLine
                        , modTestLines :: [TestLine]
-                       , modPlotDef :: Maybe [PlotDef]
-                       , modPlotStyles :: Maybe [PlotStyle]
+                       , modPlotDef :: [PlotDef]
+                       , modPlotStyles :: [PlotStyle]
                        } deriving (Show, Eq)

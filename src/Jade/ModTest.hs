@@ -39,19 +39,26 @@ thresholds = do string ".thresholds"
 
 inputs :: Parser Inputs
 inputs = do string ".group"
-            spaces
-            liftM Inputs $ many1 (spaces >> Sig.sig)
+            hspaces
+            string "inputs"
+            hspaces 
+            ins <- many1 (hspaces >> Sig.sig)
+            return $ Inputs ins
 
 outputs :: Parser Outputs
 outputs = do string ".group"
-             spaces
-             liftM Outputs $ many1 (spaces >> Sig.sig)
+             hspaces
+             string "outputs"
+             hspaces
+             outs <- many1 (hspaces >> Sig.sig)
+             return $ Outputs outs
 
 mode :: Parser Mode
 mode = do string ".mode"
-          spaces
+          hspaces
           mtype <- choice [ try $ string "gate"
                           , try $ string "device" ]
+          hspaces
           case mtype of
             "gate" -> return Gate
             "device" -> return Device
@@ -107,8 +114,8 @@ action = do
 cycleLine :: Parser CycleLine
 cycleLine = do
   string ".cycle"
-  liftM CycleLine $ many1 (spaces >> action)
-
+  clines <- many1 (hspaces >> action)
+  return $ CycleLine clines
 
 binNum :: Parser BinVal
 binNum = choice $ map try [ char '1' >> return H
@@ -120,13 +127,17 @@ binLetter = choice $ map try [ char 'H' >> return H
                              , char '-' >> return Z ]
             
 lineAsserts :: Parser [BinVal]
-lineAsserts = many $ do b <- binNum
-                        spaces
-                        return b
+lineAsserts = many1 $ do b <- binNum
+                         hspaces
+                         return b
+
+hspaces :: Parser ()
+hspaces = do many $ oneOf " \t"
+             return ()
 
 lineSamples :: Parser [BinVal]
 lineSamples = many $ do b <- binLetter
-                        spaces
+                        hspaces
                         return b
 
 comment :: Parser String
@@ -135,13 +146,79 @@ comment = do string "//"
              return xs
 
 testLine :: Parser TestLine
-testLine =
-  do las <- lineAsserts
-     lss <- lineSamples
-     c <- optionMaybe comment
-     return $ TestLine las lss c
+testLine = do
+  las <- lineAsserts
+  lss <- lineSamples
+  c <- optionMaybe comment
+  return $ TestLine las lss c
 
+defaultModTest = let
+  n = Nothing
+  in ModTest n n n n n n [] [] [] 
 
-parseTest s = do
-  undefined
+acreteTestLine filename mt lineNum line =
+  case parse testLine filename line of
+    Left msg -> mt
+    Right p -> let tlines = modTestLines mt
+               in mt { modTestLines = p:tlines  }
+
+acreteCycleLine filename mt lineNum line =
+  case parse cycleLine filename line of
+    Left msg -> mt
+    Right p -> mt { modCycleLine = Just p }
+    
+acreteMode filename mt lineNum line =
+  case parse mode filename line of
+    Left msg -> mt
+    Right p -> mt { modMode = Just p }
+
+acretePower filename mt lineNum line =
+  case parse power filename line of
+    Left msg -> mt
+    Right p -> mt { modPower = Just p }
+
+acreteThresholds filename mt lineNum line =
+  case parse thresholds filename line of
+    Left msg -> mt
+    Right p -> mt { modThresholds = Just p }
+
+acreteInputs filename mt lineNum line =
+  case parse inputs filename line of
+    Left msg -> mt
+    Right p -> mt { modInputs = Just p }
+  
+acreteOutputs filename mt lineNum line =
+  case parse outputs filename line of
+    Left msg -> mt
+    Right p -> mt { modOutputs = Just p }
+
+acreteTry [] filename mt lineNum line = Left $ "Couldn't match this line: " ++ line
+acreteTry (f:fs) filename mt lineNum line =
+  let mt' = f filename mt lineNum line
+  in if mt' == mt
+  then acreteTry fs filename mt lineNum line
+  else Right mt'
+    
+acreteOne filename mt lineNum "" = Right mt 
+acreteOne filename mt lineNum line = 
+  let fs = [ acreteTestLine
+           , acreteCycleLine
+           , acreteMode
+           , acretePower
+           , acreteThresholds
+           , acreteInputs
+           , acreteOutputs ]
+  in acreteTry fs filename mt lineNum line
+
+acreteAll _ mt [] = Right mt
+acreteAll filename mt ((lineNum,line):rest) =
+  let mt' = acreteOne filename mt lineNum line
+  in case mt' of
+    Left msg -> Left msg
+    Right asdf -> acreteAll filename asdf rest
+
+parseModTestFile filename = do
+  xs <- liftM lines (readFile filename)
+  let linePairs = zip [1..] xs
+  return $ acreteAll filename defaultModTest linePairs
 
