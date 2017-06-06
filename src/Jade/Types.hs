@@ -81,7 +81,10 @@ data Schematic = Schematic (V.Vector Component) deriving (Show, Eq)
 
 data Module = Module Schematic ModTest deriving (Show, Eq) -- todo add test
 
-data TopLevel = TopLevel (DM.Map String (Maybe Module))
+-- data TopLevel = TopLevel (DM.Map String (Maybe Module))
+--               deriving  (Show, Eq)
+
+data TopLevel = TopLevel (DM.Map String Module)
               deriving  (Show, Eq)
 
 

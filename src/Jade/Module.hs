@@ -11,12 +11,11 @@ import Jade.Wire
 -- data TopLevel = TopLevel (DM.Map String (Maybe Module))
 --               deriving  (Show, Eq)
 
-testConnected :: IO (G.Graph (Integer, Integer))
+--testConnected :: IO (G.Graph (Integer, Integer))
 testConnected = do
   Right (TopLevel m) <- D.decodeTopLevel "./test-data/fan5rot4connect.json"
-  let [Just (Module (Schematic wirecs))] = DM.elems m
+  let [Module (Schematic wirecs) _] = DM.elems m
   let wires = [w | WireC w <- DV.toList wirecs]
   let edges = map wireToEdge wires
   let g = G.fromEdges edges
-  return  g
-
+  return g

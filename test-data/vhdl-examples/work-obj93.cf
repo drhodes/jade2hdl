@@ -1,4 +1,0 @@
-v 4
-file . "and.vhdl" "1f18e8f1c3434051be5e15a5be10fb827be07f31" "20170525181937.055":
-  entity example_and at 1( 0) + 0 on 4;
-  architecture rtl of example_and at 12( 197) + 0 on 4;

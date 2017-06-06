@@ -124,7 +124,8 @@ instance FromJSON Schematic where
 instance FromJSON Module where
   parseJSON (Object o) = do
     schem <- o .: "schematic"
-    [["test", tstring]] <- o .: "test"
+    [["test", tstring]] <- o .: "test" -- todo make this safer.
+
 
     case MT.parseModTestString tstring of
       Right mt -> return $ Module schem mt

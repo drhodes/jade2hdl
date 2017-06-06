@@ -29,8 +29,6 @@ power = do string ".power"
            hspaces
            liftM Power $ strAndNum "Vdd"
 
-
-
 plotDef :: Parser PlotDef
 plotDef = do string ".plotdef"
              hspaces
@@ -183,8 +181,6 @@ lineSamples :: Parser [BinVal]
 lineSamples = many $ do b <- binLetter
                         hspaces
                         return b
-
-
 
 comment :: Parser String
 comment = do string "//"
