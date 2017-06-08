@@ -17,6 +17,8 @@ library
   hs-source-dirs:      src
   exposed-modules:     Jade.Decode
                      , Jade.Types
+                     , Jade.TopLevel
+                     , Jade.ModTest
                      , Jade.Sig
   build-depends:       aeson >= 1.0.2.1,
                        base >= 4.7 && < 5,

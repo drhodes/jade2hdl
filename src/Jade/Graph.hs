@@ -26,7 +26,6 @@ addEdge' (Graph table) (Edge v w) =
                  Just s -> DM.insert v (DS.insert w s) table
   in Graph table'
 
-
 addEdge g (Edge v w) =
   let g1 = addEdge' g (Edge v w)
       g2 = addEdge' g1 (Edge w v)
@@ -44,6 +43,8 @@ verts (Graph table) = DM.keys table
 fromEdges :: Ord a => [Edge a] -> Graph a
 fromEdges = foldl addEdge empty
 
+-- breadth first search.
+collect' :: Ord a => Graph a -> DS.Set a -> a -> DS.Set a
 collect' g seen vert =
   let adj = adjacent g vert -- Set
       seen' = DS.union adj seen
@@ -51,10 +52,13 @@ collect' g seen vert =
       next = DS.unions $ map (collect' g seen') (DS.toList keepers)
   in DS.union next seen
   
+collect :: Ord a
+        => Graph a 
+        -> a
+        -> DS.Set a
 collect g vert = collect' g DS.empty vert  
 
 components g = DS.map (collect g) (DS.fromList $ verts g)
-
 
 testG = fromEdges [ Edge 2 4
                   , Edge 4 6

@@ -101,3 +101,13 @@ sig = choice $ map try [ sigQuote
 
 parseSig :: String -> Either ParseError Sig
 parseSig s = parse sig "signal" s
+
+width :: Sig -> Int
+width sig = case sig of
+              SigSimple _ -> 1
+              SigIndex _ _ -> 1
+              SigHash _ n -> fromIntegral n
+              SigRange _ from to -> fromIntegral $ from - to
+              SigRangeStep _ from to step ->
+                (fromIntegral from) - (fromIntegral to) `div` (fromIntegral step)
+              SigQuote _ w -> fromIntegral w

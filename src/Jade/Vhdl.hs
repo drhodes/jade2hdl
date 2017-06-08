@@ -1,21 +1,17 @@
 module Jade.Vhdl where
 
+import qualified Data.Map as DM
 import qualified Language.VHDL.Syntax as S
 import qualified Language.VHDL.Pretty as P
 import Jade.Types
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
+import qualified Jade.Module as Module
 
 tident :: String -> S.TypeMark
 tident s = (S.TMType (S.NSimple (S.Ident s)))
 
-asdf = let ident = [S.Ident "alu"]
-           mode = Just S.In
-           subtypeInd = S.SubtypeIndication Nothing (tident "std_logic") Nothing
-           bus = False
-           expr = Nothing
-       in S.InterfaceSignalDeclaration ident mode subtypeInd bus expr
-
+mkSigDecl :: S.Mode -> Sig -> S.InterfaceDeclaration
 mkSigDecl way (SigSimple n) =
   let ident = [S.Ident n]
       mode = Just way
@@ -25,37 +21,91 @@ mkSigDecl way (SigSimple n) =
   in S.InterfaceSignalDeclaration ident mode subtypeInd bus expr
 mkSigDecl _ _ = undefined
 
-
--- JADE module -> VHDL module.
--- the module ports will be determined by JADE .group directives.
--- builtin jade modules need to be a thing.
-
+replace :: [Char] -> [Char] -> [Char] -> [Char]
 replace c r xs = "mod" ++ (concat [if [x] == c then r else [x] | x <- xs])
 
-translateMod (name, Module schem modTests) = do
+mkPortClause :: (String, Module) -> S.PortClause
+mkPortClause (name, Module schem modTests) = 
   -- get the inputs.
   -- get the modules name
-  print (replace "/" "__" name)
+  --print (replace "/" "__" name)
   let (Just (Inputs ins)) = modInputs modTests
-  let (Just (Outputs outs)) = modOutputs modTests
-  let inSigs = map (mkSigDecl S.In) ins
+      (Just (Outputs outs)) = modOutputs modTests
+      inSigs = map (mkSigDecl S.In) ins
       outSigs = map (mkSigDecl S.Out) outs
-  print $ P.pp $ S.PortClause $ S.InterfaceList (inSigs ++ outSigs) --
-  return ()
-  
-foo = do
-  topl <- Decode.decodeTopLevel "./test-data/and2.json"
-  case topl of
-    (Right topl) -> do
-      let mods = TopLevel.modules topl
+  in S.PortClause $ S.InterfaceList (inSigs ++ outSigs) --
 
-      -- emit the port section
-      mapM_ translateMod mods
+mkEntityDecl (name, m@(Module schem modTests)) =
+  let portClause = mkPortClause (name, m)
+      entId = S.Ident (replace "/" "__" name)
+      entHeader = S.EntityHeader Nothing (Just portClause)
+      entDecl = []
+      entStat = Nothing
+  in S.EntityDeclaration entId entHeader entDecl entStat
+
+-- data ArchitectureBody = ArchitectureBody {
+--     archi_identifier       :: Identifier
+--   , archi_entity_name      :: Name
+--   , archi_declarative_part :: ArchitectureDeclarativePart
+--   , archi_statement_part   :: ArchitectureStatementPart
+--   }
+--   deriving (Eq, Show)
+
+-- ConProcess   ProcessStatement
+
+--FUNCTIONAL DESCRIPTION: how the AND Gate works                                                  -- architecture func of andGate is
+-- begin
+--   F <= A and B;
+-- end func;
+
+-- data SignalAssignmentStatement = SignalAssignmentStatement
+--       (Maybe Label) Target (Maybe DelayMechanism) Waveform
+--   deriving (Eq, Show)
+
+mkArchBody (name, m@(Module schem modTests)) =
+  let portClause = mkPortClause (name, m)
+      archId = S.Ident "func"
+      entName = S.NSimple $ S.Ident (replace "/" "__" name)
+
+      sas = S.SSignalAss $ S.SignalAssignmentStatement
+        Nothing -- (Just (S.Ident "lol"))
+        (S.TargetName $ S.NSimple $ S.Ident "asdf")
+        Nothing
+        (S.WaveElem [S.WaveEExp (expName "something") Nothing])
+
+      stmts = [S.ConProcess (S.ProcessStatement Nothing False Nothing [] [sas])]
+      -- archDecls = nuthin. [].
       
-    (Left msg) -> fail msg
+  in S.ArchitectureBody archId entName [] stmts
+
+
+expName :: String -> S.Expression
+expName s =
+  let name = S.PrimName (S.NSimple $ S.Ident s)
+      term = S.Term (S.FacPrim name Nothing) []
+      simp = S.SimpleExpression Nothing term []
+      shft = S.ShiftExpression simp Nothing
+      rel = S.Relation shft Nothing
+      exp = S.EAnd [rel]
+  in exp
 
 
 
+mkProcStmt stmts = S.ProcessStatement Nothing False Nothing [] stmts
+
+
+
+
+-- translateSchem (name, Module schem modTests) = do
+--   -- calculate the value of each node.
+--   -- start from an output
+--   -- 
+--   print name
+--   print schem
+--   -- find the output nodes.
+  
+--   -- work back
+--   return ()
 
 
 {-

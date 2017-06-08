@@ -290,3 +290,28 @@ parseModTestString s =
       linePairs = zip [1..] xs
   in acreteAll "change-me" defaultModTest linePairs
 
+bust _ [] = []
+bust (chunk:rest) xs = take chunk xs : (bust rest $ drop chunk xs)
+
+testLineSignals :: ModTest -> TestLine -> Either String [(Sig, [BinVal])]
+testLineSignals modt (TestLine asserts samples _) = do
+  let Just (Inputs inSigs) = modInputs modt
+      Just (Outputs outSigs) = modOutputs modt
+      inWidths = map Sig.width inSigs
+      outWidths = map Sig.width outSigs
+
+  -- improve these error messages
+  when (sum inWidths /= length asserts) $
+    fail $ "testline asserts doesn't match the width of the signals"
+    ++ (show (inSigs, asserts))
+
+  when (sum outWidths /= length samples) $
+    fail $ "testline samples do not match the width of the signals"
+    ++ (show (outSigs, samples))
+
+  return $ concat [ zip inSigs (bust inWidths asserts)
+                  , zip outSigs (bust outWidths samples) ]
+
+
+
+

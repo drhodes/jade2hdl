@@ -1,4 +1,4 @@
-module Module where
+module Jade.Module where
 
 import qualified Data.Map as DM
 import qualified Data.Set as DS

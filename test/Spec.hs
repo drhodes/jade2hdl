@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+import Jade.ModTest
+import Jade.Types
 import Jade.Decode
 import Data.Aeson
 
@@ -36,3 +38,5 @@ testSchem1 = eitherDecode "[[\"port\", [136, 64, 1], {\"signal\": \"wd\"}],[\"po
 schem2 = "[[\"wire\", [136, 64, 1, 0, 0], {\"signal\": \"wd\"}],[\"port\", [136, 64, 1], {\"signal\": \"wd\"}]]" 
 testSchem2 :: Either String Schematic
 testSchem2 = eitherDecode schem2
+
+
