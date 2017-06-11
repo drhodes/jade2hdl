@@ -26,9 +26,6 @@ replace c r xs = "mod" ++ (concat [if [x] == c then r else [x] | x <- xs])
 
 mkPortClause :: (String, Module) -> S.PortClause
 mkPortClause (name, Module schem modTests) = 
-  -- get the inputs.
-  -- get the modules name
-  --print (replace "/" "__" name)
   let (Just (Inputs ins)) = modInputs modTests
       (Just (Outputs outs)) = modOutputs modTests
       inSigs = map (mkSigDecl S.In) ins
@@ -43,17 +40,9 @@ mkEntityDecl (name, m@(Module schem modTests)) =
       entStat = Nothing
   in S.EntityDeclaration entId entHeader entDecl entStat
 
--- data ArchitectureBody = ArchitectureBody {
---     archi_identifier       :: Identifier
---   , archi_entity_name      :: Name
---   , archi_declarative_part :: ArchitectureDeclarativePart
---   , archi_statement_part   :: ArchitectureStatementPart
---   }
---   deriving (Eq, Show)
-
 -- ConProcess   ProcessStatement
 
---FUNCTIONAL DESCRIPTION: how the AND Gate works                                                  -- architecture func of andGate is
+--FUNCTIONAL DESCRIPTION: how the AND Gate works -- architecture func of andGate is
 -- begin
 --   F <= A and B;
 -- end func;
@@ -62,18 +51,20 @@ mkEntityDecl (name, m@(Module schem modTests)) =
 --       (Maybe Label) Target (Maybe DelayMechanism) Waveform
 --   deriving (Eq, Show)
 
+mkArchBody :: ([Char], Module) -> S.ArchitectureBody
 mkArchBody (name, m@(Module schem modTests)) =
   let portClause = mkPortClause (name, m)
       archId = S.Ident "func"
       entName = S.NSimple $ S.Ident (replace "/" "__" name)
+      label = Nothing
 
       sas = S.SSignalAss $ S.SignalAssignmentStatement
-        Nothing -- (Just (S.Ident "lol"))
+        label
         (S.TargetName $ S.NSimple $ S.Ident "asdf")
         Nothing
         (S.WaveElem [S.WaveEExp (expName "something") Nothing])
 
-      stmts = [S.ConProcess (S.ProcessStatement Nothing False Nothing [] [sas])]
+      stmts = [S.ConProcess (S.ProcessStatement Nothing False Nothing [] [sas, sas, sas])]
       -- archDecls = nuthin. [].
       
   in S.ArchitectureBody archId entName [] stmts

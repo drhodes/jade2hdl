@@ -14,8 +14,10 @@ module Jade.Graph
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.List as DL
+import Jade.Types
 
 data Graph a = Graph (DM.Map a (DS.Set a)) deriving (Show, Eq)
+--data Node a = Node a b deriving (Show)
 data Edge a = Edge a a deriving (Show, Eq)
 
 empty = Graph DM.empty
@@ -46,10 +48,10 @@ fromEdges = foldl addEdge empty
 -- breadth first search.
 collect' :: Ord a => Graph a -> DS.Set a -> a -> DS.Set a
 collect' g seen vert =
-  let adj = adjacent g vert -- Set
-      seen' = DS.union adj seen
-      keepers = adj DS.\\ seen
-      next = DS.unions $ map (collect' g seen') (DS.toList keepers)
+  let adj = adjacent g vert -- get the adjacent nodes
+      seen' = DS.union adj seen -- union them with those seen already
+      unexplored = adj DS.\\ seen 
+      next = DS.unions $ map (collect' g seen') (DS.toList unexplored)
   in DS.union next seen
   
 collect :: Ord a
@@ -60,10 +62,10 @@ collect g vert = collect' g DS.empty vert
 
 components g = DS.map (collect g) (DS.fromList $ verts g)
 
-testG = fromEdges [ Edge 2 4
-                  , Edge 4 6
-                  , Edge 6 8
-                  , Edge 1 3
-                  , Edge 3 5
-                  , Edge 5 7
-                  ]
+-- testG = fromEdges [ Edge 2 4
+--                   , Edge 4 6
+--                   , Edge 6 8
+--                   , Edge 1 3
+--                   , Edge 3 5
+--                   , Edge 5 7
+--                   ]

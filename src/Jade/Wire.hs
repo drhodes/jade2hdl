@@ -32,10 +32,10 @@ transformY rot x y =
     6 -> -y  
     7 -> x
 
-wireToEdge (Wire (Coord5 x y rot dx dy) _) =
+wireToEdge w@(Wire (Coord5 x y rot dx dy) _) =
   let x' = x + (transformX rot dx dy)
       y' = y + (transformY rot dx dy)
-  in G.Edge (x, y) (x', y')
+  in G.Edge w (x, y) (x', y')
 
 w1 = Wire (Coord5 0 0 Rot0 8 0) Nothing
 w2 = Wire (Coord5 0 0 Rot270 8 0) Nothing

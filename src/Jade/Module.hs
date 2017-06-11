@@ -19,3 +19,12 @@ testConnected = do
   let edges = map wireToEdge wires
   let g = G.fromEdges edges
   return g
+
+
+--components :: Module ->
+
+--components :: Module -> (DS.Set (DS.Set (Integer, Integer)))
+components (Module (Schematic wirecs) _) =
+  let wires = [w | WireC w <- DV.toList wirecs]
+      edges = map wireToEdge wires
+  in G.components $ G.fromEdges edges

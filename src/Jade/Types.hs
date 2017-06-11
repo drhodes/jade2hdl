@@ -10,14 +10,17 @@ import Data.ByteString.Lazy.Internal
 import qualified Data.Vector as V
 import qualified Data.Map as DM
 import qualified System.Environment as SE
+import Data.Hashable
 
 ------------------------------------------------------------------
 -- Schematic Types
 
-data Direction = In | Out | InOut deriving (Show, Eq)
+data Direction = In | Out | InOut
+               deriving (Generic, Show, Eq, Hashable)
 
 data SigNum = Bin String
             | Num Integer
+            deriving (Generic, Show, Eq, Hashable)
 
 data Sig = SigSimple String
          | SigIndex String Integer
@@ -25,12 +28,12 @@ data Sig = SigSimple String
          | SigRange String Integer Integer
          | SigRangeStep String Integer Integer Integer
          | SigQuote Integer Integer
-         deriving (Show, Eq)
+         deriving (Show, Eq, Generic, Hashable)
 
 data Signal = Signal { signalName :: Maybe Sig
                      , signalWidth :: Maybe String
                      , signalDirection :: Maybe Direction
-                     } deriving (Show, Eq)
+                     } deriving (Show, Eq, Generic, Hashable)
 
 data Rot = Rot0
          | Rot270
@@ -40,23 +43,23 @@ data Rot = Rot0
          | TransposeNeg
          | FlipY
          | TransposePos
-           deriving (Show, Enum, Eq)
+           deriving (Show, Enum, Eq, Generic, Hashable)
 
 data Coord3 = Coord3 { c3x :: Integer
                      , c3y :: Integer
                      , c3r :: Integer
-                     } deriving (Show, Eq)
+                     } deriving (Show, Eq, Generic, Hashable)
 
 data Wire = Wire { wireCoord5 :: Coord5
                  , wireSignal :: Maybe Signal
-                 } deriving (Show, Eq)
+                 } deriving (Show, Eq, Generic, Hashable)
 
 data Coord5 = Coord5 { c5x :: Integer
                      , c5y :: Integer
                      , c5r :: Rot
                      , c5dx :: Integer
                      , c5dy :: Integer
-                     } deriving (Show, Eq)
+                     } deriving (Show, Eq, Generic, Hashable)
 
 data Port = Port { portCoord3 :: Coord3                 
                  , portSignal :: Maybe Signal
