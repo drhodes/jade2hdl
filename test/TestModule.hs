@@ -21,12 +21,25 @@ testMkArchBody = do
   let pair = head $ DM.toList m
   print $ P.pp $ Vhdl.mkArchBody pair
 
-testGraphVoodoo = do
-  Right tl <- Decode.decodeTopLevel "./test-data/and2-with-wires.json"
-  let modname = "/user/AND2"
+testGraphVoodoo filename modname = do
+  Right tl <- Decode.decodeTopLevel filename
   case TopLevel.getModule tl modname of
-    Just mod -> print $ Module.components mod
+    Just mod -> do
+      let comps = Module.components mod
+      print comps
+      print $ (filename, modname, "Numcomponents", length comps)
     Nothing -> print $ "couldn't find module: " ++ modname ++ " in toplevel"
 
+testGraphAnd2 = testGraphVoodoo "./test-data/and2-with-wires.json" "/user/AND2"
+testGraphPortWire = testGraphVoodoo "./test-data/port-wire.json" "/user/port_wire"
+testGraphPortWireMovedUp =
+  testGraphVoodoo "./test-data/port-wire-moved-up.json" "/user/port_wire"
 
-
+testGraphSubModule filename modname = do
+  Right tl <- Decode.decodeTopLevel filename
+  case TopLevel.getModule tl modname of
+    Just (Module schem _) -> print $ schem
+    Nothing -> print $ "couldn't find module: " ++ modname ++ " in toplevel"
+    
+testGraphSubModuleAnd2 =
+  testGraphSubModule "./test-data/and2-with-wires.json" "/user/AND2"

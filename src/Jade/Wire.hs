@@ -7,9 +7,6 @@ import qualified Jade.Graph as G
 -- rotateWire wire rot =
 --   case rot of 
 
-
-
-
 transformX rot x y =
   case fromEnum rot of
     0 -> x
@@ -35,8 +32,14 @@ transformY rot x y =
 wireToEdge w@(Wire (Coord5 x y rot dx dy) _) =
   let x' = x + (transformX rot dx dy)
       y' = y + (transformY rot dx dy)
-  in G.Edge w (x, y) (x', y')
+      n1 = G.Node (x, y) (WireC w)
+      n2 = G.Node (x', y') (WireC w)
+  in G.Edge n1 n2
 
 w1 = Wire (Coord5 0 0 Rot0 8 0) Nothing
 w2 = Wire (Coord5 0 0 Rot270 8 0) Nothing
 
+portToEdge p@(Port (Coord3 x y r) _) =
+  let n = G.Node (x, y) (PortC p)
+  in G.Edge n n
+  

@@ -1,24 +1,33 @@
-module Jade.Graph
-  ( Graph(..)
-  , Edge(..)
-  , addEdge
-  , adjacent
-  , collect
-  , components
-  , degree
-  , empty
-  , fromEdges
-  , numVerts
-  ) where
+module Jade.Graph where
+  -- ( Graph(..)
+  -- , Edge(..)
+  -- , addEdge
+  -- , adjacent
+  -- , collect
+  -- , components
+  -- , degree
+  -- , empty
+  -- , fromEdges
+  -- , numVerts
+  -- ) where
 
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.List as DL
 import Jade.Types
 
-data Graph a = Graph (DM.Map a (DS.Set a)) deriving (Show, Eq)
---data Node a = Node a b deriving (Show)
-data Edge a = Edge a a deriving (Show, Eq)
+data Node a = Node a Component
+            deriving (Show)
+
+instance Eq a => Eq (Node a) where
+  (Node x _) == (Node y _) = x == y
+
+instance Ord a => Ord (Node a) where
+  (Node x _) <= (Node y _) = x <= y
+
+
+data Graph a = Graph (DM.Map (Node a) (DS.Set (Node a))) deriving (Show, Eq)
+data Edge a = Edge (Node a) (Node a) deriving (Show, Eq)
 
 empty = Graph DM.empty
 
@@ -42,30 +51,27 @@ degree g v = DS.size $ adjacent g v
 numVerts (Graph table) = DM.size table
 verts (Graph table) = DM.keys table
         
-fromEdges :: Ord a => [Edge a] -> Graph a
-fromEdges = foldl addEdge empty
+fromEdges xs = foldl addEdge empty xs
+
+
 
 -- breadth first search.
-collect' :: Ord a => Graph a -> DS.Set a -> a -> DS.Set a
+--collect' :: Ord a => Graph (Node a) -> DS.Set (Node a) -> a -> DS.Set (Node a)
 collect' g seen vert =
   let adj = adjacent g vert -- get the adjacent nodes
       seen' = DS.union adj seen -- union them with those seen already
       unexplored = adj DS.\\ seen 
       next = DS.unions $ map (collect' g seen') (DS.toList unexplored)
   in DS.union next seen
-  
-collect :: Ord a
-        => Graph a 
-        -> a
-        -> DS.Set a
-collect g vert = collect' g DS.empty vert  
+
+collect g vert = collect' g DS.empty vert
 
 components g = DS.map (collect g) (DS.fromList $ verts g)
 
--- testG = fromEdges [ Edge 2 4
---                   , Edge 4 6
---                   , Edge 6 8
---                   , Edge 1 3
---                   , Edge 3 5
---                   , Edge 5 7
---                   ]
+testG = fromEdges [ Edge (Node 2 Nop) (Node 4 Nop)
+                  -- , Edge 4 6
+                  -- , Edge 6 8
+                  -- , Edge 1 3
+                  -- , Edge 3 5
+                  -- , Edge 5 7
+                  ]
