@@ -1,5 +1,6 @@
 name:                jade2hdl
 version:             0.1.0.0
+--
 -- synopsis:
 -- description:
 homepage:            https://github.com/drhodes/jade2hdl#readme
@@ -20,10 +21,12 @@ library
                      , Jade.TopLevel
                      , Jade.ModTest
                      , Jade.Sig
-  build-depends:       aeson >= 1.0.2.1,
+  build-depends:       QuickCheck >= 2.9.2,
+                       aeson >= 1.0.2.1,
                        base >= 4.7 && < 5,
                        bytestring >= 0.10.8.1,
                        containers >= 0.5.7.1,
+                       derive >= 2.6.2,
                        hashable >= 1.2.6.0,
                        language-vhdl >= 0.1.2.8,
                        optparse-applicative >= 0.13.2.0,
@@ -36,10 +39,12 @@ executable jade2hdl
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       aeson >= 1.0.2.1
+  build-depends:       QuickCheck >= 2.9.2
+                     , aeson >= 1.0.2.1
                      , base
                      , bytestring >= 0.10.8.1
                      , containers >= 0.5.7.1
+                     , derive >= 2.6.2
                      , jade2hdl
                      , language-vhdl >= 0.1.2.8
                      , optparse-applicative >= 0.13.2.0
@@ -50,11 +55,14 @@ executable jade2hdl
 test-suite jade2hdl-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
-  main-is:             Spec.hs
-  build-depends:       aeson >= 1.0.2.1
+  main-is:             Spec.hs                       
+  build-depends:       QuickCheck
+                     , QuickCheck >= 2.9.2
+                     , aeson >= 1.0.2.1
                      , base
                      , bytestring >= 0.10.8.1
                      , containers >= 0.5.7.1
+                     , derive >= 2.6.2
                      , hashable >= 1.2.6.0
                      , jade2hdl
                      , language-vhdl >= 0.1.2.8

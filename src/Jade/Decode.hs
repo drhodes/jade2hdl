@@ -79,7 +79,44 @@ instance FromJSON Wire where
       c5 <- parseJSON $ v V.! 1
       sig <- parseJSON $ v V.! 2
       return $ Wire c5 (Just sig)
-               
+
+instance FromJSON Line where
+  parseJSON (Array v) =
+    if V.length v == 2
+    then do
+      lineLabel <- parseJSON $ v V.! 0
+      when (lineLabel /= ("line" :: String)) $ fail "Not a line"
+      c5 <- parseJSON $ v V.! 1
+      return $ Line c5
+    else fail "Not a line"
+
+-- [ "terminal", [ 16, 0, 4 ], { "name": "out" } ]
+instance FromJSON Terminal where
+  parseJSON (Array v) = do
+    label <- parseJSON $ v V.! 0
+    when ((label :: String) /= "terminal") $ fail "Not a terminal"
+    
+    c3 <- parseJSON $ v V.! 1
+    Object o <- parseJSON $ v V.! 2
+    
+    s <- o .: "name" -- signal name
+    
+    case Sig.parseSig s of
+      Right sig -> return $ Terminal c3 sig
+      Left msg -> fail (show msg)
+
+instance FromJSON IconPart where
+  parseJSON arr@(Array v) = do
+    kind <- parseJSON $ v V.! 0
+
+    case (kind :: String) of
+      "line" -> IconLine <$> parseJSON arr
+      "terminal" -> IconTerm <$> parseJSON arr
+      _ -> fail $ "Unknown IconPart: " ++ kind
+      
+instance FromJSON Icon where
+  parseJSON (Array v) = Icon <$> mapM parseJSON (V.toList v)
+        
 instance FromJSON Port where
   parseJSON (Array v) = do
     c3 <- parseJSON $ v V.! 1
@@ -121,9 +158,13 @@ instance FromJSON Schematic where
     cs <- mapM parseJSON v
     return $ Schematic cs
 
+
+
+
 instance FromJSON Module where
   parseJSON (Object o) = do
     schem <- o .:? "schematic"
+    icon <- o .:? "icon"
     
     t <- o .:? "test" -- todo make this safer.
     --let (Just [["test", tstring]]) = t
@@ -131,17 +172,21 @@ instance FromJSON Module where
     case t of
       (Just [["test", tstring]]) ->
         case MT.parseModTestString tstring of
-          Right mt -> return $ Module schem (Just mt)
+          Right mt -> return $ Module schem (Just mt) icon
           Left msg -> fail msg
-      Nothing -> return $ Module schem Nothing
+      Nothing -> return $ Module schem Nothing icon
         
 instance FromJSON TopLevel where
   parseJSON (Array arr) = do
     mods <- parseJSON $ arr V.! 1
     return $ TopLevel mods
 
+  parseJSON (Object o) = do
+    fail $ show o
+
 decodeTopLevel :: String -> IO (Either String TopLevel)
 decodeTopLevel filename = do
   top <- DBL.readFile filename
   return $ eitherDecode top
   
+

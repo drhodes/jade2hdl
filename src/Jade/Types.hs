@@ -11,6 +11,21 @@ import qualified Data.Vector as V
 import qualified Data.Map as DM
 import qualified System.Environment as SE
 import Data.Hashable
+import Test.QuickCheck
+
+------------------------------------------------------------------
+-- Icon Types
+data Line = Line Coord5 deriving (Generic, Show, Eq, Hashable)
+data Terminal = Terminal Coord3 Sig deriving (Generic, Show, Eq, Hashable)
+
+
+data IconPart = IconLine Line
+              | IconTerm Terminal
+                deriving (Generic, Show, Eq, Hashable)
+
+
+data Icon = Icon { iconParts :: [IconPart]
+                 } deriving (Generic, Show, Eq, Hashable)
 
 ------------------------------------------------------------------
 -- Schematic Types
@@ -82,7 +97,11 @@ type Test = String
 
 data Schematic = Schematic (V.Vector Component) deriving (Show, Eq)
 
-data Module = Module (Maybe Schematic) (Maybe ModTest) deriving (Show, Eq) -- todo add test
+
+data Module = Module { moduleSchem :: Maybe Schematic
+                     , moduleTest :: Maybe ModTest
+                     , moduleIcon :: Maybe Icon
+                     } deriving (Show, Eq) -- todo add test
 
 data TopLevel = TopLevel (DM.Map String Module)
               deriving  (Show, Eq)
@@ -144,3 +163,7 @@ data ModTest = ModTest { modPower :: Maybe Power
                        , modPlotStyles :: [PlotStyle]
                        } deriving (Show, Eq)
 
+
+
+------------------------------------------------------------------
+-- Application.  This what?
