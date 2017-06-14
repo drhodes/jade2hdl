@@ -10,7 +10,6 @@ import qualified Jade.Module as Module
 import qualified Jade.Vhdl as Vhdl
 import qualified Data.Hashable as H
 
-
 testEntityDecl = do
   Right (TopLevel m) <- Decode.decodeTopLevel "./test-data/and2.json"
   let pair = head $ DM.toList m
@@ -40,6 +39,6 @@ testGraphSubModule filename modname = do
   case TopLevel.getModule tl modname of
     Just (Module schem _) -> print $ schem
     Nothing -> print $ "couldn't find module: " ++ modname ++ " in toplevel"
-    
+
 testGraphSubModuleAnd2 =
   testGraphSubModule "./test-data/and2-with-wires.json" "/user/AND2"

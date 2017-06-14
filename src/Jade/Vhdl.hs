@@ -7,6 +7,7 @@ import Jade.Types
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module
+import Control.Monad
 
 tident :: String -> S.TypeMark
 tident s = (S.TMType (S.NSimple (S.Ident s)))
@@ -26,8 +27,8 @@ replace c r xs = "mod" ++ (concat [if [x] == c then r else [x] | x <- xs])
 
 mkPortClause :: (String, Module) -> S.PortClause
 mkPortClause (name, Module schem modTests) = 
-  let (Just (Inputs ins)) = modInputs modTests
-      (Just (Outputs outs)) = modOutputs modTests
+  let (Just (Inputs ins)) = join $ liftM modInputs modTests
+      (Just (Outputs outs)) = join $ liftM modOutputs modTests
       inSigs = map (mkSigDecl S.In) ins
       outSigs = map (mkSigDecl S.Out) outs
   in S.PortClause $ S.InterfaceList (inSigs ++ outSigs) --

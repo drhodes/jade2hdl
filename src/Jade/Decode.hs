@@ -123,14 +123,18 @@ instance FromJSON Schematic where
 
 instance FromJSON Module where
   parseJSON (Object o) = do
-    schem <- o .: "schematic"
-    [["test", tstring]] <- o .: "test" -- todo make this safer.
+    schem <- o .:? "schematic"
+    
+    t <- o .:? "test" -- todo make this safer.
+    --let (Just [["test", tstring]]) = t
 
-
-    case MT.parseModTestString tstring of
-      Right mt -> return $ Module schem mt
-      Left msg -> fail msg
-
+    case t of
+      (Just [["test", tstring]]) ->
+        case MT.parseModTestString tstring of
+          Right mt -> return $ Module schem (Just mt)
+          Left msg -> fail msg
+      Nothing -> return $ Module schem Nothing
+        
 instance FromJSON TopLevel where
   parseJSON (Array arr) = do
     mods <- parseJSON $ arr V.! 1

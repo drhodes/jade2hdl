@@ -12,7 +12,7 @@ clean: ## clean all the things
 	echo implement clean makefile rule
 
 work: ## open all files in editor
-	$(shell emacs -nw `find . -type f -name '*.hs' -o -name '*.yaml'`)
+	$(shell emacs -nw `find src app test -type f -name '*.hs' -o -name '*.yaml'`)
 
 setup:
 	touch battle-plan.org

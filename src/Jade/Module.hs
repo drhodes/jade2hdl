@@ -14,13 +14,15 @@ import Jade.Wire
 --testConnected :: IO (G.Graph (Integer, Integer))
 testConnected = do
   Right (TopLevel m) <- D.decodeTopLevel "./test-data/fan5rot4connect.json"
-  let [Module (Schematic wirecs) _] = DM.elems m
-  let wires = [w | WireC w <- DV.toList wirecs]
-  let edges = map wireToEdge wires
-  let g = G.fromEdges edges
-  return g
+  case DM.elems m of
+    [Module (Just (Schematic wirecs)) _] -> 
+      let wires = [w | WireC w <- DV.toList wirecs]
+          edges = map wireToEdge wires
+          g = G.fromEdges edges
+      in return g
+    x -> fail "No schematic found in Module.testConnected"
 
-components (Module (Schematic comps) _) =
+components (Module (Just (Schematic comps)) _) =
   let wires = [w | WireC w <- DV.toList comps]
       ports = [p | PortC p <- DV.toList comps]
       
