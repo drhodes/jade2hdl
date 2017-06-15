@@ -90,6 +90,25 @@ instance FromJSON Line where
       return $ Line c5
     else fail "Not a line"
 
+instance FromJSON Box where
+  parseJSON (Array v) =
+    if V.length v == 2
+    then do
+      boxLabel <- parseJSON $ v V.! 0
+      when (boxLabel /= ("box" :: String)) $ fail "Not a box"
+      c5 <- parseJSON $ v V.! 1
+      return $ Box c5
+    else fail "Not a box"
+
+--"text", [ 42, -5, 0 ], { "text": "nd", "font": "4pt sans-serif" } ],
+instance FromJSON Txt where
+  parseJSON (Array v) = do
+    c3 <- parseJSON $ v V.! 1
+    Object o <- parseJSON $ v V.! 2
+    txt <- o .: "text"
+    font <- o .:? "font"
+    return $ Txt c3 txt font
+
 -- [ "terminal", [ 16, 0, 4 ], { "name": "out" } ]
 instance FromJSON Terminal where
   parseJSON (Array v) = do
@@ -112,6 +131,8 @@ instance FromJSON IconPart where
     case (kind :: String) of
       "line" -> IconLine <$> parseJSON arr
       "terminal" -> IconTerm <$> parseJSON arr
+      "text" -> IconTxt <$> parseJSON arr
+      "box" -> IconBox <$> parseJSON arr
       _ -> fail $ "Unknown IconPart: " ++ kind
       
 instance FromJSON Icon where
@@ -158,14 +179,10 @@ instance FromJSON Schematic where
     cs <- mapM parseJSON v
     return $ Schematic cs
 
-
-
-
 instance FromJSON Module where
   parseJSON (Object o) = do
     schem <- o .:? "schematic"
     icon <- o .:? "icon"
-    
     t <- o .:? "test" -- todo make this safer.
     --let (Just [["test", tstring]]) = t
 
@@ -188,5 +205,4 @@ decodeTopLevel :: String -> IO (Either String TopLevel)
 decodeTopLevel filename = do
   top <- DBL.readFile filename
   return $ eitherDecode top
-  
 

@@ -18,11 +18,22 @@ testConnected = do
       in return g
     x -> fail "No schematic found in Module.testConnected"
 
-components (Module (Just (Schematic comps)) _ _) =
-  let wires = [w | WireC w <- DV.toList comps]
-      ports = [p | PortC p <- DV.toList comps]
+terminals :: Module -> Coord3 -> [Terminal]
+terminals (Module _ _ icon) offset@(Coord3 dx dy _) =
+  case icon of
+    Nothing -> []
+    Just (Icon parts) ->
+      [Terminal (Coord3 (x+dx) (y+dy) r) sig | IconTerm (Terminal (Coord3 x y r) sig) <- parts]
+
+-- components (Module (Just (Schematic comps)) _ _) =
+--   let wires = [w | WireC w <- DV.toList comps]
+--       ports = [p | PortC p <- DV.toList comps]
+--       --terms = [p | Module p <- DV.toList comps]
       
-      wireEdges = map wireToEdge wires
-      portEdges = map portToEdge ports
-      edges = wireEdges ++ portEdges
-  in G.components $ G.fromEdges edges
+--       wireEdges = map wireToEdge wires
+--       portEdges = map portToEdge ports
+--       edges = wireEdges ++ portEdges
+--   in G.components $ G.fromEdges edges
+
+
+-- terminals :: SubModule -> [TermC]

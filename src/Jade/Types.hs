@@ -17,14 +17,20 @@ import Test.QuickCheck
 -- Icon Types
 data Line = Line Coord5 deriving (Generic, Show, Eq, Hashable)
 data Terminal = Terminal Coord3 Sig deriving (Generic, Show, Eq, Hashable)
-
+data Box = Box Coord5 deriving (Generic, Show, Eq, Hashable)
+data Txt = Txt { txtLoc :: Coord3
+               , txtText :: String
+               , txtFont :: Maybe String
+               }  deriving (Generic, Show, Eq, Hashable)
 
 data IconPart = IconLine Line
               | IconTerm Terminal
+              | IconBox Box
+              | IconTxt Txt
                 deriving (Generic, Show, Eq, Hashable)
 
-
 data Icon = Icon { iconParts :: [IconPart]
+                   -- ^ A flat list of icon elements found in the icon view
                  } deriving (Generic, Show, Eq, Hashable)
 
 ------------------------------------------------------------------
@@ -50,7 +56,7 @@ data Signal = Signal { signalName :: Maybe Sig
                      , signalDirection :: Maybe Direction
                      } deriving (Show, Eq, Generic, Hashable)
 
-data Rot = Rot0
+data Rot = Rot0 
          | Rot270
          | Rot180
          | Rot90
@@ -90,6 +96,7 @@ data Component = PortC Port
                | SubModuleC SubModule
                | WireC Wire
                | JumperC Jumper
+               | TermC Terminal
                | Nop
                  deriving (Show, Eq)
 

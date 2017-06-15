@@ -7,8 +7,6 @@ import Data.Aeson
 import Control.Monad
 import Test.QuickCheck.Arbitrary
 
-
-
 main :: IO ()
 main = putStrLn "Test suite not yet implemented"
 
@@ -71,9 +69,6 @@ testTerminal2 = do
   let tstring = "[ \"terminal\", [ 16, 0, 4 ], { \"name\": \"out\" } ]"
       expected = Right (IconTerm (Terminal (Coord3 {c3x = 16, c3y = 0, c3r = 4}) (SigSimple "out")))
   dotest "testTerminal1" tstring expected
-  
-
-
 
 testall = do
   testLine1

@@ -17,19 +17,11 @@ signal names need to be parsed.
     //      := number'size       generate appropriate list of vdd, gnd to represent number
 -}
 
-
-
-
-
-
 symbol :: Parser String
 symbol = do
   x <- letter <|> char '_'
   rest <- many (alphaNum <|> char '_')
   return $ x:rest
-
-
-
 
 
 -- := sig#count         replicate sig specified number of times 
@@ -90,7 +82,7 @@ number = choice [try hex, try bin]
 sigQuote :: Parser Sig
 sigQuote = do val <- number
               char '\''
-              width <- many1 digit
+              width <- many1 digit              
               return $ SigQuote val (read width)
 
 sigSimple :: Parser Sig
