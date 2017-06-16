@@ -1,5 +1,6 @@
 module Jade.Module where
 
+import Control.Monad
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.Vector as DV
@@ -25,15 +26,12 @@ terminals (Module _ _ icon) offset@(Coord3 dx dy _) =
     Just (Icon parts) ->
       [Terminal (Coord3 (x+dx) (y+dy) r) sig | IconTerm (Terminal (Coord3 x y r) sig) <- parts]
 
--- components (Module (Just (Schematic comps)) _ _) =
---   let wires = [w | WireC w <- DV.toList comps]
---       ports = [p | PortC p <- DV.toList comps]
---       --terms = [p | Module p <- DV.toList comps]
-      
---       wireEdges = map wireToEdge wires
---       portEdges = map portToEdge ports
---       edges = wireEdges ++ portEdges
---   in G.components $ G.fromEdges edges
+getInputs :: Module -> Maybe Inputs
+getInputs m = join $ liftM modInputs $ moduleTest m
+
+getOutputs :: Module -> Maybe Outputs
+getOutputs m = join $ liftM modOutputs $ moduleTest m
 
 
--- terminals :: SubModule -> [TermC]
+
+

@@ -16,19 +16,6 @@ import qualified Data.Set as DS
 import qualified Data.List as DL
 import Jade.Types
 
-data Node a = Node a Component
-            deriving (Show)
-
-instance Eq a => Eq (Node a) where
-  (Node x _) == (Node y _) = x == y
-
-instance Ord a => Ord (Node a) where
-  (Node x _) <= (Node y _) = x <= y
-
-
-data Graph a = Graph (DM.Map (Node a) (DS.Set (Node a))) deriving (Show, Eq)
-data Edge a = Edge (Node a) (Node a) deriving (Show, Eq)
-
 empty = Graph DM.empty
 
 addEdge' (Graph table) (Edge v w) =
@@ -53,8 +40,6 @@ verts (Graph table) = DM.keys table
         
 fromEdges xs = foldl addEdge empty xs
 
-
-
 -- breadth first search.
 --collect' :: Ord a => Graph (Node a) -> DS.Set (Node a) -> a -> DS.Set (Node a)
 collect' g seen vert =
@@ -66,6 +51,7 @@ collect' g seen vert =
 
 collect g vert = collect' g DS.empty vert
 
+components :: Ord t => Graph t -> DS.Set (DS.Set (Node t))
 components g = DS.map (collect g) (DS.fromList $ verts g)
 
 testG = fromEdges [ Edge (Node 2 Nop) (Node 4 Nop)

@@ -69,3 +69,12 @@ expName s =
   in exp
 
 mkProcStmt stmts = S.ProcessStatement Nothing False Nothing [] stmts
+
+
+-- structural VHDL
+-- u1 : reg1 PORT MAP(d=>d0,clk=>clk,q=>q0);
+-- mkComp :: TopLevel -> ModuleName -> S.
+
+-- mkCompDecl topl modname =
+--   let mod = TopLevel.getModule topl modname
+  

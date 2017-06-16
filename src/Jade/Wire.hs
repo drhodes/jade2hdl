@@ -32,14 +32,14 @@ transformY rot x y =
 wireToEdge w@(Wire (Coord5 x y rot dx dy) _) =
   let x' = x + (transformX rot dx dy)
       y' = y + (transformY rot dx dy)
-      n1 = G.Node (x, y) (WireC w)
-      n2 = G.Node (x', y') (WireC w)
-  in G.Edge n1 n2
+      n1 = Node (x, y) (WireC w)
+      n2 = Node (x', y') (WireC w)
+  in Edge n1 n2
 
 w1 = Wire (Coord5 0 0 Rot0 8 0) Nothing
 w2 = Wire (Coord5 0 0 Rot270 8 0) Nothing
 
 portToEdge p@(Port (Coord3 x y r) _) =
-  let n = G.Node (x, y) (PortC p)
-  in G.Edge n n
+  let n = Node (x, y) (PortC p)
+  in Edge n n
   

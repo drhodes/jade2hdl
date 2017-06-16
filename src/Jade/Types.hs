@@ -9,6 +9,7 @@ import Data.Traversable
 import Data.ByteString.Lazy.Internal
 import qualified Data.Vector as V
 import qualified Data.Map as DM
+import qualified Data.Set as DS
 import qualified System.Environment as SE
 import Data.Hashable
 import Test.QuickCheck
@@ -35,6 +36,8 @@ data Icon = Icon { iconParts :: [IconPart]
 
 ------------------------------------------------------------------
 -- Schematic Types
+type ModuleName = String
+
 
 data Direction = In | Out | InOut
                deriving (Generic, Show, Eq, Hashable)
@@ -69,7 +72,12 @@ data Rot = Rot0
 data Coord3 = Coord3 { c3x :: Integer
                      , c3y :: Integer
                      , c3r :: Integer
-                     } deriving (Show, Eq, Generic, Hashable)
+                     } deriving (Eq, Generic, Hashable)
+
+instance Show Coord3 where
+  show (Coord3 x y r) = concat [ "<C3 ", show x
+                               , ", ", show y
+                               , ", ", show r, ">"]
 
 data Wire = Wire { wireCoord5 :: Coord5
                  , wireSignal :: Maybe Signal
@@ -80,7 +88,16 @@ data Coord5 = Coord5 { c5x :: Integer
                      , c5r :: Rot
                      , c5dx :: Integer
                      , c5dy :: Integer
-                     } deriving (Show, Eq, Generic, Hashable)
+                     } deriving (Eq, Generic, Hashable)
+
+instance Show Coord5 where
+  show (Coord5 x y r dx dy) = concat [ "<C5 ", show x
+                                     , ", ", show y
+                                     , ", ", show r
+                                     , ", ", show dx
+                                     , ", ", show dy
+                                     , ">"]
+  
 
 data Port = Port { portCoord3 :: Coord3                 
                  , portSignal :: Maybe Signal
@@ -104,7 +121,6 @@ type Test = String
 
 data Schematic = Schematic (V.Vector Component) deriving (Show, Eq)
 
-
 data Module = Module { moduleSchem :: Maybe Schematic
                      , moduleTest :: Maybe ModTest
                      , moduleIcon :: Maybe Icon
@@ -112,7 +128,6 @@ data Module = Module { moduleSchem :: Maybe Schematic
 
 data TopLevel = TopLevel (DM.Map String Module)
               deriving  (Show, Eq)
-
 
 ------------------------------------------------------------------
 -- Test Types
@@ -171,6 +186,21 @@ data ModTest = ModTest { modPower :: Maybe Power
                        } deriving (Show, Eq)
 
 
-
 ------------------------------------------------------------------
 -- Application.  This what?
+
+
+
+data Node a = Node a Component
+            deriving (Show)
+
+instance Eq a => Eq (Node a) where
+  (Node x _) == (Node y _) = x == y
+
+instance Ord a => Ord (Node a) where
+  (Node x _) <= (Node y _) = x <= y
+
+
+data Graph a = Graph (DM.Map (Node a) (DS.Set (Node a))) deriving (Show, Eq)
+data Edge a = Edge (Node a) (Node a) deriving (Show, Eq)
+
