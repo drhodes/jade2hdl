@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
@@ -13,6 +15,22 @@ import qualified Data.Set as DS
 import qualified System.Environment as SE
 import Data.Hashable
 import Test.QuickCheck
+--import Data.Functor.Identity
+import Control.Monad.Except as E
+
+
+------------------------------------------------------------------
+type J a = Except String a      
+
+runJ = runExcept
+printJ x = case runJ x of
+             Left msg -> putStrLn msg
+             Right val -> putStrLn $ show val
+             
+die msg = E.throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
+
+(?) x msg = x `catchError` (\e -> (throwError $ e ++ "\n" ++ "! " ++ msg))
+
 
 ------------------------------------------------------------------
 -- Icon Types

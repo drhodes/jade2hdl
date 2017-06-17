@@ -19,18 +19,27 @@ testConnected = do
       in return g
     x -> fail "No schematic found in Module.testConnected"
 
-terminals :: Module -> Coord3 -> [Terminal]
+terminals :: Module -> Coord3 -> J [Terminal]
 terminals (Module _ _ icon) offset@(Coord3 dx dy _) =
   case icon of
-    Nothing -> []
+    Nothing -> die "no icon found in module"
     Just (Icon parts) ->
-      [Terminal (Coord3 (x+dx) (y+dy) r) sig | IconTerm (Terminal (Coord3 x y r) sig) <- parts]
+      return $ [Terminal (Coord3 (x+dx) (y+dy) r) sig | IconTerm (Terminal (Coord3 x y r) sig) <- parts]
 
-getInputs :: Module -> Maybe Inputs
-getInputs m = join $ liftM modInputs $ moduleTest m
 
-getOutputs :: Module -> Maybe Outputs
-getOutputs m = join $ liftM modOutputs $ moduleTest m
+getInputs :: Module -> J Inputs
+getInputs m = case moduleTest m of
+                 Just mod -> case modInputs mod of
+                   Just outs -> return outs
+                   Nothing -> die "Module.getInputs couldn't find inputs"
+                 Nothing ->  die "Module.getInputs could not find test script"
+
+getOutputs :: Module -> J Outputs
+getOutputs m = case moduleTest m of
+                 Just mod -> case modOutputs mod of
+                   Just outs -> return outs
+                   Nothing -> die "Module.getOutputs couldn't find outputs"
+                 Nothing ->  die "Module.getOutputs could not find test script"
 
 
 

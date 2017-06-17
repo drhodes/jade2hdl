@@ -27,7 +27,7 @@ testMkArchBodyAnd2WithWires = do
   print $ P.pp $ Vhdl.mkArchBody pair
 
 testMkArchBodyUserAnd2_3 = do
-  Right (TopLevel m) <- Decode.decodeTopLevel "./test-data/and2-3.json"
+  Right (TopLevel m) <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
   let pair = head $ DM.toList m
   print $ P.pp $ Vhdl.mkArchBody pair
 

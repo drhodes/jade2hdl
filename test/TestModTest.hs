@@ -19,7 +19,7 @@ testLineSignals1 = do
   topl <- Decode.decodeTopLevel "./test-data/and2.json"
   case topl of
     (Right topl) -> do
-      let [(_, (Module schem mt))] = TopLevel.modules topl
+      let [(_, (Module schem (Just mt) _))] = TopLevel.modules topl
       let tlines = modTestLines mt
       let result = ModTest.testLineSignals mt (tlines !! 0)
       if result == Right [(SigSimple "in1",[H]),(SigSimple "in2",[H]),(SigSimple "out",[H])]

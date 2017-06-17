@@ -25,13 +25,17 @@ mkSigDecl _ _ = undefined
 replace :: [Char] -> [Char] -> [Char] -> [Char]
 replace c r xs = "mod" ++ (concat [if [x] == c then r else [x] | x <- xs])
 
+mkPortClause' :: Inputs -> Outputs -> S.PortClause
+mkPortClause' (Inputs ins) (Outputs outs) = 
+  let inSigs = map (mkSigDecl S.In) ins
+      outSigs = map (mkSigDecl S.Out) outs
+  in S.PortClause $ S.InterfaceList (inSigs ++ outSigs) 
+
 mkPortClause :: (String, Module) -> S.PortClause
 mkPortClause (name, Module schem modTests _) = 
-  let (Just (Inputs ins)) = join $ liftM modInputs modTests
-      (Just (Outputs outs)) = join $ liftM modOutputs modTests
-      inSigs = map (mkSigDecl S.In) ins
-      outSigs = map (mkSigDecl S.Out) outs
-  in S.PortClause $ S.InterfaceList (inSigs ++ outSigs) --
+  let (Just ins) = join $ liftM modInputs modTests
+      (Just outs) = join $ liftM modOutputs modTests
+  in mkPortClause' ins outs
 
 mkEntityDecl (name, m@(Module schem modTests _)) =
   let portClause = mkPortClause (name, m)
@@ -71,10 +75,39 @@ expName s =
 mkProcStmt stmts = S.ProcessStatement Nothing False Nothing [] stmts
 
 
+------------------------------------------------------------------
+-- BUILTINS
+
+
+
+
+
+-- mkBuiltInArchBody name = 
+--   let portClause = mkPortClause (name, m)
+--       archId = S.Ident "func"
+--       entName = S.NSimple $ S.Ident (replace "/" "__" name)
+--       label = Nothing
+
+--       sas = S.SSignalAss $ S.SignalAssignmentStatement
+--         label
+--         (S.TargetName $ S.NSimple $ S.Ident "asdf")
+--         Nothing
+--         (S.WaveElem [S.WaveEExp (expName "something") Nothing])
+
+--       stmts = [S.ConProcess (S.ProcessStatement Nothing False Nothing [] [sas, sas, sas])]
+      
+--   in S.ArchitectureBody archId entName [] stmts
+
+
 -- structural VHDL
 -- u1 : reg1 PORT MAP(d=>d0,clk=>clk,q=>q0);
 -- mkComp :: TopLevel -> ModuleName -> S.
 
 -- mkCompDecl topl modname =
 --   let mod = TopLevel.getModule topl modname
+
+
+
+-- create a built in module for 
+-- mkBuiltIn name in1 in2 out = do
   
