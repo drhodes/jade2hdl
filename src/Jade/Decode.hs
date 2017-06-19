@@ -1,8 +1,11 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
 module Jade.Decode where
 
+import qualified Data.Scientific as DS
 import GHC.Generics
 import Control.Monad
 import Data.Traversable
@@ -121,7 +124,7 @@ instance FromJSON Terminal where
     s <- o .: "name" -- signal name
     
     case Sig.parseSig s of
-      Right sig -> return $ Terminal c3 sig
+      Right sig -> return $ Terminal c3 sig 
       Left msg -> fail (show msg)
 
 instance FromJSON IconPart where
@@ -164,9 +167,7 @@ instance FromJSON Component where
       "wire" ->
         do w <- parseJSON v
            return $ WireC w
-      "port" ->
-        do p <- parseJSON v
-           return $ PortC p
+      "port" -> PortC <$> parseJSON v
       "jumper" ->
         do p <- parseJSON v
            return $ JumperC p
@@ -192,7 +193,7 @@ instance FromJSON Module where
           Right mt -> return $ Module schem (Just mt) icon
           Left msg -> fail msg
       Nothing -> return $ Module schem Nothing icon
-        
+
 instance FromJSON TopLevel where
   parseJSON (Array arr) = do
     mods <- parseJSON $ arr V.! 1
@@ -201,7 +202,11 @@ instance FromJSON TopLevel where
   parseJSON (Object o) = do
     fail $ show o
 
-decodeTopLevel :: String -> IO (Either String TopLevel)
+
+
+
+
+decodeTopLevel :: FilePath -> IO (Either String TopLevel)
 decodeTopLevel filename = do
   top <- DBL.readFile filename
   return $ eitherDecode top

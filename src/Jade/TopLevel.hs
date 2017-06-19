@@ -6,6 +6,7 @@ import qualified Data.Vector as DV
 import qualified Jade.Graph as G
 import qualified Jade.Decode as D
 import qualified Jade.Module as Module
+import qualified Jade.Component as Component
 import Jade.Types
 import Jade.Wire
 import Control.Monad
@@ -27,6 +28,10 @@ termToEdge t@(Terminal (Coord3 x y _) _) =
   let n = Node (x, y) (TermC t)
   in Edge n n
 
+getSubModules topl modname = do
+  (Module (Just (Schematic comps)) _ _) <- getModule topl modname ? "TopLevel.components"
+  return [submod | SubModuleC submod <- DV.toList comps]
+
 -- |Get the components of a module given the module's name.
 components topl modname = do
   --let msg = "TopLevel.components couldn't find module: " ++ modname
@@ -44,11 +49,30 @@ components topl modname = do
       
   return $ G.components $ G.fromEdges edges
 
+-- |Get the graph component which contains the terminals.
+
+componentWithTerminal :: TopLevel -> String -> Terminal -> J (DS.Set (Node (Integer, Integer)))
+componentWithTerminal topl modname term@(Terminal (Coord3 x y _) _) = do
+  comps <- components topl modname
+  let pred set = DS.member (Node (x, y) (TermC term)) set
+      result = DS.filter pred comps -- filter out components that don't contain term
+  case DS.size result of
+    0 -> die $ concat [ " No component found in module: ", modname
+                      , " that has a terminal: ", show term
+                      ]
+    1 -> return $ DS.elemAt 0 result
+    x -> die $ concat [ show x, " components found in module: ", modname
+                      , " that has a terminal: ", show term, "."                     
+                      , " This should not be possible, because all such components should"
+                      , " be connected if they contain the same node"
+                      ]
+
 -- | Get a list of terminals in a submodule offset by the position of the submodule  
 terminals :: TopLevel -> SubModule -> J [Terminal]
 terminals topl (SubModule modname offset) = do
-  mod <- getModule topl modname 
+  mod <- getModule topl modname ? "TopLevel.terminals"
   Module.terminals mod offset
+
 
 -- | Get the number of distinct nodes in the schematic
 -- numComponents :: TopLevel -> String -> J Int
@@ -77,3 +101,42 @@ getOutputs topl modname = do
   let msg = "TopLevel.getOutputs couldn't find outputs in module: " ++ modname
   Module.getOutputs mod ? msg
 
+-- unit1 : AND2 port map (in1 => a, in2 => b, out1 => c);
+
+-- | The assumption always is, that the jade module works and is
+-- tested. With that in mind, then it's safely assumed that there is
+-- one driving signal per component. This function finds the driving
+-- signal for a given component.
+
+-- If a signal is in more than one component then it is a driving signal.
+
+-- | What signals are driving? .input signals from the test script
+-- clearly indicate a set of driving signals. .output terminals of sub
+-- modules are also driving signals.  
+
+getInputTermDriver topl modname term = do
+  m <- getModule topl modname ? "TopLevel.getInputTermDriver"
+  graphComp <- componentWithTerminal topl modname term ? "TopLevel.getInputTermDriver"
+
+  let compList = map nodeComponent $ DS.toList graphComp
+
+  -- check the test script if any graph comp signals match the .input lines.
+  -- if so, then that's it.  If this list is empty, then need to check sub module
+  -- output terminals.
+  -- if those don't  match ... well 
+  
+  xs <- filterM (Module.componentInInputs m) compList
+  case length xs of
+    1 -> return $ head xs
+    _ -> die "TopLevel.getInputTermDriver needs to do more work to find the driver"
+  -- NOT DONE YET. Also need 
+
+
+  
+
+  
+  -- which schem check each wire, term, etc. to see if it a driver of term. 
+
+figurePortMap topl modname = do
+  comps <- components topl modname
+  return comps

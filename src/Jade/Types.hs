@@ -31,7 +31,6 @@ die msg = E.throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
 
 (?) x msg = x `catchError` (\e -> (throwError $ e ++ "\n" ++ "! " ++ msg))
 
-
 ------------------------------------------------------------------
 -- Icon Types
 data Line = Line Coord5 deriving (Generic, Show, Eq, Hashable)
@@ -209,8 +208,9 @@ data ModTest = ModTest { modPower :: Maybe Power
 
 
 
-data Node a = Node a Component
-            deriving (Show)
+data Node a = Node { nodeElement :: a
+                   , nodeComponent :: Component
+                   } deriving (Show)
 
 instance Eq a => Eq (Node a) where
   (Node x _) == (Node y _) = x == y

@@ -6,6 +6,7 @@ import qualified Data.Set as DS
 import qualified Data.Vector as DV
 import qualified Jade.Graph as G
 import qualified Jade.Decode as D
+import qualified Jade.Component as Component
 import Jade.Types
 import Jade.Wire
 
@@ -24,8 +25,9 @@ terminals (Module _ _ icon) offset@(Coord3 dx dy _) =
   case icon of
     Nothing -> die "no icon found in module"
     Just (Icon parts) ->
-      return $ [Terminal (Coord3 (x+dx) (y+dy) r) sig | IconTerm (Terminal (Coord3 x y r) sig) <- parts]
-
+      
+      return $ [Terminal (Coord3 (x+dx) (y+dy) r) sig |
+                IconTerm (Terminal (Coord3 x y r) sig) <- parts]
 
 getInputs :: Module -> J Inputs
 getInputs m = case moduleTest m of
@@ -42,5 +44,19 @@ getOutputs m = case moduleTest m of
                  Nothing ->  die "Module.getOutputs could not find test script"
 
 
+inputsHaveSig :: Module -> Sig -> J Bool
+inputsHaveSig mod sig = do
+  (Inputs ins) <- getInputs mod ? "Module.inputsHaveSig"
+  return $ sig `elem` ins
 
 
+componentInInputs :: Module -> Component -> J Bool
+componentInInputs mod comp =
+  case Component.sig comp of 
+    Just s -> inputsHaveSig mod s
+    Nothing -> return False
+
+outputsHaveSig :: Module -> Sig -> J Bool
+outputsHaveSig mod sig = do
+  (Outputs outs) <- getOutputs mod ? "Module.outputsHaveSig"
+  return $ sig `elem` outs

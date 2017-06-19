@@ -37,7 +37,8 @@ library
                        parsec >= 3.1.11,
                        parsec3-numbers >= 0.1.0,
                        transformers >= 0.5.2.0,
-                       vector >= 0.11.0.0
+                       vector >= 0.11.0.0,
+                       scientific
   default-language:    Haskell2010
 
 executable jade2hdl

@@ -74,40 +74,47 @@ expName s =
 
 mkProcStmt stmts = S.ProcessStatement Nothing False Nothing [] stmts
 
-
 ------------------------------------------------------------------
 -- BUILTINS
 
+-- | create an AND2 module usable by other modules.
 
+relation relname =
+  let name = S.PrimName (S.NSimple $ S.Ident relname)
+      term = S.Term (S.FacPrim name Nothing) []
+      simp = S.SimpleExpression Nothing term []
+      shft = S.ShiftExpression simp Nothing
+      rel = S.Relation shft Nothing
+  in rel
 
+builtInExpr  constructor in1 in2 = constructor [ relation in1
+                                               , relation in2 ]
 
+mkBuiltInArchBody :: String -> ([S.Relation] -> S.Expression) -> S.ArchitectureBody
+mkBuiltInArchBody name operator = 
+  let ins = Inputs [ SigSimple "in1", SigSimple "in2" ]
+      outs = Outputs [ SigSimple "out1" ]
+      portClause = mkPortClause' ins outs
+      archId = S.Ident "Behavioral"
+      entName = S.NSimple $ S.Ident name
+      label = Nothing
 
--- mkBuiltInArchBody name = 
---   let portClause = mkPortClause (name, m)
---       archId = S.Ident "func"
---       entName = S.NSimple $ S.Ident (replace "/" "__" name)
---       label = Nothing
-
---       sas = S.SSignalAss $ S.SignalAssignmentStatement
---         label
---         (S.TargetName $ S.NSimple $ S.Ident "asdf")
---         Nothing
---         (S.WaveElem [S.WaveEExp (expName "something") Nothing])
-
---       stmts = [S.ConProcess (S.ProcessStatement Nothing False Nothing [] [sas, sas, sas])]
+      sas = S.SSignalAss $ S.SignalAssignmentStatement
+        label
+        (S.TargetName $ S.NSimple $ S.Ident "out1")
+        Nothing
+        (S.WaveElem [S.WaveEExp (builtInExpr operator "in1" "in2") Nothing])
+      stmts = [S.ConProcess (S.ProcessStatement Nothing False Nothing [] [sas])]
       
---   in S.ArchitectureBody archId entName [] stmts
+  in S.ArchitectureBody archId entName [] stmts
 
+mkBuiltInEntityDecl name = 
+  let ins = Inputs [ SigSimple "in1", SigSimple "in2" ]
+      outs = Outputs [ SigSimple "out1" ]
+      portClause = mkPortClause' ins outs
+      entId = S.Ident name
+      entHeader = S.EntityHeader Nothing (Just portClause)
+      entDecl = []
+      entStat = Nothing
+  in S.EntityDeclaration entId entHeader entDecl entStat
 
--- structural VHDL
--- u1 : reg1 PORT MAP(d=>d0,clk=>clk,q=>q0);
--- mkComp :: TopLevel -> ModuleName -> S.
-
--- mkCompDecl topl modname =
---   let mod = TopLevel.getModule topl modname
-
-
-
--- create a built in module for 
--- mkBuiltIn name in1 in2 out = do
-  
