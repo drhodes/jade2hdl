@@ -33,6 +33,7 @@ getSubModules topl modname = do
   return [submod | SubModuleC submod <- DV.toList comps]
 
 -- |Get the components of a module given the module's name.
+components :: TopLevel -> String -> J [GComp]
 components topl modname = do
   --let msg = "TopLevel.components couldn't find module: " ++ modname
   (Module (Just (Schematic comps)) _ _) <- getModule topl modname ? "TopLevel.components"
@@ -51,16 +52,16 @@ components topl modname = do
 
 -- |Get the graph component which contains the terminals.
 
-componentWithTerminal :: TopLevel -> String -> Terminal -> J (DS.Set (Node (Integer, Integer)))
+componentWithTerminal :: TopLevel -> String -> Terminal -> J GComp
 componentWithTerminal topl modname term@(Terminal (Coord3 x y _) _) = do
   comps <- components topl modname
-  let pred set = DS.member (Node (x, y) (TermC term)) set
-      result = DS.filter pred comps -- filter out components that don't contain term
-  case DS.size result of
+  let pred set = (Node (x, y) (TermC term)) `elem` set
+      result = filter pred comps -- filter out components that don't contain term
+  case length result of
     0 -> die $ concat [ " No component found in module: ", modname
                       , " that has a terminal: ", show term
                       ]
-    1 -> return $ DS.elemAt 0 result
+    1 -> return $ head result
     x -> die $ concat [ show x, " components found in module: ", modname
                       , " that has a terminal: ", show term, "."                     
                       , " This should not be possible, because all such components should"
@@ -120,17 +121,21 @@ getInputTermDriver topl modname term = do
 
   let compList = map nodeComponent $ DS.toList graphComp
 
-  -- check the test script if any graph comp signals match the .input lines.
-  -- if so, then that's it.  If this list is empty, then need to check sub module
-  -- output terminals.
-  -- if those don't  match ... well 
+  -- check the test script, if any graph comp signals match the .input
+  -- lines.  if so, then that's it.  If this list is empty, then need
+  -- to check sub module output terminals.  if those don't match
+  -- ... well
   
   xs <- filterM (Module.componentInInputs m) compList
-  case length xs of
+  case length xs of    
     1 -> return $ head xs
-    _ -> die "TopLevel.getInputTermDriver needs to do more work to find the driver"
-  -- NOT DONE YET. Also need 
-
+    0 -> do undefined
+  --     -- check sub module output terminals.
+  --     xs <- filterM (Module.componentInSubmoduleOutputs) compList
+  --     case length xs of
+  --       1 -> return $ head xs
+  --       _ -> die "TopLevel.getInputTermDriver needs to do more work to find the driver"
+  -- -- NOT DONE YET. Also need 
 
   
 

@@ -64,7 +64,7 @@ buildUserAnd23' topl = do
   y <- TopLevel.getInputTermDriver topl subname (terms !! 1)
   let t = Component.sig y
 
-  -- xs <- mapM (TopLevel.getInputTermDriver topl subname) terms
-  -- let ts = map Component.sig xs
+  xs <- mapM (TopLevel.getInputTermDriver topl subname) terms
+  let ts = map Component.sig xs
   
-  return (x, s)
+  return (xs, ts)

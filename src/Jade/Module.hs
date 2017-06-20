@@ -43,12 +43,10 @@ getOutputs m = case moduleTest m of
                    Nothing -> die "Module.getOutputs couldn't find outputs"
                  Nothing ->  die "Module.getOutputs could not find test script"
 
-
 inputsHaveSig :: Module -> Sig -> J Bool
 inputsHaveSig mod sig = do
   (Inputs ins) <- getInputs mod ? "Module.inputsHaveSig"
   return $ sig `elem` ins
-
 
 componentInInputs :: Module -> Component -> J Bool
 componentInInputs mod comp =
@@ -60,3 +58,5 @@ outputsHaveSig :: Module -> Sig -> J Bool
 outputsHaveSig mod sig = do
   (Outputs outs) <- getOutputs mod ? "Module.outputsHaveSig"
   return $ sig `elem` outs
+
+

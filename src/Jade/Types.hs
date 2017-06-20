@@ -206,11 +206,12 @@ data ModTest = ModTest { modPower :: Maybe Power
 ------------------------------------------------------------------
 -- Application.  This what?
 
-
-
 data Node a = Node { nodeElement :: a
                    , nodeComponent :: Component
                    } deriving (Show)
+
+type GComp = (DS.Set (Node (Integer, Integer)))
+
 
 instance Eq a => Eq (Node a) where
   (Node x _) == (Node y _) = x == y

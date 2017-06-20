@@ -51,8 +51,8 @@ collect' g seen vert =
 
 collect g vert = collect' g DS.empty vert
 
-components :: Ord t => Graph t -> DS.Set (DS.Set (Node t))
-components g = DS.map (collect g) (DS.fromList $ verts g)
+components :: Ord t => Graph t -> [DS.Set (Node t)]
+components g = DS.toList $ DS.map (collect g) (DS.fromList $ verts g)
 
 testG = fromEdges [ Edge (Node 2 Nop) (Node 4 Nop)
                   -- , Edge 4 6
