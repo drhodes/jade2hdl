@@ -71,7 +71,7 @@ instance Arbitrary SubModule where
 instance Arbitrary Jumper where
   arbitrary = Jumper <$> arbitrary
 
-instance Arbitrary Component where
+instance Arbitrary Part where
   arbitrary = join $ oneOf [ PortC <$> arbitrary
                            , SubModuleC <$> arbitrary
                            , WireC  <$> arbitrary

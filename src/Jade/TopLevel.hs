@@ -6,7 +6,7 @@ import qualified Data.Vector as DV
 import qualified Jade.Graph as G
 import qualified Jade.Decode as D
 import qualified Jade.Module as Module
-import qualified Jade.Component as Component
+import qualified Jade.Part as Part
 import Jade.Types
 import Jade.Wire
 import Control.Monad
@@ -29,8 +29,8 @@ termToEdge t@(Terminal (Coord3 x y _) _) =
   in Edge n n
 
 getSubModules topl modname = do
-  (Module (Just (Schematic comps)) _ _) <- getModule topl modname ? "TopLevel.components"
-  return [submod | SubModuleC submod <- DV.toList comps]
+  (Module (Just (Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
+  return [submod | SubModuleC submod <- DV.toList parts]
 
 -- |Get the components of a module given the module's name.
 components :: TopLevel -> String -> J [GComp]
@@ -119,19 +119,19 @@ getInputTermDriver topl modname term = do
   m <- getModule topl modname ? "TopLevel.getInputTermDriver"
   graphComp <- componentWithTerminal topl modname term ? "TopLevel.getInputTermDriver"
 
-  let compList = map nodeComponent $ DS.toList graphComp
+  let partList = map nodePart $ DS.toList graphComp
 
   -- check the test script, if any graph comp signals match the .input
   -- lines.  if so, then that's it.  If this list is empty, then need
   -- to check sub module output terminals.  if those don't match
   -- ... well
   
-  xs <- filterM (Module.componentInInputs m) compList
+  xs <- filterM (Module.partInInputs m) partList
   case length xs of    
     1 -> return $ head xs
     0 -> do undefined
-  --     -- check sub module output terminals.
-  --     xs <- filterM (Module.componentInSubmoduleOutputs) compList
+      -- check sub module output terminals.
+  --     xs <- filterM (Module.partInSubmoduleOutputs) partList
   --     case length xs of
   --       1 -> return $ head xs
   --       _ -> die "TopLevel.getInputTermDriver needs to do more work to find the driver"

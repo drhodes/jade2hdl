@@ -1,4 +1,4 @@
-module TestModule where
+module Test.TestTopLevel where
 
 import Jade.Types
 import qualified Jade.TopLevel as TopLevel
@@ -18,5 +18,6 @@ testTopLevelGetInputs = do
   printJ $ TopLevel.getInputs topl "/user/UseAND2_3"
   printJ $ TopLevel.getOutputs topl "/user/UseAND2_3"
   printJ $ TopLevel.components topl "/user/UseAND2_3"
+
 
 

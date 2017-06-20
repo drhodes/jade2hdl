@@ -1,5 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+module TestDecode where
+
+
 import Jade.ModTest
 import Jade.Types
 import Jade.Decode
@@ -28,7 +31,7 @@ testPort1 = eitherDecode "[\"port\", [136, 64, 1], {\"signal\": \"wd\"}]"
 testPort2 :: Either String Port
 testPort2 = eitherDecode "[\"port\", [136, 64, 1], {\"signal\": \"wd\", \"direction\":\"out\"}]" 
 
-testComp1 :: Either String Component
+testComp1 :: Either String Part
 testComp1 = eitherDecode "[\"port\", [136, 64, 1], {\"signal\": \"wd\", \"direction\":\"out\"}]" 
 
 testSub1 :: Either String SubModule

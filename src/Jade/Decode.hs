@@ -160,7 +160,7 @@ instance FromJSON Jumper where
     c3 <- parseJSON $ v V.! 1
     return $ Jumper c3 
 
-instance FromJSON Component where
+instance FromJSON Part where
   parseJSON v@(Array arr) = do
     ctype <- parseJSON $ arr V.! 0 :: Parser String
     case ctype of

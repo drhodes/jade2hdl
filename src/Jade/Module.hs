@@ -6,7 +6,7 @@ import qualified Data.Set as DS
 import qualified Data.Vector as DV
 import qualified Jade.Graph as G
 import qualified Jade.Decode as D
-import qualified Jade.Component as Component
+import qualified Jade.Part as Part
 import Jade.Types
 import Jade.Wire
 
@@ -48,15 +48,15 @@ inputsHaveSig mod sig = do
   (Inputs ins) <- getInputs mod ? "Module.inputsHaveSig"
   return $ sig `elem` ins
 
-componentInInputs :: Module -> Component -> J Bool
-componentInInputs mod comp =
-  case Component.sig comp of 
-    Just s -> inputsHaveSig mod s
-    Nothing -> return False
-
 outputsHaveSig :: Module -> Sig -> J Bool
 outputsHaveSig mod sig = do
   (Outputs outs) <- getOutputs mod ? "Module.outputsHaveSig"
   return $ sig `elem` outs
+
+partInInputs :: Module -> Part -> J Bool
+partInInputs mod comp =
+  case Part.sig comp of 
+    Just s -> inputsHaveSig mod s
+    Nothing -> return False
 
 

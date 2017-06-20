@@ -126,17 +126,17 @@ data SubModule = SubModule { subName :: String
 
 data Jumper = Jumper Coord3 deriving (Show, Eq)
 
-data Component = PortC Port
-               | SubModuleC SubModule
-               | WireC Wire
-               | JumperC Jumper
-               | TermC Terminal
-               | Nop
-                 deriving (Show, Eq)
+data Part = PortC Port
+          | SubModuleC SubModule
+          | WireC Wire
+          | JumperC Jumper
+          | TermC Terminal
+          | Nop
+          deriving (Show, Eq)
 
 type Test = String
 
-data Schematic = Schematic (V.Vector Component) deriving (Show, Eq)
+data Schematic = Schematic (V.Vector Part) deriving (Show, Eq)
 
 data Module = Module { moduleSchem :: Maybe Schematic
                      , moduleTest :: Maybe ModTest
@@ -207,7 +207,7 @@ data ModTest = ModTest { modPower :: Maybe Power
 -- Application.  This what?
 
 data Node a = Node { nodeElement :: a
-                   , nodeComponent :: Component
+                   , nodePart :: Part
                    } deriving (Show)
 
 type GComp = (DS.Set (Node (Integer, Integer)))

@@ -7,7 +7,7 @@ import Jade.Types
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module
-import qualified Jade.Component as Component
+import qualified Jade.Part as Part
 import qualified Jade.Vhdl as Vhdl
 import qualified Data.Hashable as H
 
@@ -59,12 +59,12 @@ buildUserAnd23' topl = do
   let t1 = terms !! 0
 
   x <- TopLevel.getInputTermDriver topl subname t1
-  let s = Component.sig x
+  let s = Part.sig x
 
   y <- TopLevel.getInputTermDriver topl subname (terms !! 1)
-  let t = Component.sig y
+  let t = Part.sig y
 
   xs <- mapM (TopLevel.getInputTermDriver topl subname) terms
-  let ts = map Component.sig xs
+  let ts = map Part.sig xs
   
   return (xs, ts)

@@ -1,9 +1,9 @@
-module Jade.Component where
+module Jade.Part where
 
 import Jade.Types
 import Control.Monad
 
-sig :: Component -> Maybe Sig
+sig :: Part -> Maybe Sig
 sig comp =
   case comp of
     PortC (Port _ (Just s)) -> signalName s
