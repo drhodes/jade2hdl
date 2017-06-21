@@ -52,19 +52,18 @@ buildUserAnd23 = do
   printJ $ buildUserAnd23' topl
 
 buildUserAnd23' topl = do
-  let subname =  "/user/UseAND2_3"
-  subs <- TopLevel.getSubModules topl subname
-  let sub0 = subs !! 0
-  terms <- TopLevel.terminals topl sub0
-  let t1 = terms !! 0
+  let modname =  "/user/UseAND2_3"
+  subs <- TopLevel.getSubModules topl modname
+  let submodule@(SubModule subname subloc) = subs !! 2
 
-  x <- TopLevel.getInputTermDriver topl subname t1
-  let s = Part.sig x
-
-  y <- TopLevel.getInputTermDriver topl subname (terms !! 1)
-  let t = Part.sig y
-
-  xs <- mapM (TopLevel.getInputTermDriver topl subname) terms
-  let ts = map Part.sig xs
+  cs <- TopLevel.components topl modname
+  return $ cs !! 0
   
-  return (xs, ts)
+  -- mod1 <- TopLevel.getModule topl subname
+  
+  -- inTerms <- Module.getInputTerminals mod1 subloc
+  
+  -- TopLevel.getInputTermDriver topl modname (inTerms !! 0)
+  --let s = Part.sig x
+
+  

@@ -25,20 +25,22 @@ library
                      , Jade.Module
                      , Jade.Wire
   build-depends:       QuickCheck >= 2.9.2,
+                       vector-instances,
                        aeson >= 1.0.2.1,
                        base >= 4.7 && < 5,
                        bytestring >= 0.10.8.1,
                        containers >= 0.5.7.1,
                        derive >= 2.6.2,
                        hashable >= 1.2.6.0,
+                       hashids >= 1.0.2.3,
                        language-vhdl >= 0.1.2.8,
                        mtl >= 2.2.1,
                        optparse-applicative >= 0.13.2.0,
                        parsec >= 3.1.11,
                        parsec3-numbers >= 0.1.0,
+                       scientific,
                        transformers >= 0.5.2.0,
-                       vector >= 0.11.0.0,
-                       scientific
+                       vector >= 0.11.0.0
   default-language:    Haskell2010
 
 executable jade2hdl
@@ -51,6 +53,7 @@ executable jade2hdl
                      , bytestring >= 0.10.8.1
                      , containers >= 0.5.7.1
                      , derive >= 2.6.2
+                     , hashids >= 1.0.2.3
                      , jade2hdl
                      , language-vhdl >= 0.1.2.8
                      , mtl >= 2.2.1
@@ -72,6 +75,7 @@ test-suite jade2hdl-test
                      , containers >= 0.5.7.1
                      , derive >= 2.6.2
                      , hashable >= 1.2.6.0
+                     , hashids >= 1.0.2.3
                      , jade2hdl
                      , language-vhdl >= 0.1.2.8
                      , mtl >= 2.2.1

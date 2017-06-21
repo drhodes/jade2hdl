@@ -2,7 +2,6 @@
 
 module TestDecode where
 
-
 import Jade.ModTest
 import Jade.Types
 import Jade.Decode

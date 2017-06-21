@@ -202,10 +202,6 @@ instance FromJSON TopLevel where
   parseJSON (Object o) = do
     fail $ show o
 
-
-
-
-
 decodeTopLevel :: FilePath -> IO (Either String TopLevel)
 decodeTopLevel filename = do
   top <- DBL.readFile filename

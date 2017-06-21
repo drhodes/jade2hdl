@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Jade.Graph where
   -- ( Graph(..)
   -- , Edge(..)
@@ -14,6 +15,8 @@ module Jade.Graph where
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.List as DL
+import qualified Data.Hashable as DH
+import qualified Web.Hashids as WH
 import Jade.Types
 
 empty = Graph DM.empty
@@ -47,9 +50,10 @@ collect' g seen vert =
       seen' = DS.union adj seen -- union them with those seen already
       unexplored = adj DS.\\ seen 
       next = DS.unions $ map (collect' g seen') (DS.toList unexplored)
-  in DS.union next seen
+  -- in DS.union next seen
+  in DS.union seen (DS.union next seen')
 
-collect g vert = collect' g DS.empty vert
+collect g vert = DS.union (DS.fromList [vert]) (collect' g DS.empty vert)
 
 components :: Ord t => Graph t -> [DS.Set (Node t)]
 components g = DS.toList $ DS.map (collect g) (DS.fromList $ verts g)
@@ -61,3 +65,10 @@ testG = fromEdges [ Edge (Node 2 Nop) (Node 4 Nop)
                   -- , Edge 3 5
                   -- , Edge 5 7
                   ]
+
+
+
+hashComp :: GComp -> String
+hashComp gcomp =
+  let ctx = WH.hashidsSimple "salt"
+      in show $ WH.encode ctx $ DH.hash $ DS.toList gcomp

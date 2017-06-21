@@ -1,10 +1,18 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
+
+-- {-# LANGUAGE FlexibleInstances #-}
+-- {-# LANGUAGE FlexibleContexts #-}
+-- {-# LANGUAGE DeriveFunctor #-}
+-- {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
 module Jade.Types where
 
+import Data.Vector.Instances
 import GHC.Generics
 import Control.Monad
 import Data.Traversable
@@ -118,13 +126,13 @@ instance Show Coord5 where
 
 data Port = Port { portCoord3 :: Coord3                 
                  , portSignal :: Maybe Signal
-                 } deriving (Show, Eq)
+                 } deriving (Generic, Show, Eq, Hashable)
       
 data SubModule = SubModule { subName :: String
                            , subCoord3 :: Coord3
-                           } deriving (Show, Eq)
+                           } deriving (Generic, Show, Eq, Hashable)
 
-data Jumper = Jumper Coord3 deriving (Show, Eq)
+data Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable)
 
 data Part = PortC Port
           | SubModuleC SubModule
@@ -132,64 +140,68 @@ data Part = PortC Port
           | JumperC Jumper
           | TermC Terminal
           | Nop
-          deriving (Show, Eq)
+          deriving (Generic, Show, Eq, Hashable)
 
 type Test = String
 
-data Schematic = Schematic (V.Vector Part) deriving (Show, Eq)
+data Schematic = Schematic (V.Vector Part) deriving (Generic, Show, Eq)
+
+instance Hashable Schematic where
+  hash (Schematic v) = 123 --hash $ V.toList v
 
 data Module = Module { moduleSchem :: Maybe Schematic
                      , moduleTest :: Maybe ModTest
                      , moduleIcon :: Maybe Icon
-                     } deriving (Show, Eq) -- todo add test
+                     } deriving (Generic, Show, Eq, Hashable) -- todo add test
 
 data TopLevel = TopLevel (DM.Map String Module)
               deriving  (Show, Eq)
 
+
 ------------------------------------------------------------------
 -- Test Types
 
-data Power = Power { powerVdd :: Double } deriving (Show, Eq)
+data Power = Power { powerVdd :: Double } deriving (Generic, Show, Eq, Hashable)
   
 data Thresholds = Thresholds { thVol :: Double
                              , thVil :: Double
                              , thVih :: Double
                              , thVoh :: Double
-                             } deriving (Show, Eq)
+                             } deriving (Generic, Show, Eq, Hashable)
 
-data Inputs = Inputs [Sig] deriving (Show, Eq)
-data Outputs = Outputs [Sig] deriving (Show, Eq)
+data Inputs = Inputs [Sig] deriving (Generic, Show, Eq, Hashable)
+data Outputs = Outputs [Sig] deriving (Generic, Show, Eq, Hashable)
 
-data Mode = Device | Gate deriving (Show, Eq)
+data Mode = Device | Gate deriving (Generic, Show, Eq, Hashable)
 
 data Duration = Nanosecond Double
               | Millisecond Double
-                deriving (Show, Eq)
+                deriving (Generic, Show, Eq, Hashable)
 
 data Action = Assert String
             | Deassert String
             | Sample String
             | Tran Duration
             | SetSignal Sig Double
-              deriving (Show, Eq)
+              deriving (Generic, Show, Eq, Hashable)
 
-data CycleLine = CycleLine [Action] deriving (Show, Eq)
+data CycleLine = CycleLine [Action] deriving (Generic, Show, Eq, Hashable)
 
-data BinVal = L | H | Z deriving (Show, Eq)
+data BinVal = L | H | Z deriving (Generic, Show, Eq, Hashable)
 
 data TestLine = TestLine { testLineAsserts :: [BinVal]                         
                          , testLineSamples :: [BinVal]
                          , testLineComment :: Maybe String
-                         } deriving (Show, Eq)
+                         } deriving (Generic, Show, Eq, Hashable)
 
-data PlotDef = PlotDef Sig [String] deriving (Show, Eq)
+data PlotDef = PlotDef Sig [String] deriving (Generic, Show, Eq, Hashable)
 
 data PlotStyle = BinStyle Sig
                | HexStyle Sig
                | DecStyle Sig
                | SimplePlot Sig
                | PlotDefStyle String Sig
-                 deriving (Show, Eq)
+                 deriving (Generic, Show, Eq, Hashable)
 
 data ModTest = ModTest { modPower :: Maybe Power
                        , modThresholds :: Maybe Thresholds
@@ -200,17 +212,17 @@ data ModTest = ModTest { modPower :: Maybe Power
                        , modTestLines :: [TestLine]
                        , modPlotDef :: [PlotDef]
                        , modPlotStyles :: [PlotStyle]
-                       } deriving (Show, Eq)
+                       } deriving (Generic, Show, Eq, Hashable)
 
 
 ------------------------------------------------------------------
--- Application.  This what?
 
 data Node a = Node { nodeElement :: a
                    , nodePart :: Part
-                   } deriving (Show)
+                   } deriving (Generic, Show, Hashable)
 
 type GComp = (DS.Set (Node (Integer, Integer)))
+
 
 
 instance Eq a => Eq (Node a) where
@@ -220,6 +232,21 @@ instance Ord a => Ord (Node a) where
   (Node x _) <= (Node y _) = x <= y
 
 
-data Graph a = Graph (DM.Map (Node a) (DS.Set (Node a))) deriving (Show, Eq)
-data Edge a = Edge (Node a) (Node a) deriving (Show, Eq)
+data Graph a = Graph (DM.Map (Node a) (DS.Set (Node a)))
+             deriving (Generic, Show)
 
+data Edge a = Edge (Node a) (Node a)
+            deriving (Generic, Show, Hashable)
+
+
+------------------------------------------------------------------
+
+data AssnI = AssnI { assniSrc :: Sig
+                   , assniTgt :: Sig
+                   } deriving (Show, Eq)
+
+data ModuleI = ModuleI { modiName :: String
+                       , modiWireAssn :: [AssnI]
+                         -- component decls
+                         -- component instantiations.
+                       } deriving (Show, Eq)

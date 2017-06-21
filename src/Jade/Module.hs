@@ -29,6 +29,21 @@ terminals (Module _ _ icon) offset@(Coord3 dx dy _) =
       return $ [Terminal (Coord3 (x+dx) (y+dy) r) sig |
                 IconTerm (Terminal (Coord3 x y r) sig) <- parts]
 
+--getInputTerminals :: Module -> Coord3 -> J [Terminal]
+
+getInputTerminals :: Module -> Coord3 -> J [Terminal]
+getInputTerminals mod offset = do
+  ts <- terminals mod offset
+  (Inputs ins) <- getInputs mod
+  return [term | term@(Terminal _ sig1) <- ts, sig2 <- ins, sig1 == sig2]
+
+getOutputTerminals :: Module -> Coord3 -> J [Terminal]
+getOutputTerminals mod offset = do
+  ts <- terminals mod offset
+  (Outputs ins) <- getOutputs mod
+  return [term | term@(Terminal _ sig1) <- ts, sig2 <- ins, sig1 == sig2]
+
+    
 getInputs :: Module -> J Inputs
 getInputs m = case moduleTest m of
                  Just mod -> case modInputs mod of
@@ -58,5 +73,4 @@ partInInputs mod comp =
   case Part.sig comp of 
     Just s -> inputsHaveSig mod s
     Nothing -> return False
-
 

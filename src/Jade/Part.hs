@@ -2,6 +2,7 @@ module Jade.Part where
 
 import Jade.Types
 import Control.Monad
+import Data.Maybe
 
 sig :: Part -> Maybe Sig
 sig comp =
@@ -11,4 +12,6 @@ sig comp =
     WireC (Wire _ Nothing) -> Nothing
     TermC (Terminal _ s) -> Just s    
     x -> error $ "Component.driverSig: Not implemented for: " ++ show x
-      
+
+hasSigName :: Part -> Bool
+hasSigName = isJust . sig 
