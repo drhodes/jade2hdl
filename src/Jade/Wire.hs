@@ -29,6 +29,15 @@ transformY rot x y =
     6 -> -y  
     7 -> x
 
+ends w@(Wire (Coord5 x y rot dx dy) _) =
+  let x' = x + (transformX rot dx dy)
+      y' = y + (transformY rot dx dy)
+      n1 = (x, y)
+      n2 = (x', y')
+  in (n1, n2)
+
+
+
 wireToEdge w@(Wire (Coord5 x y rot dx dy) _) =
   let x' = x + (transformX rot dx dy)
       y' = y + (transformY rot dx dy)

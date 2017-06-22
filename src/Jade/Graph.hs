@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Jade.Graph where
+{-
   -- ( Graph(..)
   -- , Edge(..)
   -- , addEdge
@@ -19,6 +20,7 @@ import qualified Data.Hashable as DH
 import qualified Web.Hashids as WH
 import Jade.Types
 
+empty :: Graph a
 empty = Graph DM.empty
 
 addEdge' (Graph table) (Edge v w) =
@@ -27,6 +29,7 @@ addEdge' (Graph table) (Edge v w) =
                  Just s -> DM.insert v (DS.insert w s) table
   in Graph table'
 
+addEdge :: Ord t => Graph t -> Edge t -> Graph t
 addEdge g (Edge v w) =
   let g1 = addEdge' g (Edge v w)
       g2 = addEdge' g1 (Edge w v)
@@ -41,17 +44,18 @@ degree g v = DS.size $ adjacent g v
 numVerts (Graph table) = DM.size table
 verts (Graph table) = DM.keys table
         
+fromEdges :: (Foldable t, Ord t1) => t (Edge t1) -> Graph t1
 fromEdges xs = foldl addEdge empty xs
 
 -- breadth first search.
---collect' :: Ord a => Graph (Node a) -> DS.Set (Node a) -> a -> DS.Set (Node a)
+collect' :: Ord t => Graph t -> DS.Set (Node t) -> Node t -> DS.Set (Node t)
 collect' g seen vert =
   let adj = adjacent g vert -- get the adjacent nodes
       seen' = DS.union adj seen -- union them with those seen already
       unexplored = adj DS.\\ seen 
       next = DS.unions $ map (collect' g seen') (DS.toList unexplored)
-  -- in DS.union next seen
-  in DS.union seen (DS.union next seen')
+  in DS.union next seen
+  
 
 collect g vert = DS.union (DS.fromList [vert]) (collect' g DS.empty vert)
 
@@ -72,3 +76,4 @@ hashComp :: GComp -> String
 hashComp gcomp =
   let ctx = WH.hashidsSimple "salt"
       in show $ WH.encode ctx $ DH.hash $ DS.toList gcomp
+-}

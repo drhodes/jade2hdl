@@ -7,14 +7,17 @@ import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.List as DL
 import qualified Data.Vector as DV
-import qualified Jade.Graph as G
+--import qualified Jade.Graph as G
+import qualified Jade.UnionFind as UF
+import qualified Jade.Wire as Wire
+import qualified Data.Maybe as Maybe
 import qualified Jade.Decode as D
 import qualified Jade.Module as Module
 import qualified Jade.Part as Part
 import Jade.Types
-import Jade.Wire
 import Control.Monad
 import qualified Web.Hashids as WH
+
 
 -- |Get a list of pairs (modulename, module)
 modules :: TopLevel -> [(String, Module)]
@@ -40,21 +43,62 @@ getSubModules topl modname = do
 
 -- |Get the components of a module given the module's name.
 --components :: TopLevel -> String -> J [GComp]
+
+
+-- a function to possible create an edge given a wire and a part
+makePartEdge :: Wire -> Part -> J (Maybe (Edge (Integer, Integer)))
+makePartEdge wire part = do
+  let (loc1, loc2) = Wire.ends wire
+  ploc <- Part.loc part ? "TopLevel.makePartEdge"
+  
+  if ploc == loc1 
+    then return $ Just $ Edge (Node loc1 (WireC wire)) (Node ploc part)
+    else if ploc == loc2
+         then return $ Just $ Edge (Node loc2 (WireC wire)) (Node ploc part)
+         else return Nothing
+
+makeWire2WireEdge :: Wire -> Wire -> J (Maybe (Edge (Integer, Integer)))
+makeWire2WireEdge w1 w2 = 
+  if w1 == w2
+  then return Nothing
+  else let (loc1, loc2) = Wire.ends w1
+           (loc3, loc4) = Wire.ends w2
+           econ p1 v p2 w = Just $ Edge (Node p1 (WireC v)) (Node p2 (WireC w))
+       in return $ case (loc1 == loc3, loc1 == loc4, loc2 == loc3, loc2 == loc4) of
+                     (True, _, _, _) -> econ loc1 w1 loc3 w2
+                     (_, True, _, _) -> econ loc1 w1 loc4 w2
+                     (_, _, True, _) -> econ loc2 w1 loc3 w2
+                     (_, _, _, True) -> econ loc2 w1 loc4 w2
+                     _ -> Nothing
+      
+processEdges wires parts = do
+  -- with all wires, make an edge from ones that share a point with a part 
+  let wireEdges = map Wire.wireToEdge wires
+  partEdges <- sequence [makePartEdge w p | w <- wires, p <- parts]
+  let Just edges = sequence $ filter Maybe.isJust partEdges
+
+  wireNbrs <- sequence [makeWire2WireEdge v w | v <- wires, w <- wires]
+  let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
+  return $ edges ++ nbrs
+  
 components topl modname = do
   --let msg = "TopLevel.components couldn't find module: " ++ modname
   (Module (Just (Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
-  terms <- sequence [terminals topl submod | SubModuleC submod <- DV.toList parts]
+  terms' <- sequence [terminals topl submod | SubModuleC submod <- DV.toList parts]
   
   let wires = [w | WireC w <- DV.toList parts]
-      ports = [p | PortC p <- DV.toList parts]
-          
-      wireEdges = map wireToEdge wires
-      portEdges = map portToEdge ports -- these are degenerate edges.
-      termEdges = map termToEdge (concat terms)
-          
-      edges = wireEdges ++ portEdges ++ termEdges
+      ports = [PortC p | PortC p <- DV.toList parts]
+      terms = map TermC $ concat terms'
 
-  return $ G.components $ G.fromEdges edges
+      -- STILL NEED TO CONNECT WIRES THAT TOUCH EACH OTHER.
+              
+      wireEdges = map Wire.wireToEdge wires
+
+  edges <- processEdges wires (terms ++ ports)
+  
+
+  return $ UF.components $ UF.fromEdges (edges ++ wireEdges)
+  
 
 {-
 -- |Get the graph component which contains the terminals.
@@ -82,8 +126,8 @@ terminals topl (SubModule modname offset) = do
 
 -- | Get the number of distinct nodes in the schematic
 -- numComponents :: TopLevel -> String -> J Int
-numComponents topl modname = 
-  liftM length $ components topl modname ? "Couldn't get number of componenents"
+-- numComponents topl modname = 
+--   liftM length $ components topl modname ? "Couldn't get number of componenents"
 
 
 -- | Get the input of a module. This requires tests to be defined in
@@ -185,6 +229,11 @@ getInputTermDriver topl modname term = do
 -- -- subModuleHasTermP 
 
 
-figurePortMap topl modname = do
-  comps <- components topl modname
-  return comps
+-- figurePortMap topl modname = do
+--   comps <- components topl modname
+--   return comps
+
+testMakeEdge1 = do
+  let wire = Wire (Coord5 0 0 Rot0 0 2) Nothing
+  let part = TermC $ Terminal (Coord3 0 0 0) (SigSimple "test")
+  printJ $ makePartEdge wire part

@@ -10,15 +10,15 @@ import qualified Jade.Part as Part
 import Jade.Types
 import Jade.Wire
 
-testConnected = do
-  Right (TopLevel m) <- D.decodeTopLevel "./test-data/fan5rot4connect.json"
-  case DM.elems m of
-    [Module (Just (Schematic wirecs)) _ _] -> 
-      let wires = [w | WireC w <- DV.toList wirecs]
-          edges = map wireToEdge wires
-          g = G.fromEdges edges
-      in return g
-    x -> fail "No schematic found in Module.testConnected"
+-- testConnected = do
+--   Right (TopLevel m) <- D.decodeTopLevel "./test-data/fan5rot4connect.json"
+--   case DM.elems m of
+--     [Module (Just (Schematic wirecs)) _ _] -> 
+--       let wires = [w | WireC w <- DV.toList wirecs]
+--           edges = map wireToEdge wires
+--           g = G.fromEdges edges
+--       in return g
+--     x -> fail "No schematic found in Module.testConnected"
 
 terminals :: Module -> Coord3 -> J [Terminal]
 terminals (Module _ _ icon) offset@(Coord3 dx dy _) =

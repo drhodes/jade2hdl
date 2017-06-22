@@ -1,0 +1,1 @@
+["Jade",{"/user/Wires2":{"properties":{"name":{"edit":"yes","type":"name","value":"","label":"Name"}},"schematic":[["wire",[-32,-40,0,16,0]],["wire",[-16,-40,0,0,16]],["wire",[-16,-24,0,-16,0]],["wire",[-32,-24,0,0,-16]]],"test":[["test",""]]}}]
