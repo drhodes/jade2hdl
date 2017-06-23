@@ -111,3 +111,16 @@ width sig = case sig of
               SigRangeStep _ from to step ->
                 (fromIntegral from) - (fromIntegral to) `div` (fromIntegral step)
               SigQuote _ w -> fromIntegral w
+
+hashMangle :: String -> Sig -> J Sig
+hashMangle s sig =
+  let f x = s ++ "_" ++ x
+  in case sig of 
+    SigSimple name -> return $ SigSimple (f name)
+    SigIndex name x -> return $ SigIndex (f name) x
+    SigHash name x -> return $ SigHash (f name) x
+    SigRange name x y -> return $ SigRange (f name) x y 
+    SigRangeStep name x y z -> return $ SigRangeStep (f name) x y z
+    x -> die $ "hashMangle doesn't support: " ++ show x
+
+

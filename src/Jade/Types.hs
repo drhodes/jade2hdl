@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TypeOperators #-}
@@ -23,8 +24,15 @@ import qualified Data.Set as DS
 import qualified System.Environment as SE
 import Data.Hashable
 import Test.QuickCheck
---import Data.Functor.Identity
 import Control.Monad.Except as E
+import qualified Data.Hashable as DH
+import qualified Web.Hashids as WH
+import qualified Data.ByteString.Char8 as B
+
+hashid :: Hashable a => a -> String
+hashid x =
+  let ctx = WH.hashidsSimple "salt"
+      in B.unpack $ WH.encode ctx . abs . DH.hash $ x
 
 
 ------------------------------------------------------------------
@@ -226,7 +234,7 @@ data Node a = Node { nodeElement :: a
                    , nodePart :: Part
                    } deriving (Eq, Generic, Show, Hashable, Ord)
 
--- type GComp = (DS.Set (Node (Integer, Integer)))
+type GComp = (DS.Set (Node (Integer, Integer)))
 
 -- data Graph a = Graph (DM.Map (Node a) (DS.Set (Node a)))
 --              deriving (Generic, Show)

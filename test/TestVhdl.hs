@@ -32,18 +32,15 @@ testMkArchBodyUserAnd2_3 = do
   let pair = head $ DM.toList m
   print $ P.pp $ Vhdl.mkArchBody pair
 
-
 testMkBuiltIn name constructor = do
   print $ P.pp $ Vhdl.mkBuiltInEntityDecl name
   print $ P.pp $ Vhdl.mkBuiltInArchBody name constructor
-
 
 testAllBuiltIn = do
   testMkBuiltIn "AND2" S.EAnd
   testMkBuiltIn "OR2" S.EOr
   testMkBuiltIn "XOR2" S.EXor
   testMkBuiltIn "NAND2" S.EAnd
-  
 
 testWires2 = do
   -- a box made of wires, should be have on component
@@ -99,7 +96,6 @@ testWires24 = do
                 1 -> return "Pass"
                 _ -> die "there should be two components"
 
-
 {- In a world with subcomponents, wires of width one and simple signals -}
 buildUserAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
@@ -140,3 +136,23 @@ testWire1 = do
               case length cs of
                 1 -> return "Pass"
                 x -> die $ "hmm, found: " ++ show x
+
+
+testTermDriverAnd23 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
+  printJ $ do let modname =  "/user/UseAND2_3"
+              subs <- TopLevel.getSubModules topl modname
+              let submodule@(SubModule subname subloc) = subs !! 2
+              inputTerms <- TopLevel.getInputTerminals topl submodule
+              result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
+              case result of
+                [SigSimple "pQ7aGyV4wvYWO_out",SigSimple "7nbK7QoR5Kpao_out"] -> return "Pass"
+                x -> die $ "hmm, found: " ++ show x
+
+testTermDriverAnd23_Wire = do
+  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
+  printJ $ do let modname =  "/user/UseAND2_3"
+              subs <- TopLevel.getSubModules topl modname
+              let submodule@(SubModule subname subloc) = subs !! 0
+              inputTerms <- TopLevel.getInputTerminals topl submodule
+              mapM (TopLevel.getInputTermDriver topl modname) inputTerms

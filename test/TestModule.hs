@@ -44,3 +44,13 @@ testGraphSubModule filename modname = do
 testGraphSubModuleAnd2 =
   testGraphSubModule "./test-data/and2-with-wires.json" "/user/AND2"
 -}
+
+-- testConnected = do
+--   Right (TopLevel m) <- D.decodeTopLevel "./test-data/fan5rot4connect.json"
+--   case DM.elems m of
+--     [Module (Just (Schematic wirecs)) _ _] -> 
+--       let wires = [w | WireC w <- DV.toList wirecs]
+--           edges = map wireToEdge wires
+--           g = G.fromEdges edges
+--       in return g
+--     x -> fail "No schematic found in Module.testConnected"

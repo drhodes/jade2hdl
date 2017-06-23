@@ -7,17 +7,16 @@ import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.List as DL
 import qualified Data.Vector as DV
---import qualified Jade.Graph as G
 import qualified Jade.UnionFind as UF
 import qualified Jade.Wire as Wire
 import qualified Data.Maybe as Maybe
 import qualified Jade.Decode as D
 import qualified Jade.Module as Module
 import qualified Jade.Part as Part
+import qualified Jade.Sig as Sig
 import Jade.Types
 import Control.Monad
 import qualified Web.Hashids as WH
-
 
 -- |Get a list of pairs (modulename, module)
 modules :: TopLevel -> [(String, Module)]
@@ -43,7 +42,6 @@ getSubModules topl modname = do
 
 -- |Get the components of a module given the module's name.
 --components :: TopLevel -> String -> J [GComp]
-
 
 -- a function to possible create an edge given a wire and a part
 makePartEdge :: Wire -> Part -> J (Maybe (Edge (Integer, Integer)))
@@ -82,27 +80,26 @@ processEdges wires parts = do
   return $ edges ++ nbrs
   
 components topl modname = do
-  --let msg = "TopLevel.components couldn't find module: " ++ modname
   (Module (Just (Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
   terms' <- sequence [terminals topl submod | SubModuleC submod <- DV.toList parts]
   
   let wires = [w | WireC w <- DV.toList parts]
       ports = [PortC p | PortC p <- DV.toList parts]
       terms = map TermC $ concat terms'
-
-      -- STILL NEED TO CONNECT WIRES THAT TOUCH EACH OTHER.
-              
       wireEdges = map Wire.wireToEdge wires
 
   edges <- processEdges wires (terms ++ ports)
-  
-
   return $ UF.components $ UF.fromEdges (edges ++ wireEdges)
+
+
+getInputTerminals :: TopLevel -> SubModule -> J [Terminal]
+getInputTerminals topl (SubModule name offset) = do
+  m <- getModule topl name
+  Module.getInputTerminals m offset
+
   
 
-{-
 -- |Get the graph component which contains the terminals.
-componentWithTerminal :: TopLevel -> String -> Terminal -> J GComp
 componentWithTerminal topl modname term@(Terminal (Coord3 x y _) _) = do
   comps <- components topl modname
   let pred set = (Node (x, y) (TermC term)) `elem` set
@@ -118,16 +115,18 @@ componentWithTerminal topl modname term@(Terminal (Coord3 x y _) _) = do
 
 -- | Get a list of input and output terminals in a submodule offset by
 -- the position of the submodule
--}
+
+
+
 terminals :: TopLevel -> SubModule -> J [Terminal]
 terminals topl (SubModule modname offset) = do
   mod <- getModule topl modname ? "TopLevel.terminals"
   Module.terminals mod offset
 
 -- | Get the number of distinct nodes in the schematic
--- numComponents :: TopLevel -> String -> J Int
--- numComponents topl modname = 
---   liftM length $ components topl modname ? "Couldn't get number of componenents"
+numComponents :: TopLevel -> String -> J Int
+numComponents topl modname = 
+  liftM length $ components topl modname ? "Couldn't get number of componenents"
 
 
 -- | Get the input of a module. This requires tests to be defined in
@@ -164,74 +163,61 @@ getOutputs topl modname = do
 -- clearly indicate a set of driving signals. .output terminals of sub
 -- modules are also driving signals.  
 
-{-
 getInputTermDriver topl modname term = do
   let try x = x ? "TopLevel.getInputTermDriver"
   
   m <- try $ getModule topl modname
-  graphComp <- try $ componentWithTerminal topl modname term
+  gcomp <- try $ componentWithTerminal topl modname term
 
-  let partList = let ps1 = map nodePart $ DS.toList graphComp
+  let partList = let ps1 = map nodePart gcomp
                      -- remove the source terminal
                      ps2 = DL.delete (TermC term) ps1
                      -- remove parts with no signal name
                      ps3 = filter Part.hasSigName ps2
-                 in ps1
+                 in ps3
 
   -- check the test script, if any graph comp signals match the .input
-  -- lines.  if so, then that's it.  If this list is empty, then need
-  -- to check sub module output terminals.  if those don't match
-  -- ... well
-  
-  xs <- filterM (Module.partInInputs m) partList
+  -- lines.  if so, then that's it.
+  (Inputs inputSigs) <- try $ getInputs topl modname
+  let partsMatchingInput = [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
 
-  return graphComp
--}
-
-
-
-  
-  -- case length xs of    
-  --   1 -> return $ head xs
-  --   0 -> 
-  --     -- Check partList for sub module output terminals. If partList
-  --     -- contains a WireC, TermC, PortC with sig that matches a
-  --     -- submodule output then that output must be the driver but That
-  --     -- output may not have a name, because some wires don't have
-  --     -- names. If that's the case, then it may be necessary to create
-  --     -- a name so the HDL can generate an named wire signal for
-  --     -- component instantiation, unless another wire in the component
-  --     -- has a name, then use that instread of creating one.
-
+  case length partsMatchingInput of
+    1 -> let match = head partsMatchingInput
+         in case Part.sig $ head partsMatchingInput of
+              Just sig -> return sig
+              Nothing -> die $ "Impossible, no signal was found in this part: " ++ show match
+      -- ok, so none of the parts have signals matching the a signal
+      -- found in the .input line of the module's test script.  See if
+      -- any of the parts are terminals, and if those terminals belong
+      -- to the output of a sub module, and which sub module.
+    0 -> do
+      let terms = [t | (TermC t) <- partList]
+      submods' <- mapM (subModuleWithOutputTerminal topl modname) terms
+      let submods = Maybe.catMaybes . concat . concat $ submods'
+      case submods of
+        [(Terminal coord sig, submod)] -> do
+          Sig.hashMangle (hashid submod) sig 
+          
+        [] -> die $ "Couldn't find the driving signal in a test script input or sub module output ???"
+        xs -> die $ "The impossible happened, many submodules output to this terminal" ++ show xs
       
-  --     do 
-    
-  --        -- zxcv <- sequence $ [Module.terminals m | (SubModule s c) <- partList]
-  --        -- -- 
-  --        let componentId = G.hashComp graphComp
-  --        undefined
+    _ -> die $ "component somehow contains more than one .input, \
+               \ which is impossible because that would mean more \
+               \ than one signal is driving this component: " ++ show partsMatchingInput
 
-         
-      -- xs <- filterM (Module.partInSubmoduleOutputs m) partList
-      -- case length xs of
-      --   1 -> return $ head xs
-      --   _ -> die "TopLevel.getInputTermDriver needs to do more work to find the driver"
-  -- NOT DONE YET. Also need 
-
+subModuleWithOutputTerminal topl modname term = do
+  let try x = x ? "subModuleWithoutOutputTerminal"
   
+  allsubs <- getSubModules topl modname
+  forM allsubs $ \submod@(SubModule subname subloc) -> do
+    -- for each submodule check to see if its terminals contain the terminal
+    m <- getModule topl subname
+    subterms <- terminals topl submod
+    forM subterms $ \subterm -> do
+      if (term == subterm)
+        then return $ Just (term, submod)
+        else return Nothing
 
-  
-  -- which schem check each wire, term, etc. to see if it a driver of term. 
-
--- findSubModuleWithTerm topl modname term = do
---   subs <- getSubModules topl modname
--- -  
--- -- subModuleHasTermP 
-
-
--- figurePortMap topl modname = do
---   comps <- components topl modname
---   return comps
 
 testMakeEdge1 = do
   let wire = Wire (Coord5 0 0 Rot0 0 2) Nothing

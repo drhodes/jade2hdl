@@ -1,7 +1,7 @@
 module Jade.Wire where
 
 import Jade.Types
-import qualified Jade.Graph as G
+-- import qualified Jade.Graph as G
 -- --Wire(Coord5(x, y, rot, dx, dy), SignalName) 
 -- rotateWire :: Wire -> Integer -> Wire
 -- rotateWire wire rot =
