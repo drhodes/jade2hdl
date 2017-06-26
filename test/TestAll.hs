@@ -1,3 +1,7 @@
-module Test.TestAll where
+module Main where
 
-import TestDecode
+import qualified TestDecode as TD
+
+main = do
+  TD.testAll
+  putStrLn "All done."

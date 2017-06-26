@@ -1,5 +1,5 @@
 build: ## build
-	stack build
+	stack test
 
 app: ## run the app
 	stack exec -- jade2hdl --infile ${USER}.json --enthusiasm 10

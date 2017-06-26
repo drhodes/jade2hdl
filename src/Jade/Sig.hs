@@ -78,7 +78,11 @@ bin = do string "0b"
          return n
 
 number :: Parser Integer
-number = choice [try hex, try bin]
+number = choice [ try hex
+                , try bin
+                , do n <- try $ many1 digit
+                     return $ (read n :: Integer)
+                ]
   
 -- := number'size // generate appropriate list of vdd, gnd to represent number
 sigQuote :: Parser Sig

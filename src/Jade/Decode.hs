@@ -60,7 +60,7 @@ instance FromJSON Signal where
       Nothing -> return $ Signal Nothing w dir
       Just s -> case Sig.parseSig s of
                   Right sig -> return $ Signal (Just sig) w dir
-                  Left msg -> fail (show msg)
+                  Left msg -> fail (show msg ++ "\n" ++ s)
 
 instance FromJSON Coord3 where
   parseJSON jsn = do
