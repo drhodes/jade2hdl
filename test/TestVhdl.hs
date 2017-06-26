@@ -130,13 +130,12 @@ bendyWire1 = do
                 x -> die $ "hmm, found: " ++ show x
 
 testWire1 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/wires/wire1.json"
+  Right topl <- Decode.decodeTopLevel "./test-data/wires/wire1.json" 
   printJ $ do let modname =  "/user/Wire1"
               cs <- TopLevel.components topl modname
               case length cs of
                 1 -> return "Pass"
                 x -> die $ "hmm, found: " ++ show x
-
 
 testTermDriverAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
@@ -155,4 +154,16 @@ testTermDriverAnd23_Wire = do
               subs <- TopLevel.getSubModules topl modname
               let submodule@(SubModule subname subloc) = subs !! 0
               inputTerms <- TopLevel.getInputTerminals topl submodule
-              mapM (TopLevel.getInputTermDriver topl modname) inputTerms
+              result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
+              case result of
+                [SigSimple "A",SigSimple "B"] -> return "Pass"
+                x -> die $ "hmm, found: " ++ show x
+
+-- testGenVhdlUseAnd23 = do
+--   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
+
+--   printJ $ do let modname = "/user/UseAND2_3"
+
+
+
+              

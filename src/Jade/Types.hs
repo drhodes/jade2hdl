@@ -34,8 +34,8 @@ hashid x =
   let ctx = WH.hashidsSimple "salt"
       in B.unpack $ WH.encode ctx . abs . DH.hash $ x
 
-
 ------------------------------------------------------------------
+
 type J a = Except String a      
 
 runJ = runExcept
@@ -70,7 +70,6 @@ data Icon = Icon { iconParts :: [IconPart]
 ------------------------------------------------------------------
 -- Schematic Types
 type ModuleName = String
-
 
 data Direction = In | Out | InOut
                deriving (Generic, Show, Eq, Hashable, Ord)
@@ -130,7 +129,6 @@ instance Show Coord5 where
                                      , ", ", show dx
                                      , ", ", show dy
                                      , ">"]
-  
 
 data Port = Port { portCoord3 :: Coord3                 
                  , portSignal :: Maybe Signal
@@ -149,11 +147,6 @@ data Part = PortC Port
           | TermC Terminal
           | Nop
           deriving (Generic, Show, Eq, Hashable, Ord)
-
-
-
-
-
 
 type Test = String
 
@@ -227,7 +220,6 @@ data ModTest = ModTest { modPower :: Maybe Power
                        , modPlotStyles :: [PlotStyle]
                        } deriving (Generic, Show, Eq, Hashable, Ord)
 
-
 ------------------------------------------------------------------
 
 data Node a = Node { nodeElement :: a
@@ -247,7 +239,6 @@ data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    , store :: DM.Map a Int
                                    , curId :: Int
                                    } deriving (Show)
-
 
 ------------------------------------------------------------------
 

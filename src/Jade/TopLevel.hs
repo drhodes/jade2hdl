@@ -116,8 +116,6 @@ componentWithTerminal topl modname term@(Terminal (Coord3 x y _) _) = do
 -- | Get a list of input and output terminals in a submodule offset by
 -- the position of the submodule
 
-
-
 terminals :: TopLevel -> SubModule -> J [Terminal]
 terminals topl (SubModule modname offset) = do
   mod <- getModule topl modname ? "TopLevel.terminals"
@@ -128,7 +126,6 @@ numComponents :: TopLevel -> String -> J Int
 numComponents topl modname = 
   liftM length $ components topl modname ? "Couldn't get number of componenents"
 
-
 -- | Get the input of a module. This requires tests to be defined in
 -- the module referenced, because .input directive of the test script
 -- indicate the target signals in the schematic
@@ -138,7 +135,6 @@ getInputs topl modname = do
   let msg = "TopLevel.getInputs couldn't find inputs"
   mod <- getModule topl modname ? msg
   Module.getInputs mod ? msg
-
 
 -- | Get the outputs of a module. This requires tests to be defined in
 -- the module referenced, because the .output directive of the test
@@ -179,11 +175,12 @@ getInputTermDriver topl modname term = do
   -- check the test script, if any graph comp signals match the .input
   -- lines.  if so, then that's it.
   (Inputs inputSigs) <- try $ getInputs topl modname
-  let partsMatchingInput = [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
+  let partsMatchingInput =
+        DL.nub $ DL.sort $ [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
 
   case length partsMatchingInput of
     1 -> let match = head partsMatchingInput
-         in case Part.sig $ head partsMatchingInput of
+         in case Part.sig match of
               Just sig -> return sig
               Nothing -> die $ "Impossible, no signal was found in this part: " ++ show match
       -- ok, so none of the parts have signals matching the a signal
@@ -192,12 +189,10 @@ getInputTermDriver topl modname term = do
       -- to the output of a sub module, and which sub module.
     0 -> do
       let terms = [t | (TermC t) <- partList]
-      submods' <- mapM (subModuleWithOutputTerminal topl modname) terms
+      submods' <- try $ mapM (subModuleWithOutputTerminal topl modname) terms
       let submods = Maybe.catMaybes . concat . concat $ submods'
       case submods of
-        [(Terminal coord sig, submod)] -> do
-          Sig.hashMangle (hashid submod) sig 
-          
+        [(Terminal coord sig, submod)] -> Sig.hashMangle (hashid submod) sig 
         [] -> die $ "Couldn't find the driving signal in a test script input or sub module output ???"
         xs -> die $ "The impossible happened, many submodules output to this terminal" ++ show xs
       
@@ -206,13 +201,12 @@ getInputTermDriver topl modname term = do
                \ than one signal is driving this component: " ++ show partsMatchingInput
 
 subModuleWithOutputTerminal topl modname term = do
-  let try x = x ? "subModuleWithoutOutputTerminal"
-  
-  allsubs <- getSubModules topl modname
+  let try x = x ? "subModuleWithOutputTerminal"
+  allsubs <- try $ getSubModules topl modname
   forM allsubs $ \submod@(SubModule subname subloc) -> do
     -- for each submodule check to see if its terminals contain the terminal
-    m <- getModule topl subname
-    subterms <- terminals topl submod
+    m <- try $ getModule topl subname
+    subterms <- try $ terminals topl submod
     forM subterms $ \subterm -> do
       if (term == subterm)
         then return $ Just (term, submod)

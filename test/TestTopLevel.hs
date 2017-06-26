@@ -26,5 +26,5 @@ testTopLevelGetInputs = do
               let term = terms !! 0
               connected <- TopLevel.componentWithTerminal topl modname term
               return $ filter (/= (TermC term)) $ map nodePart connected
-              --TopLevel.getInputTermDriver topl modname (terms !! 0)
+              TopLevel.getInputTermDriver topl modname (terms !! 1)
   

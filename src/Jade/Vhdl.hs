@@ -87,8 +87,8 @@ relation relname =
       rel = S.Relation shft Nothing
   in rel
 
-builtInExpr  constructor in1 in2 = constructor [ relation in1
-                                               , relation in2 ]
+builtInExpr constructor in1 in2 = constructor [ relation in1
+                                              , relation in2 ]
 
 mkBuiltInArchBody :: String -> ([S.Relation] -> S.Expression) -> S.ArchitectureBody
 mkBuiltInArchBody name operator = 
@@ -108,6 +108,7 @@ mkBuiltInArchBody name operator =
       
   in S.ArchitectureBody archId entName [] stmts
 
+mkBuiltInEntityDecl :: String -> S.EntityDeclaration
 mkBuiltInEntityDecl name = 
   let ins = Inputs [ SigSimple "in1", SigSimple "in2" ]
       outs = Outputs [ SigSimple "out1" ]
