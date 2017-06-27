@@ -40,87 +40,48 @@ end struct;
 
 library STD;
 use STD.textio.all;                     -- basic I/O
+use STD.env.all;
 library IEEE;
 use IEEE.std_logic_1164.all;            -- basic logic types
 use IEEE.std_logic_textio.all;          -- I/O for logic types
 use ieee.numeric_std.all;               
 
-entity AND23_TB is end AND23_TB;
+entity AND23_TB is end entity AND23_TB;
 architecture behaviour of AND23_TB is
-  signal clk : std_logic := '0';  
-  signal sigterm : std_logic := '0';
-  signal counter : unsigned(7 downto 0) := x"00";
   signal a, b, c, d, result : std_logic; 
   
 begin
-  u1 : entity work.AND23 port map (a => a, b => b, c => c, d => d, output => result);
+  dut : entity work.AND23 port map (a => a, b => b, c => c, d => d, output => result);
   process
   begin
     ------------------------------------------------------------------
-    counter <= counter + 1;
     a <= '0'; b <= '0'; c <= '0'; d <= '0';
-    wait for 99 ns;
+    wait for 99.0 ns;
     if result = '1' then
-      report "TestNum  : " & to_string(counter);
+      report "TestNum 1";
       report "expecting: result = 0";
       report "got      : result = " & to_string(result);
+      stop(-1);
     else
-      write(OUTPUT, "TEST " & integer'image(to_integer(unsigned(counter))) & ": PASSED" & LF);
+      write(OUTPUT, "TEST 1: PASSED" & LF);
     end if;
     wait for 1 ns;
     
     ------------------------------------------------------------------
-    counter <= counter + 1;
-    a <= '1'; b <= '1'; c <= '1'; d <= '1';
-    wait for 99 ns;
-    if result = '1' then
-      write(OUTPUT, "TESTNUM : " & integer'image(to_integer(unsigned(counter))) & LF);
-      report "expecting: result = 1";
-      report "got      : result = " & to_string(result);
-    else
-      write(OUTPUT, "TEST " & integer'image(to_integer(unsigned(counter))) & ": PASSED" & LF);
-    end if;
-    wait for 1 ns;
-    
-    wait;
+    -- testnum <= testnum + 1;
+    -- a <= '1'; b <= '1'; c <= '1'; d <= '1';
+    -- wait for 99 ns;
+    -- if result = '1' then
+    --   write(OUTPUT, "TESTNUM : " & integer'image(testnum) & LF);
+    --   report "expecting: result = 1";
+    --   report "got      : result = " & to_string(result);
+    --   stop(-1);
+    -- else
+    --   write(OUTPUT, "TEST " & integer'image(testnum) & ": PASSED" & LF);
+    -- end if;
+    -- wait for 1 ns;
+
+    finish(0);
   end process;    
 end behaviour;
 
-
-
-
-
-  --   --wait for 99 ns;
-  --   clkloop : loop
-  --     clk <= not clk;
-  --     if sigterm = '1' then exit; end if;
-  --     wait for 50 ns;
-  --   end loop clkloop;
-  --   wait;
-  -- end process;
-
-  -- process (clk)
-  -- begin
-  --   a <= counter(0);
-  --   b <= counter(1);
-  --   c <= counter(2);
-  --   d <= counter(3);
-    
-  --   if rising_edge(clk) then
-  --     -- report "counter is: " & to_hstring(counter);
-  --     -- report "counter is: " & integer'image(to_integer(unsigned(counter))); -- to get decimal
-      
-  --     report "inputs: (a, b, c, d) = "
-  --       & " (" & to_string(a)
-  --       & ", " & to_string(b)
-  --       & ", " & to_string(c)
-  --       & ", " & to_string(d)
-  --       & ") "
-  --       & to_string(result) & " counter: " & integer'image(to_integer(unsigned(counter)));
-     
-  --     if counter = x"F" then
-  --       sigterm <= '1';
-  --     end if;
-  --     counter <= counter + 1;
-  --   end if;
-  -- end process;

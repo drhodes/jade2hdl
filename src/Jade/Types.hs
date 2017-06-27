@@ -42,10 +42,19 @@ runJ = runExcept
 printJ x = case runJ x of
              Left msg -> putStrLn msg
              Right val -> putStrLn $ show val
+runJIO x = case runJ x of
+             Left msg -> putStrLn msg
+             Right f -> f
+
              
 die msg = E.throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
 
+bail :: J a
+bail = die "bailing!"
+
 (?) x msg = x `catchError` (\e -> (throwError $ e ++ "\n" ++ "! " ++ msg))
+(<?) msg x = x ? msg
+
 
 ------------------------------------------------------------------
 -- Icon Types

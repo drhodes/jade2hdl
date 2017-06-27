@@ -60,3 +60,16 @@ partInInputs mod comp =
     Just s -> inputsHaveSig mod s
     Nothing -> return False
 
+cycleLine :: Module -> J CycleLine
+cycleLine m = "Module.cycleLine" <? do
+  case moduleTest m of
+    Nothing -> die "No test found in this module."
+    Just mt -> case modCycleLine mt of
+      Nothing -> die "Not cycle line found in this module test"
+      Just cl -> return cl
+
+testLines :: Module -> J [TestLine]
+testLines m = "Module.testLines" <? do
+  case moduleTest m of
+    Nothing -> die "No test found in this module."
+    Just mt -> return $ modTestLines mt

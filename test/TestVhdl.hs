@@ -159,8 +159,12 @@ testTermDriverAnd23_Wire = do
                 [SigSimple "A",SigSimple "B"] -> return "Pass"
                 x -> die $ "hmm, found: " ++ show x
 
--- testGenVhdlUseAnd23 = do
---   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
+testGenVhdlUseAnd23 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"
+  runJIO $ "testGenVhdlUseAnd23" <? do
+    let modname = "/user/UseAND2_3"
+    Vhdl.mkCombinationalTest topl modname
+    
 
 --   printJ $ do let modname = "/user/UseAND2_3"
 
