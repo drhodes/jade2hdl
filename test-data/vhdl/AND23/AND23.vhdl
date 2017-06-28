@@ -57,7 +57,7 @@ begin
     ------------------------------------------------------------------
     a <= '0'; b <= '0'; c <= '0'; d <= '0';
     wait for 99.0 ns;
-    if result = '1' then
+    if result /= '0' then
       report "TestNum 1";
       report "expecting: result = 0";
       report "got      : result = " & to_string(result);

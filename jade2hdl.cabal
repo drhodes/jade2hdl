@@ -26,6 +26,7 @@ library
                      , Jade.Module
                      , Jade.Wire
   build-depends:       QuickCheck >= 2.9.2,
+                       text-format-simple >= 1.1.0,
                        vector-instances,
                        aeson >= 1.0.2.1,
                        base >= 4.7 && < 5,
@@ -34,7 +35,7 @@ library
                        derive >= 2.6.2,
                        hashable >= 1.2.6.0,
                        hashids >= 1.0.2.3,
-                       language-vhdl >= 0.1.2.8,
+                       language-vhdl >= 0.2.2.8,
                        mtl >= 2.2.1,
                        optparse-applicative >= 0.13.2.0,
                        parsec >= 3.1.11,
@@ -56,7 +57,7 @@ executable jade2hdl
                      , derive >= 2.6.2
                      , hashids >= 1.0.2.3
                      , jade2hdl
-                     , language-vhdl >= 0.1.2.8
+                     , language-vhdl >= 0.2.2.8
                      , mtl >= 2.2.1
                      , optparse-applicative >= 0.13.2.0
                      , parsec >= 3.1.11
@@ -80,7 +81,7 @@ test-suite jade2hdl-test
                      , hashable >= 1.2.6.0
                      , hashids >= 1.0.2.3
                      , jade2hdl
-                     , language-vhdl >= 0.1.2.8
+                     , language-vhdl >= 0.2.2.8
                      , mtl >= 2.2.1
                      , parsec >= 3.1.11
                      , transformers >= 0.5.2.0
