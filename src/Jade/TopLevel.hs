@@ -159,11 +159,13 @@ getOutputs topl modname = do
 -- clearly indicate a set of driving signals. .output terminals of sub
 -- modules are also driving signals.  
 
-getInputTermDriver topl modname term = do
-  let try x = x ? "TopLevel.getInputTermDriver"
+uniq x = DL.nub $ DL.sort x
+
+getInputTermDriver topl modname term = 
+  "TopLevel.getInputTermDriver" <? do
   
-  m <- try $ getModule topl modname
-  gcomp <- try $ componentWithTerminal topl modname term
+  m <- getModule topl modname
+  gcomp <- componentWithTerminal topl modname term
 
   let partList = let ps1 = map nodePart gcomp
                      -- remove the source terminal
@@ -174,9 +176,8 @@ getInputTermDriver topl modname term = do
 
   -- check the test script, if any graph comp signals match the .input
   -- lines.  if so, then that's it.
-  (Inputs inputSigs) <- try $ getInputs topl modname
-  let partsMatchingInput =
-        DL.nub $ DL.sort $ [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
+  (Inputs inputSigs) <- getInputs topl modname
+  let partsMatchingInput = uniq [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
 
   case length partsMatchingInput of
     1 -> let match = head partsMatchingInput
@@ -187,13 +188,13 @@ getInputTermDriver topl modname term = do
       -- found in the .input line of the module's test script.  See if
       -- any of the parts are terminals, and if those terminals belong
       -- to the output of a sub module, and which sub module.
-    0 -> do
+    0 -> "no parts matching inputs" <? do
       let terms = [t | (TermC t) <- partList]
-      submods' <- try $ mapM (subModuleWithOutputTerminal topl modname) terms
+      submods' <- mapM (subModuleWithOutputTerminal topl modname) terms
       let submods = Maybe.catMaybes . concat . concat $ submods'
       case submods of
         [(Terminal coord sig, submod)] -> Sig.hashMangle (hashid submod) sig 
-        [] -> die $ "Couldn't find the driving signal in a test script input or sub module output ???"
+        [] -> die $ "Couldn't find the driving signal in a test script input or sub module output: " ++ show partList
         xs -> die $ "The impossible happened, many submodules output to this terminal" ++ show xs
       
     _ -> die $ "component somehow contains more than one .input, \

@@ -1,478 +1,223 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 module Jade.Vhdl where
 
 import qualified Data.Map as DM
-import qualified Language.VHDL.Syntax as S
-import qualified Language.VHDL.Pretty as P
+import qualified Data.List as DL
 import Jade.Types
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module
+import qualified Jade.UnionFind as UnionFind
+import qualified Jade.Sig as Sig
 import Control.Monad
 import Jade.Util
+import Text.Mustache.Compile (mustache)
+import Text.Format
+import Text.Mustache
+import Text.Mustache.Parser
+import Text.Mustache.Compile
+import Data.FileEmbed
+import qualified Data.Text as T
+import qualified Data.Map as DM
+import Data.Text.Encoding
+import qualified Data.Text.IO as DT
 
-tident :: String -> S.TypeMark
-tident s = (S.TMType (S.NSimple (S.Ident s)))
-
-mkSigDecl :: S.Mode -> Sig -> S.InterfaceDeclaration
-mkSigDecl way (SigSimple n) =
-  let ident = [S.Ident n]
-      mode = Just way
-      subtypeInd = S.SubtypeIndication Nothing (tident "std_logic") Nothing
-      bus = False
-      expr = Nothing
-  in S.InterfaceSignalDeclaration ident mode subtypeInd bus expr
-mkSigDecl _ _ = undefined
-
-replace :: [Char] -> [Char] -> [Char] -> [Char]
-replace c r xs = "mod" ++ (concat [if [x] == c then r else [x] | x <- xs])
-
-mkPortClause' :: Inputs -> Outputs -> S.PortClause
-mkPortClause' (Inputs ins) (Outputs outs) = 
-  let inSigs = map (mkSigDecl S.In) ins
-      outSigs = map (mkSigDecl S.Out) outs
-  in S.PortClause $ S.InterfaceList (inSigs ++ outSigs) 
-
-mkPortClause :: (String, Module) -> S.PortClause
-mkPortClause (name, Module schem modTests _) = 
-  let (Just ins) = join $ liftM modInputs modTests
-      (Just outs) = join $ liftM modOutputs modTests
-  in mkPortClause' ins outs
-
-mkEntityDecl (name, m@(Module schem modTests _)) =
-  let portClause = mkPortClause (name, m)
-      entId = S.Ident (replace "/" "__" name)
-      entHeader = S.EntityHeader Nothing (Just portClause)
-      entDecl = []
-      entStat = Nothing
-  in S.EntityDeclaration entId entHeader entDecl entStat
-
-mkArchBody :: ([Char], Module) -> S.ArchitectureBody
-mkArchBody (name, m@(Module schem modTests _)) =
-  let portClause = mkPortClause (name, m)
-      archId = S.Ident "func"
-      entName = S.NSimple $ S.Ident (replace "/" "__" name)
-      label = Nothing
-
-      sas = S.SSignalAss $ S.SignalAssignmentStatement
-        label
-        (S.TargetName $ S.NSimple $ S.Ident "asdf")
-        Nothing
-        (S.WaveElem [S.WaveEExp (expName "something") Nothing])
-      stmts = [S.ConProcess (S.ProcessStatement Nothing False Nothing [] [sas, sas, sas])]
-      
-  in S.ArchitectureBody archId entName [] stmts
-
-expName :: String -> S.Expression
-expName s =
-  let name = S.PrimName (S.NSimple $ S.Ident s)
-      term = S.Term (S.FacPrim name Nothing) []
-      simp = S.SimpleExpression Nothing term []
-      shft = S.ShiftExpression simp Nothing
-      rel = S.Relation shft Nothing
-      exp = S.EAnd [rel]
-  in exp
-
-shiftExpName s =
-  let name = S.PrimName (S.NSimple $ S.Ident s)
-      term = S.Term (S.FacPrim name Nothing) []
-      simp = S.SimpleExpression Nothing term []
-      shft = S.ShiftExpression simp Nothing
-  in shft
-
-
-mkProcStmt :: S.ProcessStatementPart -> S.ProcessStatement
-mkProcStmt stmts = S.ProcessStatement Nothing False Nothing [] stmts
-
-------------------------------------------------------------------
--- BUILTINS
-
--- | create an AND2 module usable by other modules.
-
-relation relname =
-  let name = S.PrimName (S.NSimple $ S.Ident relname)
-      term = S.Term (S.FacPrim name Nothing) []
-      simp = S.SimpleExpression Nothing term []
-      shft = S.ShiftExpression simp Nothing
-      rel = S.Relation shft Nothing
-  in rel
-
-builtInExpr constructor in1 in2 = constructor [ relation in1
-                                              , relation in2 ]
-
-mkBuiltInArchBody :: String -> ([S.Relation] -> S.Expression) -> S.ArchitectureBody
-mkBuiltInArchBody name operator = 
-  let ins = Inputs [ SigSimple "in1", SigSimple "in2" ]
-      outs = Outputs [ SigSimple "out1" ]
-      portClause = mkPortClause' ins outs
-      archId = S.Ident "Behavioral"
-      entName = S.NSimple $ S.Ident name
-      label = Nothing
-
-      sas = S.SSignalAss $ S.SignalAssignmentStatement
-        label
-        (S.TargetName $ S.NSimple $ S.Ident "out1")
-        Nothing
-        (S.WaveElem [S.WaveEExp (builtInExpr operator "in1" "in2") Nothing])
-      stmts = [S.ConProcess (S.ProcessStatement Nothing False Nothing [] [sas])]
-      
-  in S.ArchitectureBody archId entName [] stmts
-
-mkBuiltInEntityDecl :: String -> S.EntityDeclaration
-mkBuiltInEntityDecl name = 
-  let ins = Inputs [ SigSimple "in1", SigSimple "in2" ]
-      outs = Outputs [ SigSimple "out1" ]
-      portClause = mkPortClause' ins outs
-      entId = S.Ident name
-      entHeader = S.EntityHeader Nothing (Just portClause)
-      entDecl = []
-      entStat = Nothing
-  in S.EntityDeclaration entId entHeader entDecl entStat
-
-library s = S.ContextLibrary $ S.LibraryClause $ S.LogicalNameList [S.Ident s]
-use name =
-  let prefix = S.PName $ S.NSimple $ S.Ident name
-  in S.ContextUse $ S.UseClause [S.SelectedName prefix S.SAll]
-
---suffix = S.SSimple $ S.
-ctxClause = S.ContextClause
-------------------------------------------------------------------
--- COMBINATIONAL TEST GENERATION.
-
--- entity AND23_TB is end AND23_TB;
-
-mkCTestEntityDecl modname m@(Module schem modTests _) =
-  let name = modname ++ "_tb"
-      portClause = mkPortClause (name, m)
-      entId = S.Ident (replace "/" "__" name)
-      entHeader = S.EntityHeader Nothing Nothing
-      entDecl = []
-      entStat = Nothing
-  in S.EntityDeclaration entId entHeader entDecl entStat
-
-  -- for every input in the whosie whatsie get declare a signal.
-  -- signal testnum : unsigned(7 downto 0) := x"00";
-  -- signal a, b, c, d, result : std_logic;
-  
-mkCTestInputSignalDecls m@(Module schem modTests _) =
-  "Jade.Vhdl.mkCTestInputSignalDecls" <?
-  do Inputs inSigs <- Module.getInputs m
-     Outputs outSigs <- Module.getOutputs m
-  
-     let subTypeInd = S.SubtypeIndication Nothing (tident "std_logic") Nothing
-  
-     forM (inSigs ++ outSigs) $ \sig ->
-       case sig of
-         SigSimple name ->
-           do let sigDecl = S.SignalDeclaration [S.Ident name] subTypeInd Nothing Nothing
-              return $ S.BDISignal sigDecl
-         x -> die $ show x ++ " hasn't been implemented to declare signal yet."
-
-mkCTestArchBody :: TopLevel -> String -> _ -> J S.ArchitectureBody
-mkCTestArchBody topl modname stuff = "Jade.Vhdl.mkCTestArchBody" <? do
-  -- architecture behaviour of AND23_TB is
-  --  STUFF
-  -- begin
-  --  STUFF
-  -- end behaviour;
-  m <- TopLevel.getModule topl modname
-  sigDecls <- mkCTestInputSignalDecls m
-  dut <- mkDutInstance modname m
-  let procStmt = S.ConProcess $ S.ProcessStatement Nothing False Nothing [] stuff
-      archName = S.Ident "behaviour"
-      entName = S.NSimple $ S.Ident $ (replace "/" "__" modname) ++ "_tb"
-      archDeclPart = sigDecls  -- [] -- declare wires
-      archStmtPart = [S.ConComponent dut] ++ [procStmt] -- the actual test cases.
-  return $ S.ArchitectureBody archName entName archDeclPart archStmtPart
-
-
-tbName modname = (replace "/" "__" modname) ++ "_tb"
-
-mkName s = S.NSimple $ S.Ident s
-
--- dut : entity work.AND23 port map (a => a, b => b, c => c, d => d, output => result);
-mkDutInstance modname m = "Jade.Vhdl.mkDutInstance" <? do
-  Inputs inSigs   <- Module.getInputs m
-  Outputs outSigs <- Module.getOutputs m
-
-  let toAssoc sig =
-        case sig of
-          SigSimple name ->
-            let formalPart = Just $ S.FPDesignator $ S.FDPort $ mkName name
-                actualPart = S.APDesignator $ S.ADSignal $ mkName name
-            in return $ S.AssociationElement formalPart actualPart
-          x -> die $ "have yet to implement toAssoc for this signal type: " ++ show x
-          
-  assocElems <- mapM toAssoc (inSigs ++ outSigs) ? "creating associations list for port map"
-                
-  let portMap = S.PortMapAspect portAssocList
-      portAssocList = S.AssociationList assocElems
-      label = S.Ident "dut"
-      unit = S.IUEntity (mkName $ "work." ++ (tbName modname)) Nothing
-      
-  return $ S.ComponentInstantiationStatement label unit Nothing (Just portMap)
-
-mkCombinationalAction :: Action -> J (Maybe S.SequentialStatement)
-mkCombinationalAction action = "Jade.Vhdl.mkCombinationalAction" <? do
-  case action of
-    Assert groupInputs -> "assert .group inputs" <? do      
-      return Nothing
-    Sample groupOutputs -> "assert .group outputs" <? do
-      return Nothing
-    Tran dur -> ("tran: " ++ show dur) <? do
-      case dur of
-        Nanosecond ns -> do
-          -- wait for 99 ns;
-          let timeoutClause = S.TimeoutClause $ expName (show ns ++ " ns")
-              wait = S.WaitStatement Nothing Nothing Nothing (Just timeoutClause)
-          return $ Just $ S.SWait wait          
-        Millisecond ms -> do
-          let timeoutClause = S.TimeoutClause $ expName (show ms ++ " ms")
-              wait = S.WaitStatement Nothing Nothing Nothing (Just timeoutClause)
-          return $ Just $ S.SWait wait          
-    x -> die $ "Unhandled action: " ++ show x
-
-conAssign :: Sig -> BinVal -> S.SequentialStatement
-conAssign sig binval =
-  case sig of
-    SigSimple sigName ->
-      let label = Nothing
-          target = S.TargetName $ S.NSimple $ S.Ident sigName
-          delay = Nothing
-          waveform = S.WaveElem [S.WaveEExp (mkBinValExpr binval) Nothing]
-          sas = S.SSignalAss $ S.SignalAssignmentStatement label target delay waveform
-      in sas
-
--- these are kind of ridiculous.
-mkBinValExpr binval =
-  let c = case binval of
-            H -> S.CLit '1'
-            L -> S.CLit '0'
-            Z -> S.CLit 'Z'
-      charLit = S.EChar c
-      enumLit = S.LitEnum charLit
-      primLit = S.PrimLit enumLit
-      factor = S.FacPrim primLit Nothing
-      term = S.Term factor []
-      simpleExpr = S.SimpleExpression Nothing term []
-      shiftExpr = S.ShiftExpression simpleExpr Nothing
-      relation = S.Relation shiftExpr Nothing
-      expr = S.EAnd [relation]
-  in expr
-
-mkBinValShiftExpr binval =
-  let c = case binval of
-            H -> S.CLit '1'
-            L -> S.CLit '0'
-            Z -> S.CLit 'Z'
-      charLit = S.EChar c
-      enumLit = S.LitEnum charLit
-      primLit = S.PrimLit enumLit
-      factor = S.FacPrim primLit Nothing
-      term = S.Term factor []
-      simpleExpr = S.SimpleExpression Nothing term []
-      shiftExpr = S.ShiftExpression simpleExpr Nothing
-  in shiftExpr
-
-mkBinValRelation binval =
-  let c = case binval of
-            H -> S.CLit '1'
-            L -> S.CLit '0'
-            Z -> S.CLit 'Z'
-      charLit = S.EChar c
-      enumLit = S.LitEnum charLit
-      primLit = S.PrimLit enumLit
-      factor = S.FacPrim primLit Nothing
-      term = S.Term factor []
-      simpleExpr = S.SimpleExpression Nothing term []
-      shiftExpr = S.ShiftExpression simpleExpr Nothing
-      relation = S.Relation shiftExpr Nothing
-  in relation
-
-litExpr lit = 
-  let primLit = S.PrimLit lit
-      factor = S.FacPrim primLit Nothing
-      term = S.Term factor []
-      simpleExpr = S.SimpleExpression Nothing term []
-      shiftExpr = S.ShiftExpression simpleExpr Nothing
-      relation = S.Relation shiftExpr Nothing
-      expr = S.EAnd [relation]
-  in expr
-
-litRel lit = 
-  let primLit = S.PrimLit lit
-      factor = S.FacPrim primLit Nothing
-      term = S.Term factor []
-      simpleExpr = S.SimpleExpression Nothing term []
-      shiftExpr = S.ShiftExpression simpleExpr Nothing
-      relation = S.Relation shiftExpr Nothing
-  in relation
-
-litTerm lit = 
-  let primLit = S.PrimLit lit
-      factor = S.FacPrim primLit Nothing
-      term = S.Term factor []
-  in term
-
-stringLitExpr s = litExpr $ S.LitString $ S.SLit s
-stringLitRel s = litRel $ S.LitString $ S.SLit s
-stringLitTerm s = litTerm $ S.LitString $ S.SLit s
-
-funcCall :: String -> [String] -> S.Factor
-funcCall name args =
-  let fname = mkName name
-      oneArg arg = S.AssociationElement Nothing (S.APDesignator $ S.ADVariable $ mkName arg)
-  in S.FacPrim (S.PrimFun $ S.FunctionCall fname (Just $ S.AssociationList (map oneArg args))) Nothing
-
-primToExpr p = S.EAnd [S.Relation
-                       (S.ShiftExpression
-                        (S.SimpleExpression Nothing
-                         (S.Term (S.FacPrim p Nothing) []) []) Nothing) Nothing]
-
-factorToShiftExpr f = (S.ShiftExpression (S.SimpleExpression Nothing (S.Term f []) []) Nothing)
-simpleExprToExpr simple = S.EAnd [S.Relation (S.ShiftExpression simple Nothing) Nothing]
-
-
-
-mkTestLine :: Module -> [Action] -> TestLine -> Integer -> J [S.SequentialStatement]
-mkTestLine m [] _ _ = return [] -- base case, no more actions to consume
-mkTestLine m (act:rest) testLine@(TestLine asserts samples comment) testnum =
-  "Jade.Vhdl.mkTestLine: " <? do
-  let recurse xs = liftM (xs ++) (mkTestLine m rest testLine testnum)
-  
+mkTestLine :: Module -> [Action] -> TestLine -> Integer -> J [String]
+mkTestLine _ [] _ _ = return []
+mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
+  let recurse x = liftM (x++) (mkTestLine m actions testline testnum)
   case act of
-    ------------------------------------------------------------------
-    -- a <= '0'; b <= '0'; c <= '0'; d <= '0';
-    Assert _ ->
-      "while processing .assert action" <? do
-      Inputs sigs <- Module.getInputs m
-
-      when (length sigs /= length asserts) $
-        let msg = "Can't render test case: {0}, the number of asserted signals: ({1}) \
-                  \ does not match the number of values found in the testline: ({2})" 
-        in die $ fmt msg (testnum, length sigs, length asserts)
-              
-      let stmts = zipWith conAssign sigs asserts
-      recurse stmts
-
-    ------------------------------------------------------------------
-    s@(Sample _) ->
-      ("While generating test case for sample: " ++ show s) <? do
-      
-      Outputs sigs <- Module.getOutputs m
-      ("with expected results: " ++ (show $ zip sigs samples)) <? do
-      
-      let buildConditionalIfThen s@(sig, sample) = ("buildConditionalIfThen: " ++ (show s)) <? do
-            sigName <- case sig of
-                         SigSimple name -> return name
-                         x -> die $ "unhandled signal type: " ++ show x
-            
-            let sif = S.SIf $ S.IfStatement Nothing thenClause [] elseClause          
-                thenClause = (thenCond, thenStmts)
-                thenCond = S.EAnd $ [S.Relation leftExpr $ Just (S.Neq, rightExpr)]  -- result /= expected
-                leftExpr = shiftExpName sigName
-                rightExpr = mkBinValShiftExpr sample -- expected
-                report s = S.SReport $ S.ReportStatement Nothing (stringLitExpr s) Nothing
-                expected got = S.SReport $ S.ReportStatement Nothing (S.EAnd [S.Relation got Nothing]) Nothing
-                to_string = funcCall "to_string" [sigName]
-                instead =  S.SReport $ S.ReportStatement Nothing insteadExpr Nothing
-                termFunc = S.Term to_string []
-                termString = stringLitTerm "got        : "
-                insteadExpr = simpleExprToExpr $ S.SimpleExpression Nothing termString [(S.Concat, termFunc)]
-                
-                thenStmts = [ report $ "Test Number: " ++ show testnum ++ " fails."
-                            , report $ "expecting  : " ++ (show $ P.pp (mkBinValShiftExpr sample))
-                            , instead ]
-                            
-                elseClause = Just []
-            return sif
-            
-      result <- mapM buildConditionalIfThen (zip sigs samples)
-      recurse result
-
-    ------------------------------------------------------------------
-    Tran dur -> ("tran: " ++ show dur) <? do
+    Tran dur ->
       case dur of
-        Nanosecond ns -> do
-          -- wait for 99 ns;
-          let timeoutClause = S.TimeoutClause $ expName (show ns ++ " ns")
-              wait = S.WaitStatement Nothing Nothing Nothing (Just timeoutClause)
-          recurse [S.SWait wait]
-        Millisecond ms -> do
-          let timeoutClause = S.TimeoutClause $ expName (show ms ++ " ms")
-              wait = S.WaitStatement Nothing Nothing Nothing (Just timeoutClause)
-          recurse [S.SWait wait]
-      
-    x -> (die $ show x) ? "Haven't implemented this for"
-  
-  
+        Nanosecond ns -> recurse $ [format "wait for {0} ns;" [show ns]]
+        Millisecond ms -> recurse $ [format "wait for {0} ms;" [show ms]]
+        
+    Assert _ -> "Assert" <? do
+      -- a <= '0'; b <= '0'; c <= '0'; d <= '0';
+      let TestLine asserts _ _ = testline
+      Inputs ins <- Module.getInputs m
+      inputNames <- mapM sigName ins
+      recurse $ zipWith sigAssert inputNames asserts
 
+    Sample _ -> "Samples" <? do
+      Outputs outs <- Module.getOutputs m
+      let TestLine _ expecteds comment = testline 
+          exps = map binValToStdLogic expecteds
+          c = case comment of
+                Just s -> "// " ++ s
+                Nothing -> ""
+      os <- mapM sigName outs      
+      let txt = [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
+      recurse $ map T.unpack txt
+
+testCaseIfBlock :: Integer -> String -> String -> String -> T.Text
+testCaseIfBlock testnum signal expected comment =
+  let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/test-case-if-block.mustache")
+      Right temp = compileTemplate "test-case-if-block" txt
+      to_string = format "to_string({0})" [signal]
+      mapping = DM.fromList [ ("testnum", toMustache testnum)
+                            , ("signal", toMustache signal)
+                            , ("expected", toMustache expected)
+                            , ("signal_to_string", toMustache to_string)
+                            , ("comment", toMustache comment)
+                            ]
+  in substitute temp mapping
+
+binValToStdLogic bv = case bv of { H -> "'1'" ; L -> "'0'" ; Z -> "'Z'" } 
+sigAssert x bv = format "{0} <= {1};" [x, binValToStdLogic bv]
+
+sigName sig = case sig of
+                SigSimple name -> return name
+                x -> die $ format "unsupported signal: {0}" [show x]
+
+portAssoc :: Sig -> J String
+portAssoc sig = do
+   name <- sigName sig
+   return $ format "{0} => {0}" [name]
+
+--dut : entity work.AND23 port map (a => a, b => b, c => c, d => d, output => result);
+mkDUT m modname = "Vhdl.testDUT" <? do  
+  Inputs ins <- Module.getInputs m
+  Outputs outs <- Module.getOutputs m
+  portAssociates <- mapM portAssoc (ins ++ outs)
+  let portmap = DL.intercalate ", " portAssociates
+      template = "dut : entity work.{0} port map ({1});"
+      mn = Module.mangleModName modname
+  return $ format template [mn, portmap]
+
+mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
+  Inputs ins <- Module.getInputs m
+  Outputs outs <- Module.getOutputs m
+
+  let getSigName sig =
+        case sig of
+          SigSimple name -> return name
+          x -> die $ format "unsupported signal: {0}" [show x]
+  
+  names <- mapM getSigName (ins ++ outs)
+  return $ "signal " ++ DL.intercalate ", " names ++ ": std_logic;"
+  
+mkTestBench :: TopLevel -> [Char] -> J T.Text
+mkTestBench topl modname =
+  "Jade.Vhdl.mkTestBench" <? do
+  m <- TopLevel.getModule topl modname
+  sigDecls <- mkSignalDecls m modname
+  dut <- mkDUT m modname
+  tlines <- Module.testLines m
+  CycleLine actions <- Module.cycleLine m 
+  cases <- sequence [mkTestLine m actions testline testnum | (testline, testnum) <- zip tlines [1..]]
+  
+  let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-testbench.mustache")
+      Right temp = compileTemplate "combinational-testbench.mustache" txt
+      mapping = DM.fromList [ ("testbench-name", toMustache $ (Module.mangleModName modname) ++ "_tb")
+                            , ("signal-decls", toMustache sigDecls)
+                            , ("dut", toMustache dut)
+                            , ("test-cases", toMustache (DL.intercalate  "\n" (concat cases)))
+                            ]
+  return $ substitute temp mapping
 
 mkCombinationalTest topl modname =
   ("Jade.Vhdl.mkCombinationalTest: " ++ modname) <? do
-  let libSection = ctxClause [ library "STD"
-                             , use "STD.textio"
-                             , use "STD.env"
-                             , library "IEEE"
-                             , use "IEEE.std_logic_1164"
-                             , use "IEEE.std_logic_textio"
-                             , use "ieee.numeric_std"
-                             ]
-                   
+  mkTestBench topl modname
+
+
+------------------------------------------------------------------
+
+--mkModule :: TopLevel -> String -> J Maybe String)
+mkModule topl modname =
+  "Jade.Vhdl.mkModule, convert module to VHDL" <? do
   m <- TopLevel.getModule topl modname
-  tlines <- Module.testLines m
-  (CycleLine actions) <- Module.cycleLine m 
-  cases <- sequence [mkTestLine m actions testline testnum | (testline, testnum) <- zip tlines [1..]]
-  arch <- mkCTestArchBody topl modname (concat cases)
- 
-  return $ do
-    let newline = putStrLn ""
-    newline
-    print $ P.pp libSection
-    newline
-    print $ P.pp $ mkCTestEntityDecl modname m
-    newline
-    print $ P.pp arch
-    newline
-    --print $ P.pp $ mkProcStmt (concat cases)
-    newline
-    --xprint $ P.pp asdf
-  {-
-  process
-  begin
-    a <= '0'; b <= '0'; c <= '0'; d <= '0';
-    wait for 99 ns;
-    if result = '1' then
-      report "TestNum 1";
-      report "expecting: result = 0";
-      report "got      : result = " & to_string(result);
-      stop(-1);
-    else
-      write(OUTPUT, "TEST 1: PASSED" & LF);
-    end if;
-    wait for 1 ns;
 
-    
-    wait;
-  end process;    
-end behaviour;
+  schem <- case moduleSchem m of
+             Just x -> return x
+             Nothing -> die $ "No schematic found in module: " ++ modname
+  
+  -- collect all terminals from submodule in the schematic
 
+  subs <- TopLevel.getSubModules topl modname
+  terms <- mapM (TopLevel.getInputTerminals topl) subs
+  drivers <- mapM (TopLevel.getInputTermDriver topl modname) (concat terms)
 
+  comps <- TopLevel.components topl modname
 
--}
+  
+  instances <- mapM (mkSubModuleInstance topl modname) subs
 
+  Inputs ins <- Module.getInputs m
+  Outputs outs <- Module.getOutputs m
 
+  inNames <- mapM sigName ins
+  let portIns = map (++" : in std_logic") inNames
 
+  outNames <- mapM sigName outs
+  let portOuts = map (++" : out std_logic") outNames
 
+  let ports = T.pack $ DL.intercalate "; " (portIns ++ portOuts)
+  mapM (UnionFind.nameComp) comps
 
+  nodeDecls <- mkNodeDecls topl modname
+  
+  let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
+      Right temp = compileTemplate "combinational-module.mustache" txt
+      mapping = DM.fromList [ ("module-name", toMustache (Module.mangleModName modname))
+                            , ("ports", toMustache ports)
+                            , ("node-declarations", toMustache nodeDecls)
+                            , ("submodule-entity-instances", toMustache  (T.intercalate  (T.pack "\n") instances))
+                            ]
+  return $ substitute temp mapping
+  
 
+------------------------------------------------------------------
+mkSubModuleInstance topl modname submod@(SubModule name loc) =
+  "Jade.Vhdl.mkSubModuleInstance" <? do
+  
+  m <- TopLevel.getModule topl name 
+  inputTerms <- Module.getInputTerminals m loc
+  outputTerms <- Module.getOutputTerminals m loc
 
+  let termName (Terminal _ sig)  = sigName sig
+  
+  inComps <- mapM (TopLevel.componentWithTerminal topl modname) inputTerms
+  inSigNames <- mapM UnionFind.nameComp inComps
+  inTermNames <- mapM termName inputTerms
 
+  outComps <- mapM (TopLevel.componentWithTerminal topl modname) outputTerms
+  outSigNames <- mapM UnionFind.nameComp outComps
+  outTermNames <- mapM termName outputTerms
+  
+  let ps = zipWith (\x y -> x ++ " => " ++ y) (inTermNames ++ outTermNames) (inSigNames ++ outSigNames)
+      portmap = DL.intercalate ", " ps
+      label = (Module.mangleModName name) ++ "_" ++ (take 5 $ hashid loc)
+  
+  -- u1 : entity work.AND2 port map (in1 => a, in2 => b, out1 => w1);
+  let txt = "{{label}} : entity work.{{submod-name}} port map ({{{port-map}}});"
+      Right template = compileTemplate "mkSubModuleInstance" (T.pack txt)
+      mapping = DM.fromList [ ("label", toMustache label)
+                            , ("submod-name", toMustache $ Module.mangleModName name)
+                            , ("port-map", toMustache portmap)
+                            ]
+  return $ substitute template mapping
 
+------------------------------------------------------------------
+-- get all node names needed for wiring.
+-- no input names.
+mkNodeDecls topl modname =
+  "Jade.Vhdl.mkNodeDecls" <? do
 
-mkTestNum =
-  let subTypeInd = S.SubtypeIndication Nothing (tident "integer") Nothing
-      sigDecl = S.SignalDeclaration [S.Ident "testnum"] subTypeInd Nothing Nothing
-  in S.BDISignal sigDecl
+  Inputs ins <- TopLevel.getInputs topl modname
+  Outputs outs <- TopLevel.getOutputs topl modname
+  ignore <- mapM sigName (ins ++ outs)
+  
+  comps <- TopLevel.components topl modname
+  compNames <- mapM UnionFind.nameComp comps
+
+  let keepers = DL.intercalate ", " [n | n <- compNames, n `notElem` ignore]
+      temp = "signal {0} : std_logic;"
+      
+      
+  return $ format temp [keepers]
+  -- signal w1, w2 : std_logic;
+  

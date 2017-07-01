@@ -1,4 +1,7 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Jade.Util where
+
 import Text.Format
 
 class (Show a) => Fmt a where

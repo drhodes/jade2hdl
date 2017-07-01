@@ -1,0 +1,17 @@
+-- combinational module -------------------------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity {{module-name}} IS
+  port ({{ports}});
+end {{module-name}};
+
+architecture struct of {{module-name}} is
+  -- node declarations
+  {{{node-declarations}}}
+
+begin
+  -- each submodule is wired up here.
+  {{{submodule-entity-instances}}}
+end struct;

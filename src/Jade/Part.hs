@@ -19,6 +19,8 @@ hasSigName = isJust . sig
 
 
 
+
+
 loc part =
   case part of
     PortC (Port (Coord3 x y _) _) -> return (x, y)

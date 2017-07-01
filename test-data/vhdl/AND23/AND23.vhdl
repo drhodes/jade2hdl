@@ -9,7 +9,7 @@ END ENTITY AND2 ;
 
 ARCHITECTURE Behavioral OF AND2 IS
 BEGIN
-    out1 <= in1 AND in2 ;
+  out1 <= in1 AND in2 ;
 END ARCHITECTURE Behavioral ;
 
 ------------------------------------------------------------------
@@ -28,7 +28,7 @@ architecture struct of AND23 is
   -- each node goes here.
   signal w1, w2 : std_logic;
 
-  -- each submodule is wired up here.
+-- each submodule is wired up here.
 begin
   u1 : entity work.AND2 port map (in1 => a, in2 => b, out1 => w1);
   u2 : entity work.AND2 port map (in1 => c, in2 => d, out1 => w2);

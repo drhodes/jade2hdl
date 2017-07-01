@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Jade.UnionFind where
 
 import qualified Data.Vector as V
@@ -60,11 +61,9 @@ components quf = let ks = DM.keys (store quf)
 
 nodesFromEdge (Edge n1 n2) = [n1, n2]
 
-
 addEdge quf (Edge n1 n2) = union quf n1 n2
 addEdges quf [] = quf
 addEdges quf (e:rest) = addEdges (addEdge quf e) rest
-
 
 -- fromEdges :: Ord t => [Edge t] -> QuickUnionUF (Node t)
 fromEdges es =
@@ -73,6 +72,19 @@ fromEdges es =
       quf = new (DS.size set)
       quf' = addVertexes quf nodes
   in addEdges quf' es
+
+
+nameComp :: [Node a] -> J String
+nameComp nodes = "UnionFind.nameComp" <? do
+  let parts = map nodePart nodes
+      signals = [signal | WireC (Wire _ (Just signal)) <- parts]
+      names = [n | Signal (Just (SigSimple n)) _ _ <- signals]
+      genNameLen = 10
+  
+  return $ if length names > 0
+           then head names
+           else take genNameLen $ "wire_" ++ hashid parts
+
   
 test1 = do
   let q = new 10

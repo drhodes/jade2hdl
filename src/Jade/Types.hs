@@ -28,6 +28,7 @@ import Control.Monad.Except as E
 import qualified Data.Hashable as DH
 import qualified Web.Hashids as WH
 import qualified Data.ByteString.Char8 as B
+import Jade.Util
 
 hashid :: Hashable a => a -> String
 hashid x =
@@ -116,9 +117,7 @@ data Coord3 = Coord3 { c3x :: Integer
                      } deriving (Eq, Generic, Hashable, Ord)
 
 instance Show Coord3 where
-  show (Coord3 x y r) = concat [ "<C3 ", show x
-                               , ", ", show y
-                               , ", ", show r, ">"]
+  show (Coord3 x y r) = fmt "<C3 {0} {1} {2}>" (x, y, r)
 
 data Wire = Wire { wireCoord5 :: Coord5
                  , wireSignal :: Maybe Signal
@@ -132,12 +131,7 @@ data Coord5 = Coord5 { c5x :: Integer
                      } deriving (Eq, Generic, Hashable, Ord)
 
 instance Show Coord5 where
-  show (Coord5 x y r dx dy) = concat [ "<C5 ", show x
-                                     , ", ", show y
-                                     , ", ", show r
-                                     , ", ", show dx
-                                     , ", ", show dy
-                                     , ">"]
+  show (Coord5 x y r dx dy) = fmt "<C5 {0}, {1}, {2}, {3}, {4}>" (x, y, r, dx, dy)
 
 data Port = Port { portCoord3 :: Coord3                 
                  , portSignal :: Maybe Signal
@@ -162,7 +156,7 @@ type Test = String
 data Schematic = Schematic (V.Vector Part) deriving (Generic, Show, Eq, Ord)
 
 instance Hashable Schematic where
-  hash (Schematic v) = 123 --hash $ V.toList v
+  hash (Schematic v) = hash $ V.toList v
 
 data Module = Module { moduleSchem :: Maybe Schematic
                      , moduleTest :: Maybe ModTest
@@ -171,7 +165,6 @@ data Module = Module { moduleSchem :: Maybe Schematic
 
 data TopLevel = TopLevel (DM.Map String Module)
               deriving  (Show, Eq)
-
 
 ------------------------------------------------------------------
 -- Test Types
@@ -237,9 +230,6 @@ data Node a = Node { nodeElement :: a
 
 type GComp = (DS.Set (Node (Integer, Integer)))
 
--- data Graph a = Graph (DM.Map (Node a) (DS.Set (Node a)))
---              deriving (Generic, Show)
-
 data Edge a = Edge (Node a) (Node a)
             deriving (Generic, Show, Hashable, Ord, Eq)
 
@@ -248,15 +238,3 @@ data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    , store :: DM.Map a Int
                                    , curId :: Int
                                    } deriving (Show)
-
-------------------------------------------------------------------
-
-data AssnI = AssnI { assniSrc :: Sig
-                   , assniTgt :: Sig
-                   } deriving (Show, Eq)
-
-data ModuleI = ModuleI { modiName :: String
-                       , modiWireAssn :: [AssnI]
-                         -- component decls
-                         -- component instantiations.
-                       } deriving (Show, Eq)

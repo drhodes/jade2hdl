@@ -73,3 +73,8 @@ testLines m = "Module.testLines" <? do
   case moduleTest m of
     Nothing -> die "No test found in this module."
     Just mt -> return $ modTestLines mt
+
+replace c r xs = concat [if [x] == c then r else [x] | x <- xs]
+
+mangleModName :: String -> String
+mangleModName modname = "mod" ++ replace "/" "_" modname

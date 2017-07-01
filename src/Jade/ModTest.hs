@@ -278,7 +278,7 @@ acreteAll filename mt ((lineNum,line):rest) =
   in case mt' of
     Left msg -> Left msg
     Right asdf -> acreteAll filename asdf rest
-
+    
 parseModTestFile filename = do
   xs <- liftM lines (readFile filename)
   let linePairs = zip [1..] xs
