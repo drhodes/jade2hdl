@@ -5,24 +5,68 @@
 
 module TestVhdl where
 
-import qualified Data.Map as DM
-import qualified Language.VHDL.Syntax as S
-import qualified Language.VHDL.Pretty as P
-import Jade.Types
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module
 import qualified Jade.Part as Part
 import qualified Jade.Vhdl as Vhdl
-import qualified Data.Hashable as H
-import qualified Jade.UnionFind as UF
-import qualified Data.List as DL
 import qualified Data.Text.IO as TIO
 import qualified Data.Text as T
+import qualified System.Directory as SD
 import Control.Monad
 import Data.FileEmbed
-import Data.Text.Encoding
-             
+import Data.Text.Encoding 
+import Jade.Types
+
+import System.Process 
+import System.Exit      
+      
+spawnOneTest jadefile modname = do
+  -- create a test directory
+  let autoTestPath = "test-data/auto-vhdl/"
+      tbname = Module.testBenchName modname
+      prelude = decodeUtf8 $(embedFile "app-data/vhdl/prelude.vhdl")
+      outfile = autoTestPath ++ (hashid modname) ++ ".vhdl"
+      
+  SD.removePathForcibly autoTestPath
+  SD.createDirectory autoTestPath
+
+  Right topl <- Decode.decodeTopLevel jadefile
+  runJIO $ modname <? do
+    moduleCode <- Vhdl.mkModule topl modname
+    testCode <- Vhdl.mkTestBench topl modname 
+  
+    return $ do
+      TIO.writeFile outfile (T.concat [ prelude, moduleCode, testCode ])
+
+  let cmd1  = (shell $  "ghdl -a -g --std=08 *.vhdl") { cwd = Just autoTestPath
+                                                     , std_out = CreatePipe
+                                                     , std_err= CreatePipe
+                                                     }
+  let cmd2  = (shell $  "ghdl -r --std=08 " ++ tbname) { cwd = Just autoTestPath
+                                                       , std_out = CreatePipe
+                                                       , std_err= CreatePipe
+                                                       }
+  (ecode, stdout, stderr) <- readCreateProcessWithExitCode cmd1 ""
+  case ecode of
+    ExitSuccess -> do 
+      (ecode', stdout', stderr') <- readCreateProcessWithExitCode cmd2 ""
+      case ecode' of
+        ExitSuccess -> putStrLn modname
+        ExitFailure _ -> putStrLn stderr'
+      return ecode'
+    ExitFailure _ -> do
+      putStrLn stderr
+      return ecode
+
+nukeTestDir = do undefined
+
+spawnAllTests = do
+  spawnOneTest "./test-data/And41.json" "/user/And41"
+  spawnOneTest "./test-data/AndStuff4.json" "/user/AndStuff4"
+  spawnOneTest "./test-data/AndStuff5.json" "/user/AndStuff5"
+  spawnOneTest "./test-data/AndStuff6.json" "/user/AndStuff6"
+
 testDUT_UseAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"
   runJIO $ "testDUT" <? do
@@ -78,6 +122,3 @@ testGenMakeModule = do
       -- TIO.putStrLn prelude
       -- TIO.putStrLn moduleCode
       -- TIO.putStrLn testCode
-      
-      
-      

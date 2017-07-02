@@ -35,16 +35,16 @@ resolver: lts-8.14
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - '.'
-- location:
-    git: https://github.com/drhodes/language-vhdl.git
-    commit: 2fda0e26613b7519a1c04a79793b11001004794f
-  extra-dep: true
+# - location:
+#     git: https://github.com/drhodes/language-vhdl.git
+#     commit: 2fda0e26613b7519a1c04a79793b11001004794f
+#   extra-dep: true
 
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
-  - language-vhdl-0.2.2.8
+  # - language-vhdl-0.2.2.8
   - parsec3-numbers-0.1.0
   - hashids-1.0.2.3
   - text-format-simple-1.1.0

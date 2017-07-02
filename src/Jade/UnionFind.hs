@@ -1,5 +1,10 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Jade.UnionFind where
+{-# LANGUAGE ForeignFunctionInterface #-}
+module Jade.UnionFind
+  ( components
+  , fromEdges
+  , nameComp
+  ) where
 
 import qualified Data.Vector as V
 import qualified Data.Map as DM
@@ -33,7 +38,6 @@ addVertex quf@(QuickUnionUF ids store curId) vert =
     Just _ -> quf -- already has this vert, so just return quf.
     _ -> QuickUnionUF ids (DM.insert vert curId store) (curId + 1)
 
-
 addVertexes :: Ord a => QuickUnionUF a -> [a] -> QuickUnionUF a
 addVertexes quf vs = foldl addVertex quf vs
 
@@ -56,6 +60,7 @@ connectedTo quf v =
   let vs = DM.keys (store quf)
   in DL.nub $ DL.sort $ filter (connected quf v) vs
 
+components :: Ord a => QuickUnionUF a -> [[a]]
 components quf = let ks = DM.keys (store quf)
                  in DS.toList $ DS.fromList $ map (connectedTo quf) ks
 
@@ -66,13 +71,13 @@ addEdges quf [] = quf
 addEdges quf (e:rest) = addEdges (addEdge quf e) rest
 
 -- fromEdges :: Ord t => [Edge t] -> QuickUnionUF (Node t)
+fromEdges :: Ord t => [Edge t] -> QuickUnionUF (Node t)
 fromEdges es =
   let nodes = concat $ map nodesFromEdge es
       set = DS.fromList nodes
       quf = new (DS.size set)
       quf' = addVertexes quf nodes
   in addEdges quf' es
-
 
 nameComp :: [Node a] -> J String
 nameComp nodes = "UnionFind.nameComp" <? do
@@ -84,7 +89,6 @@ nameComp nodes = "UnionFind.nameComp" <? do
   return $ if length names > 0
            then head names
            else take genNameLen $ "wire_" ++ hashid parts
-
   
 test1 = do
   let q = new 10

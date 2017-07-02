@@ -4,6 +4,11 @@ build: ## build
 app: ## run the app
 	stack exec -- jade2hdl --infile ${USER}.json --enthusiasm 10
 
+
+profile: ##
+	stack test --profile
+	@echo "see this file: jade2hdl-test.prof"
+
 test: ## test
 	echo test
 

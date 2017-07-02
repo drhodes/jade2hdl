@@ -89,6 +89,8 @@ components topl modname = do
       wireEdges = map Wire.wireToEdge wires
 
   edges <- processEdges wires (terms ++ ports)
+  
+  
   return $ UF.components $ UF.fromEdges (edges ++ wireEdges)
 
 
