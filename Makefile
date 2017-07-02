@@ -6,6 +6,8 @@ app: ## run the app
 
 
 profile: ##
+	stack clean
+	stack build --profile
 	stack test --profile
 	@echo "see this file: jade2hdl-test.prof"
 

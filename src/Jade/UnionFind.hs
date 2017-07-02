@@ -62,7 +62,7 @@ connectedTo quf v =
 
 components :: Ord a => QuickUnionUF a -> [[a]]
 components quf = let ks = DM.keys (store quf)
-                 in DS.toList $ DS.fromList $ map (connectedTo quf) ks
+                 in DL.nub $ map (connectedTo quf) ks
 
 nodesFromEdge (Edge n1 n2) = [n1, n2]
 
@@ -70,7 +70,6 @@ addEdge quf (Edge n1 n2) = union quf n1 n2
 addEdges quf [] = quf
 addEdges quf (e:rest) = addEdges (addEdge quf e) rest
 
--- fromEdges :: Ord t => [Edge t] -> QuickUnionUF (Node t)
 fromEdges :: Ord t => [Edge t] -> QuickUnionUF (Node t)
 fromEdges es =
   let nodes = concat $ map nodesFromEdge es

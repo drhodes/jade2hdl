@@ -7,7 +7,7 @@ import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.List as DL
 import qualified Data.Vector as DV
-import qualified Jade.UnionFind as UF
+import qualified Jade.UnionFindST as UF
 import qualified Jade.Wire as Wire
 import qualified Data.Maybe as Maybe
 import qualified Jade.Decode as D
@@ -39,9 +39,6 @@ getSubModules :: TopLevel -> String -> J [SubModule]
 getSubModules topl modname = do
   (Module (Just (Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
   return [submod | SubModuleC submod <- DV.toList parts]
-
--- |Get the components of a module given the module's name.
---components :: TopLevel -> String -> J [GComp]
 
 -- a function to possible create an edge given a wire and a part
 makePartEdge :: Wire -> Part -> J (Maybe (Edge (Integer, Integer)))
@@ -91,7 +88,7 @@ components topl modname = do
   edges <- processEdges wires (terms ++ ports)
   
   
-  return $ UF.components $ UF.fromEdges (edges ++ wireEdges)
+  return $ UF.components (edges ++ wireEdges)
 
 
 getInputTerminals :: TopLevel -> SubModule -> J [Terminal]
