@@ -22,10 +22,6 @@ symbol = do
   rest <- many (alphaNum <|> char '_')
   return $ x:rest
 
-
-
-
-
 -- := sig#count         replicate sig specified number of times 
 sigHash :: Parser Sig
 sigHash = do name <- symbol

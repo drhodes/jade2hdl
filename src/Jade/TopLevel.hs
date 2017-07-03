@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Jade.TopLevel where
 
@@ -45,6 +44,24 @@ getSubModules topl modname = do
 
 -- a function to possible create an edge given a wire and a part
 makePartEdge :: Wire -> Part -> J (Maybe (Edge (Integer, Integer)))
+
+makePartEdge wire j@(JumperC (Jumper (Coord3 x y r))) =
+  "TopLevel.makePartEdge: " <? do
+  
+  let (loc1, loc2) = Wire.ends wire
+      fakeWire = Wire (Coord5 x y r (x+8) y) Nothing
+      (loc3, loc4) = Wire.ends fakeWire
+      econ p1 v p2 w = Just $ Edge (Node p1 (WireC v)) (Node p2 j)
+
+  (show ((loc1, loc2), (loc3, loc4))) <? do
+  return $ case (loc1 == loc3, loc1 == loc4, loc2 == loc3, loc2 == loc4) of
+             (True, _, _, _) -> econ loc1 wire loc3 j
+             (_, True, _, _) -> econ loc1 wire loc4 j
+             (_, _, True, _) -> econ loc2 wire loc3 j
+             (_, _, _, True) -> econ loc2 wire loc4 j
+             _ -> Nothing
+  
+
 makePartEdge wire part = do
   let (loc1, loc2) = Wire.ends wire
   ploc <- Part.loc part ? "TopLevel.makePartEdge"
@@ -74,7 +91,6 @@ processEdges wires parts = do
   let wireEdges = map Wire.wireToEdge wires
   partEdges <- sequence [makePartEdge w p | w <- wires, p <- parts]
   let Just edges = sequence $ filter Maybe.isJust partEdges
-
   wireNbrs <- sequence [makeWire2WireEdge v w | v <- wires, w <- wires]
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
   return $ edges ++ nbrs
@@ -85,10 +101,11 @@ components topl modname = do
   
   let wires = [w | WireC w <- DV.toList parts]
       ports = [PortC p | PortC p <- DV.toList parts]
+      jumpers = [JumperC j | JumperC j <- DV.toList parts]
       terms = map TermC $ concat terms'
       wireEdges = map Wire.wireToEdge wires
 
-  edges <- processEdges wires (terms ++ ports)
+  edges <- processEdges wires (terms ++ ports ++ jumpers)
   
   
   return $ UF.components (edges ++ wireEdges)
@@ -217,5 +234,5 @@ subModuleWithOutputTerminal topl modname term = do
 
 testMakeEdge1 = do
   let wire = Wire (Coord5 0 0 Rot0 0 2) Nothing
-  let part = TermC $ Terminal (Coord3 0 0 0) (SigSimple "test")
+  let part = TermC $ Terminal (Coord3 0 0 Rot0) (SigSimple "test")
   printJ $ makePartEdge wire part

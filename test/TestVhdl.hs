@@ -5,6 +5,7 @@
 
 module TestVhdl where
 
+import Text.Format
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module
@@ -20,10 +21,12 @@ import Jade.Types
 
 import System.Process 
 import System.Exit      
-      
+import Control.Exception.Base as CEB
+import Control.Concurrent as CC
+       
 spawnOneTest jadefile modname = do
   -- create a test directory
-  let autoTestPath = "test-data/auto-vhdl/"
+  let autoTestPath = format "test-data/auto-vhdl/{0}/" [hashid modname]
       tbname = Module.testBenchName modname
       prelude = decodeUtf8 $(embedFile "app-data/vhdl/prelude.vhdl")
       outfile = autoTestPath ++ (hashid modname) ++ ".vhdl"
@@ -34,7 +37,6 @@ spawnOneTest jadefile modname = do
   runJIO $ modname <? do
     moduleCode <- Vhdl.mkModule topl modname
     testCode <- Vhdl.mkTestBench topl modname 
-  
     return $ do
       TIO.writeFile outfile (T.concat [ prelude, moduleCode, testCode ])
 
@@ -62,19 +64,23 @@ spawnOneTest jadefile modname = do
       print err
       return ecode
 
-nukeTestDir = do undefined
+fork1 f = CC.forkFinally f $
+  \x -> case x of
+          Left e -> CEB.throw e
+          Right ecode -> print $ "Good, " ++ show ecode
 
-spawnAllTests = do
-  spawnOneTest "./test-data/And41.json" "/user/And41"
-  spawnOneTest "./test-data/AndStuff4.json" "/user/AndStuff4"
-  spawnOneTest "./test-data/AndStuff5.json" "/user/AndStuff5"
-  spawnOneTest "./test-data/AndStuff6.json" "/user/AndStuff6"
-  spawnBuiltIn
-  spawnBuiltInAnd4Messy
+spawnAllTests = do  
+  mapM_ fork1 [ spawnOneTest "./test-data/And41.json" "/user/And41"
+              , spawnOneTest "./test-data/AndStuff4.json" "/user/AndStuff4"
+              , spawnOneTest "./test-data/AndStuff5.json" "/user/AndStuff5"
+              , spawnOneTest "./test-data/AndStuff6.json" "/user/AndStuff6"
+              , spawnBuiltIn
+              , spawnBuiltInAnd4Messy
+              ]
   
-spawnBuiltIn =
-  spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
-
+spawnBuiltIn = spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
+spawnJumper1 = spawnOneTest "./test-data/Jumper1.json" "/user/Jumper1"
+  
 spawnBuiltInAnd4Messy =
   spawnOneTest "./test-data/BuiltInAnd4Messy.json" "/user/BuiltInAnd4Messy"
 
@@ -116,7 +122,6 @@ testGenMakeModuleAnd41NodeDecls = do
   runJIO $ "testGenMakeModuleAnd41NodeDecls" <? do
     let modname = "/user/And41"
     liftM print $ Vhdl.mkNodeDecls topl modname
-
 
 testGenMakeModule = do
   Right topl <- Decode.decodeTopLevel "./test-data/And41.json"

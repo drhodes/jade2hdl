@@ -69,7 +69,7 @@ instance FromJSON Signal where
 instance FromJSON Coord3 where
   parseJSON jsn = do
     [x, y, rot] <- parseJSON jsn
-    return $ Coord3 x y rot
+    return $ Coord3 x y (toEnum (fromIntegral rot))
 
 instance FromJSON Coord5 where
   parseJSON jsn = do

@@ -116,7 +116,7 @@ data Rot = Rot0
 
 data Coord3 = Coord3 { c3x :: Integer
                      , c3y :: Integer
-                     , c3r :: Integer
+                     , c3r :: Rot
                      } deriving (Eq, Generic, Hashable, Ord)
 
 instance Show Coord3 where
