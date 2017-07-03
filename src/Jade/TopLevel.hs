@@ -15,6 +15,7 @@ import qualified Jade.Module as Module
 import qualified Jade.Part as Part
 import qualified Jade.Sig as Sig
 import Jade.Types
+import Jade.Util
 import Control.Monad
 import qualified Web.Hashids as WH
 
@@ -25,6 +26,8 @@ modules (TopLevel m) = DM.toList m
 -- |Get a module from a TopLevel given a module name
 getModule :: TopLevel -> String -> J Module
 getModule (TopLevel m) name =
+  -- if name `startsWith` "/gate"
+  -- then return $ BuiltInModule name
   case DM.lookup name m of
     Just mod -> return mod
     Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
@@ -158,7 +161,6 @@ getOutputs topl modname = do
 -- clearly indicate a set of driving signals. .output terminals of sub
 -- modules are also driving signals.  
 
-uniq x = DL.nub $ DL.sort x
 
 getInputTermDriver topl modname term = 
   "TopLevel.getInputTermDriver" <? do
@@ -176,7 +178,7 @@ getInputTermDriver topl modname term =
   -- check the test script, if any graph comp signals match the .input
   -- lines.  if so, then that's it.
   (Inputs inputSigs) <- getInputs topl modname
-  let partsMatchingInput = uniq [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
+  let partsMatchingInput = DL.nub [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
 
   case length partsMatchingInput of
     1 -> let match = head partsMatchingInput

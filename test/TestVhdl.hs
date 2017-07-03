@@ -30,7 +30,6 @@ spawnOneTest jadefile modname = do
       
   SD.removePathForcibly autoTestPath
   SD.createDirectory autoTestPath
-
   Right topl <- Decode.decodeTopLevel jadefile
   runJIO $ modname <? do
     moduleCode <- Vhdl.mkModule topl modname
@@ -53,10 +52,14 @@ spawnOneTest jadefile modname = do
       (ecode', stdout', stderr') <- readCreateProcessWithExitCode cmd2 ""
       case ecode' of
         ExitSuccess -> putStrLn modname
-        ExitFailure _ -> putStrLn stderr'
+        ExitFailure err' -> do
+          print err'
+          putStrLn stderr'
       return ecode'
-    ExitFailure _ -> do
+    ExitFailure err -> do
+      putStrLn modname
       putStrLn stderr
+      print err
       return ecode
 
 nukeTestDir = do undefined
@@ -66,6 +69,14 @@ spawnAllTests = do
   spawnOneTest "./test-data/AndStuff4.json" "/user/AndStuff4"
   spawnOneTest "./test-data/AndStuff5.json" "/user/AndStuff5"
   spawnOneTest "./test-data/AndStuff6.json" "/user/AndStuff6"
+  spawnBuiltIn
+  spawnBuiltInAnd4Messy
+  
+spawnBuiltIn =
+  spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
+
+spawnBuiltInAnd4Messy =
+  spawnOneTest "./test-data/BuiltInAnd4Messy.json" "/user/BuiltInAnd4Messy"
 
 testDUT_UseAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"

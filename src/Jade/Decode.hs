@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -19,6 +20,9 @@ import qualified System.Environment as SE
 import qualified Jade.Sig as Sig
 import qualified Jade.ModTest as MT
 import Jade.Types
+import Data.FileEmbed
+import qualified Data.String.Class as DSC
+import Data.Text.Encoding
 
 {-
 A JADE exported module is encoded as JSON.
@@ -136,6 +140,9 @@ instance FromJSON IconPart where
       "terminal" -> IconTerm <$> parseJSON arr
       "text" -> IconTxt <$> parseJSON arr
       "box" -> IconBox <$> parseJSON arr
+      "circle" -> return IconCircle -- todo
+      "property" -> return IconProperty -- todo
+      "arc" -> return IconArc -- todo
       _ -> fail $ "Unknown IconPart: " ++ kind
       
 instance FromJSON Icon where
@@ -202,8 +209,17 @@ instance FromJSON TopLevel where
   parseJSON (Object o) = do
     fail $ show o
 
+builtInTxt = decodeUtf8 $(embedFile "app-data/gates.json")
+builtInGates :: Either String TopLevel
+builtInGates = eitherDecode (DSC.toLazyByteString builtInTxt) 
+
 decodeTopLevel :: FilePath -> IO (Either String TopLevel)
 decodeTopLevel filename = do
-  top <- DBL.readFile filename
-  return $ eitherDecode top
+  case builtInGates of
+    Right (TopLevel gates) -> do 
+      top <- DBL.readFile filename
+      case eitherDecode top of
+        Right (TopLevel mods) -> return $ Right $ TopLevel (DM.union gates mods)
+        Left msg -> fail msg
+    Left msg -> fail $ msg ++ "\nDecode.decodeTopLevel fails to decode 'app-data/gates.json'"
 

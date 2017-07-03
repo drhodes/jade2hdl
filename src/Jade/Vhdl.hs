@@ -98,7 +98,9 @@ mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
           x -> die $ format "unsupported signal: {0}" [show x]
   
   names <- mapM getSigName (ins ++ outs)
-  return $ "signal " ++ DL.intercalate ", " names ++ ": std_logic;"
+  if null names
+    then return $ "-- no signal decls"
+    else return $ "signal " ++ DL.intercalate ", " names ++ ": std_logic;"
   
 mkTestBench :: TopLevel -> [Char] -> J T.Text
 mkTestBench topl modname =
@@ -126,9 +128,11 @@ mkCombinationalTest topl modname =
 
 ------------------------------------------------------------------
 
+
 --mkModule :: TopLevel -> String -> J Maybe String)
-mkModule topl modname =
-  "Jade.Vhdl.mkModule, convert module to VHDL" <? do
+mkModule topl modname = 
+  ("Jade.Vhdl.mkModule, convert module to VHDL: " ++ modname) <? do
+
   m <- TopLevel.getModule topl modname
 
   schem <- case moduleSchem m of
@@ -172,7 +176,7 @@ mkModule topl modname =
 
 ------------------------------------------------------------------
 mkSubModuleInstance topl modname submod@(SubModule name loc) =
-  "Jade.Vhdl.mkSubModuleInstance" <? do
+  "Jade.Vhdl.mkSubModuleInstance" <? do  
   
   m <- TopLevel.getModule topl name 
   inputTerms <- Module.getInputTerminals m loc
@@ -206,7 +210,6 @@ mkSubModuleInstance topl modname submod@(SubModule name loc) =
 -- no input names.
 mkNodeDecls topl modname =
   "Jade.Vhdl.mkNodeDecls" <? do
-
   Inputs ins <- TopLevel.getInputs topl modname
   Outputs outs <- TopLevel.getOutputs topl modname
   ignore <- mapM sigName (ins ++ outs)
@@ -217,7 +220,8 @@ mkNodeDecls topl modname =
   let keepers = DL.intercalate ", " [n | n <- compNames, n `notElem` ignore]
       temp = "signal {0} : std_logic;"
       
-      
-  return $ format temp [keepers]
+  if null keepers
+    then return "-- no node decls"
+    else return $ format temp [keepers]
   -- signal w1, w2 : std_logic;
   

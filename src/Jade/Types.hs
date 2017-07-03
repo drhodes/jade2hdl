@@ -71,6 +71,9 @@ data IconPart = IconLine Line
               | IconTerm Terminal
               | IconBox Box
               | IconTxt Txt
+              | IconCircle
+              | IconProperty
+              | IconArc
                 deriving (Generic, Show, Eq, Hashable, Ord)
 
 data Icon = Icon { iconParts :: [IconPart]
@@ -161,7 +164,9 @@ instance Hashable Schematic where
 data Module = Module { moduleSchem :: Maybe Schematic
                      , moduleTest :: Maybe ModTest
                      , moduleIcon :: Maybe Icon
-                     } deriving (Generic, Show, Eq, Hashable, Ord) -- todo add test
+                     }
+            | BuiltInModule String
+            deriving (Generic, Show, Eq, Hashable, Ord) -- todo add test
 
 data TopLevel = TopLevel (DM.Map String Module)
               deriving  (Show, Eq)
