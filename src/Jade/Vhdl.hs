@@ -130,8 +130,8 @@ mkCombinationalTest topl modname =
 
 
 --mkModule :: TopLevel -> String -> J Maybe String)
-mkModule topl modname = 
-  ("Jade.Vhdl.mkModule, convert module to VHDL: " ++ modname) <? do
+mkModule topl modname = do
+  nb $ "Jade.Vhdl.mkModule, convert module to VHDL: " ++ modname
 
   m <- TopLevel.getModule topl modname
 
@@ -174,9 +174,13 @@ mkModule topl modname =
   return $ substitute temp mapping
   
 
+
+
+
+
 ------------------------------------------------------------------
-mkSubModuleInstance topl modname submod@(SubModule name loc) =
-  "Jade.Vhdl.mkSubModuleInstance" <? do  
+mkSubModuleInstance topl modname submod@(SubModule name loc) = do
+  nb "Jade.Vhdl.mkSubModuleInstance"
   
   m <- TopLevel.getModule topl name 
   inputTerms <- Module.getInputTerminals m loc

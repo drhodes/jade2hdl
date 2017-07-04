@@ -1,18 +1,16 @@
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-
--- {-# LANGUAGE FlexibleInstances #-}
--- {-# LANGUAGE FlexibleContexts #-}
--- {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE FlexibleContexts #-}
 -- {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
 module Jade.Types where
 
+import Control.Monad.Identity
 import Data.Vector.Instances
 import GHC.Generics
 import Control.Monad
@@ -24,11 +22,13 @@ import qualified Data.Set as DS
 import qualified System.Environment as SE
 import Data.Hashable
 import Test.QuickCheck
-import Control.Monad.Except as E
+import Control.Monad.Except 
 import qualified Data.Hashable as DH
 import qualified Web.Hashids as WH
 import qualified Data.ByteString.Char8 as B
 import Jade.Util
+
+import Control.Monad.Writer
 
 hashid :: Hashable a => a -> String
 hashid x =
@@ -36,24 +36,58 @@ hashid x =
       in B.unpack $ WH.encode ctx . abs . DH.hash $ x
 
 ------------------------------------------------------------------
+--log :: Monad m => String -> WriterT [String] m ()
 
-type J a = Except String a      
+-- type X a = Except (Writer String) a
 
-runJ = runExcept
+-- --runX :: Writer String (Except e) a -> Either e String
+-- runX x = runExcept $ execWriter x
+
+type J = ExceptT String (Writer String) 
+
+foo :: String -> J Integer 
+foo s = do
+  tell s
+  throwError s
+  return (12 :: Integer)
+
+
+runX :: J a -> (Either String a, String)
+runX x = 
+  let result = runExceptT x
+      (a, b) = runWriter result -- :: Writer String (Either String Integer)
+  in (a, b)
+
+runLog = snd . runX
+runJ = fst . runX
+
+
+--type J a = Except String a
+
 printJ x = case runJ x of
              Left msg -> putStrLn msg
              Right val -> putStrLn $ show val
-runJIO x = case runJ x of
-             Left msg -> putStrLn msg
-             Right f -> f
 
+runJIO :: J (IO a) -> IO String
+runJIO x =
+  case runX x of
+    (Left msg, log) -> do putStrLn $ log ++ msg
+                          return log
+    (Right f, log) -> do f
+                         return log
+
+--runJ x = runExcept x
              
-die msg = E.throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
+die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
+
+nb s = s <? tell (s ++ "\n")
+
 
 bail :: J a
 bail = die "bailing!"
 
 (?) x msg = x `catchError` (\e -> (throwError $ e ++ "\n" ++ "! " ++ msg))
+
 (<?) msg x = x ? msg
 
 

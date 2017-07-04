@@ -34,7 +34,8 @@ spawnOneTest jadefile modname = do
   SD.removePathForcibly autoTestPath
   SD.createDirectory autoTestPath
   Right topl <- Decode.decodeTopLevel jadefile
-  runJIO $ modname <? do
+  errlog <- runJIO $ do
+    nb $ "spawnOneTest: " ++ modname
     moduleCode <- Vhdl.mkModule topl modname
     testCode <- Vhdl.mkTestBench topl modname 
     return $ do
@@ -48,6 +49,7 @@ spawnOneTest jadefile modname = do
                                                        , std_out = CreatePipe
                                                        , std_err= CreatePipe
                                                        }
+              
   (ecode, stdout, stderr) <- readCreateProcessWithExitCode cmd1 ""
   case ecode of
     ExitSuccess -> do 
@@ -57,11 +59,13 @@ spawnOneTest jadefile modname = do
         ExitFailure err' -> do
           print err'
           putStrLn stderr'
+          putStrLn errlog
       return ecode'
     ExitFailure err -> do
       putStrLn modname
       putStrLn stderr
       print err
+      putStrLn errlog
       return ecode
 
 fork1 f = CC.forkFinally f $

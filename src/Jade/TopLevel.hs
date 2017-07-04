@@ -33,7 +33,7 @@ getModule (TopLevel m) name =
 
 -- |Transform a located terminal to a degenerate edge. A located
 -- terminal is one that has been placed in a schematic, with absolute coordinate.
-termToEdge t@(Terminal (Coord3 x y _) _) =
+termToEdge t@(Terminal (Coord3 x y _) _) =  
   let n = Node (x, y) (TermC t)
   in Edge n n
 
@@ -45,8 +45,8 @@ getSubModules topl modname = do
 -- a function to possible create an edge given a wire and a part
 makePartEdge :: Wire -> Part -> J (Maybe (Edge (Integer, Integer)))
 
-makePartEdge wire j@(JumperC (Jumper (Coord3 x y r))) =
-  "TopLevel.makePartEdge: " <? do
+makePartEdge wire j@(JumperC (Jumper (Coord3 x y r))) = do
+  nb $ "TopLevel.makePartEdge: "
   
   let (loc1, loc2) = Wire.ends wire
       fakeWire = Wire (Coord5 x y r (x+8) y) Nothing
@@ -85,16 +85,23 @@ makeWire2WireEdge w1 w2 =
                      (_, _, True, _) -> econ loc2 w1 loc3 w2
                      (_, _, _, True) -> econ loc2 w1 loc4 w2
                      _ -> Nothing
-      
+
+
+jumperToWire j@(JumperC (Jumper (Coord3 x y r))) = do
+  nb $ "TopLevel.jumperToWire: "
+  return $ Wire (Coord5 x y r (x+8) y) Nothing
+          
 processEdges wires parts = do
   -- with all wires, make an edge from ones that share a point with a part 
   let wireEdges = map Wire.wireToEdge wires
   partEdges <- sequence [makePartEdge w p | w <- wires, p <- parts]
+  -- nb $ "TopLevel.processEdges"
+  -- nb $ show partEdges
   let Just edges = sequence $ filter Maybe.isJust partEdges
   wireNbrs <- sequence [makeWire2WireEdge v w | v <- wires, w <- wires]
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
   return $ edges ++ nbrs
-  
+
 components topl modname = do
   (Module (Just (Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
   terms' <- sequence [terminals topl submod | SubModuleC submod <- DV.toList parts]
@@ -103,20 +110,19 @@ components topl modname = do
       ports = [PortC p | PortC p <- DV.toList parts]
       jumpers = [JumperC j | JumperC j <- DV.toList parts]
       terms = map TermC $ concat terms'
-      wireEdges = map Wire.wireToEdge wires
 
-  edges <- processEdges wires (terms ++ ports ++ jumpers)
-  
-  
-  return $ UF.components (edges ++ wireEdges)
+  jwires <- mapM jumperToWire jumpers
+  let wireEdges = map Wire.wireToEdge (wires ++ jwires)
 
+  edges <- processEdges (wires ++ jwires) (terms ++ ports) -- ++ jumpers)
+
+  let comps = UF.components (edges ++ wireEdges) 
+  return comps
 
 getInputTerminals :: TopLevel -> SubModule -> J [Terminal]
 getInputTerminals topl (SubModule name offset) = do
   m <- getModule topl name
   Module.getInputTerminals m offset
-
-  
 
 -- |Get the graph component which contains the terminals.
 componentWithTerminal topl modname term@(Terminal (Coord3 x y _) _) = do
@@ -236,3 +242,14 @@ testMakeEdge1 = do
   let wire = Wire (Coord5 0 0 Rot0 0 2) Nothing
   let part = TermC $ Terminal (Coord3 0 0 Rot0) (SigSimple "test")
   printJ $ makePartEdge wire part
+
+
+outputConnectedToSubModuleP topl modname signal = do
+  nb "Check if an output signal is connected to a submodule."
+  nb "If not, then code for that connection will need to be generated"
+
+  comps <- components topl modname
+  nb "Find the component with signal name"
+  nb "If that component doesn't contain a terminal, then true"
+
+  return "asdf"
