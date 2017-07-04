@@ -267,7 +267,8 @@ data Node a = Node { nodeElement :: a
                    , nodePart :: Part
                    } deriving (Eq, Generic, Show, Hashable, Ord)
 
-type GComp = (DS.Set (Node (Integer, Integer)))
+data GComp = GComp [Node (Integer, Integer)]
+
 
 data Edge a = Edge (Node a) (Node a)
             deriving (Generic, Show, Hashable, Ord, Eq)

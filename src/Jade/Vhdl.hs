@@ -10,7 +10,7 @@ import Jade.Types
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module
-import qualified Jade.UnionFind as UnionFind
+import qualified Jade.UnionFindST as UnionFindST
 import qualified Jade.Sig as Sig
 import Control.Monad
 import Jade.Util
@@ -146,8 +146,6 @@ mkModule topl modname = do
   drivers <- mapM (TopLevel.getInputTermDriver topl modname) (concat terms)
 
   comps <- TopLevel.components topl modname
-
-  
   instances <- mapM (mkSubModuleInstance topl modname) subs
 
   Inputs ins <- Module.getInputs m
@@ -160,7 +158,7 @@ mkModule topl modname = do
   let portOuts = map (++" : out std_logic") outNames
 
   let ports = T.pack $ DL.intercalate "; " (portIns ++ portOuts)
-  mapM (UnionFind.nameComp) comps
+  mapM (UnionFindST.nameComp) comps
 
   nodeDecls <- mkNodeDecls topl modname
   
@@ -189,11 +187,11 @@ mkSubModuleInstance topl modname submod@(SubModule name loc) = do
   let termName (Terminal _ sig)  = sigName sig
   
   inComps <- mapM (TopLevel.componentWithTerminal topl modname) inputTerms
-  inSigNames <- mapM UnionFind.nameComp inComps
+  inSigNames <- mapM UnionFindST.nameComp inComps
   inTermNames <- mapM termName inputTerms
 
   outComps <- mapM (TopLevel.componentWithTerminal topl modname) outputTerms
-  outSigNames <- mapM UnionFind.nameComp outComps
+  outSigNames <- mapM UnionFindST.nameComp outComps
   outTermNames <- mapM termName outputTerms
   
   let ps = zipWith (\x y -> x ++ " => " ++ y) (inTermNames ++ outTermNames) (inSigNames ++ outSigNames)
@@ -219,7 +217,7 @@ mkNodeDecls topl modname =
   ignore <- mapM sigName (ins ++ outs)
   
   comps <- TopLevel.components topl modname
-  compNames <- mapM UnionFind.nameComp comps
+  compNames <- mapM UnionFindST.nameComp comps
 
   let keepers = DL.intercalate ", " [n | n <- compNames, n `notElem` ignore]
       temp = "signal {0} : std_logic;"

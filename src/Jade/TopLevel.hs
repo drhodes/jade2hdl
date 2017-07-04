@@ -102,6 +102,7 @@ processEdges wires parts = do
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
   return $ edges ++ nbrs
 
+components  :: TopLevel -> String -> J [GComp] 
 components topl modname = do
   (Module (Just (Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
   terms' <- sequence [terminals topl submod | SubModuleC submod <- DV.toList parts]
@@ -114,7 +115,7 @@ components topl modname = do
   jwires <- mapM jumperToWire jumpers
   let wireEdges = map Wire.wireToEdge (wires ++ jwires)
 
-  edges <- processEdges (wires ++ jwires) (terms ++ ports) -- ++ jumpers)
+  edges <- processEdges (wires ++ jwires) (terms ++ ports)
 
   let comps = UF.components (edges ++ wireEdges) 
   return comps
@@ -127,7 +128,7 @@ getInputTerminals topl (SubModule name offset) = do
 -- |Get the graph component which contains the terminals.
 componentWithTerminal topl modname term@(Terminal (Coord3 x y _) _) = do
   comps <- components topl modname
-  let pred set = (Node (x, y) (TermC term)) `elem` set
+  let pred (GComp set) = (Node (x, y) (TermC term)) `elem` set
       result = filter pred comps -- filter out components that don't contain term
   case length result of
     0 -> die $ concat [ " No component found in module: ", modname
@@ -189,9 +190,9 @@ getInputTermDriver topl modname term =
   "TopLevel.getInputTermDriver" <? do
   
   m <- getModule topl modname
-  gcomp <- componentWithTerminal topl modname term
+  (GComp nodes) <- componentWithTerminal topl modname term
 
-  let partList = let ps1 = map nodePart gcomp
+  let partList = let ps1 = map nodePart nodes
                      -- remove the source terminal
                      ps2 = DL.delete (TermC term) ps1
                      -- remove parts with no signal name

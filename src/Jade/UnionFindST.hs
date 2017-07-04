@@ -45,6 +45,10 @@ unite uf p q = do
         else do
             writeArray (ids uf) j i
             writeArray (szs uf) i (szj + szi)
+            
+-- end of swipe from
+-- https://gist.github.com/kseo/8693028
+
   
 -- components :: _
 -- components = undefined
@@ -69,10 +73,7 @@ collect uf (x:rest) = do
   liftM (cnx:) (collect uf notcnx)
 
 
---components :: Ord t => [Edge t] -> ST s (UnionFind s)
---components :: Ord t => [Edge t] -> ST s [[Int]]
-
-components :: Ord t => [Edge t] -> [[Node t]]
+components :: [Edge (Integer, Integer)] -> [GComp]
 components edges = runST $ do
   let nodes = DL.nub $ concat [[n1, n2] | (Edge n1 n2) <- edges]
       table = DM.fromList (zip nodes [0..])
@@ -86,24 +87,22 @@ components edges = runST $ do
   mapM_ f edges
 
   xss <- collect uf [0 .. length nodes - 1]
-  return $ map (\xs -> map (nodes !!) xs) xss
-  
-  
-        -- unite uf node1 node2
-  -- unite uf 4 8 -- 1, {0, 2, 3, 4, 5, 6, 7, 8, 9}
-  -- return uf
-  --find uf 1 2 -- False
+  return $ map (\xs -> GComp $ map (nodes !!) xs) xss
 
--- nameComp :: [Node a] -> J String
--- nameComp nodes = "UnionFind.nameComp" <? do
---   let parts = map nodePart nodes
---       signals = [signal | WireC (Wire _ (Just signal)) <- parts]
---       names = [n | Signal (Just (SigSimple n)) _ _ <- signals]
---       genNameLen = 10
+
   
---   return $ if length names > 0
---            then head names
---            else take genNameLen $ "wire_" ++ hashid parts
+nameComp :: GComp -> J String
+nameComp (GComp nodes) = "UnionFind.nameComp" <? do
+  let parts = map nodePart nodes
+      signals = [signal | WireC (Wire _ (Just signal)) <- parts]
+      names = [n | Signal (Just (SigSimple n)) _ _ <- signals]
+      genNameLen = 10
+  
+  return $ if length names > 0
+           then head names
+           else take genNameLen $ "wire_" ++ hashid parts
+
+  
 
 main = runST $ do
     uf <- newUnionFind 10
