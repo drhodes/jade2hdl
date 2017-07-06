@@ -74,12 +74,13 @@ runJIO x =
     (Left msg, log) -> do putStrLn $ log ++ msg
                           return log
     (Right f, log) -> do f
-                         return log
+                         return ""
 
 --runJ x = runExcept x
              
 die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
 
+nb :: String -> J ()
 nb s = s <? tell (s ++ "\n")
 
 
@@ -190,10 +191,10 @@ data Part = PortC Port
 
 type Test = String
 
-data Schematic = Schematic (V.Vector Part) deriving (Generic, Show, Eq, Ord)
+data Schematic = Schematic [Part] deriving (Generic, Show, Eq, Ord)
 
 instance Hashable Schematic where
-  hash (Schematic v) = hash $ V.toList v
+  hash (Schematic v) = hash v
 
 data Module = Module { moduleSchem :: Maybe Schematic
                      , moduleTest :: Maybe ModTest
@@ -268,6 +269,7 @@ data Node a = Node { nodeElement :: a
                    } deriving (Eq, Generic, Show, Hashable, Ord)
 
 data GComp = GComp [Node (Integer, Integer)]
+           deriving (Show, Eq)
 
 
 data Edge a = Edge (Node a) (Node a)
@@ -278,3 +280,4 @@ data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    , store :: DM.Map a Int
                                    , curId :: Int
                                    } deriving (Show)
+

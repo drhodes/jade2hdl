@@ -13,6 +13,8 @@ import qualified Jade.Decode as D
 import qualified Jade.Module as Module
 import qualified Jade.Part as Part
 import qualified Jade.Sig as Sig
+import qualified Jade.GComp as GComp
+import qualified Jade.Schematic as Schem
 import Jade.Types
 import Jade.Util
 import Control.Monad
@@ -39,8 +41,8 @@ termToEdge t@(Terminal (Coord3 x y _) _) =
 
 getSubModules :: TopLevel -> String -> J [SubModule]
 getSubModules topl modname = do
-  (Module (Just (Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
-  return [submod | SubModuleC submod <- DV.toList parts]
+  (Module (Just schem) _ _) <- getModule topl modname ? "TopLevel.components"
+  return $ Schem.getSubModules schem
 
 -- a function to possible create an edge given a wire and a part
 makePartEdge :: Wire -> Part -> J (Maybe (Edge (Integer, Integer)))
@@ -87,7 +89,7 @@ makeWire2WireEdge w1 w2 =
                      _ -> Nothing
 
 
-jumperToWire j@(JumperC (Jumper (Coord3 x y r))) = do
+jumperToWire j@(Jumper (Coord3 x y r)) = do
   nb $ "TopLevel.jumperToWire: "
   return $ Wire (Coord5 x y r (x+8) y) Nothing
           
@@ -104,12 +106,12 @@ processEdges wires parts = do
 
 components  :: TopLevel -> String -> J [GComp] 
 components topl modname = do
-  (Module (Just (Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
-  terms' <- sequence [terminals topl submod | SubModuleC submod <- DV.toList parts]
+  (Module (Just schem@(Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
+  terms' <- sequence [terminals topl submod | submod <- Schem.getSubModules schem]
   
-  let wires = [w | WireC w <- DV.toList parts]
-      ports = [PortC p | PortC p <- DV.toList parts]
-      jumpers = [JumperC j | JumperC j <- DV.toList parts]
+  let wires = [w | WireC w <- parts]
+      ports = [PortC p | PortC p <- parts]
+      jumpers = Schem.getJumpers schem --[JumperC j | JumperC j <- DV.toList parts]
       terms = map TermC $ concat terms'
 
   jwires <- mapM jumperToWire jumpers
@@ -185,7 +187,7 @@ getOutputs topl modname = do
 -- clearly indicate a set of driving signals. .output terminals of sub
 -- modules are also driving signals.  
 
-
+getInputTermDriver :: TopLevel -> String -> Terminal -> J Sig
 getInputTermDriver topl modname term = 
   "TopLevel.getInputTermDriver" <? do
   
@@ -226,31 +228,43 @@ getInputTermDriver topl modname term =
                \ which is impossible because that would mean more \
                \ than one signal is driving this component: " ++ show partsMatchingInput
 
-subModuleWithOutputTerminal topl modname term = do
-  let try x = x ? "subModuleWithOutputTerminal"
-  allsubs <- try $ getSubModules topl modname
+subModuleWithOutputTerminal topl modname term = "subModuleWithOutputTerminal" <? do
+  allsubs <- getSubModules topl modname
   forM allsubs $ \submod@(SubModule subname subloc) -> do
     -- for each submodule check to see if its terminals contain the terminal
-    m <- try $ getModule topl subname
-    subterms <- try $ terminals topl submod
+    m <- getModule topl subname
+    subterms <- terminals topl submod
     forM subterms $ \subterm -> do
       if (term == subterm)
         then return $ Just (term, submod)
         else return Nothing
 
-
-testMakeEdge1 = do
-  let wire = Wire (Coord5 0 0 Rot0 0 2) Nothing
-  let part = TermC $ Terminal (Coord3 0 0 Rot0) (SigSimple "test")
-  printJ $ makePartEdge wire part
-
-
-outputConnectedToSubModuleP topl modname signal = do
+sigConnectedToSubModuleP :: TopLevel -> String -> Sig -> J Bool
+sigConnectedToSubModuleP topl modname sig = do
   nb "Check if an output signal is connected to a submodule."
   nb "If not, then code for that connection will need to be generated"
+  gcomps <- components topl modname  
+  nb "Find the components with signal name"
+  let compsWithSig = filter (flip GComp.hasSig sig) gcomps
+  nb "Of those components, do any have a terminal?"
+  return $ or $ map GComp.hasTerm compsWithSig
+  
+getCompsWithoutTerms :: TopLevel -> String -> J [GComp]
+getCompsWithoutTerms topl modname = "getCompsWithoutTerms" <?
+  (fmap (filter (not . GComp.hasTerm)) (components topl modname))
 
-  comps <- components topl modname
-  nb "Find the component with signal name"
-  nb "If that component doesn't contain a terminal, then true"
+compDrivenByInputs topl modname comp = "compDrivenByInputs" <? do
+  Inputs inputSigs <- getInputs topl modname
+  return $ map (GComp.hasSig comp) inputSigs
 
-  return "asdf"
+
+getDrivers :: TopLevel -> String -> J [Sig]
+getDrivers topl modname = "getDrivers" <? do
+  
+
+  undefined
+
+-- findDriver topl modname sig = "findDriver" <? do
+--   gcomps <- components topl modname  
+  
+  --   return sig

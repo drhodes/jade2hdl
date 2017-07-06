@@ -7,6 +7,7 @@ module Jade.Vhdl where
 import qualified Data.Map as DM
 import qualified Data.List as DL
 import Jade.Types
+import qualified Jade.Part as Part
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module
@@ -226,4 +227,31 @@ mkNodeDecls topl modname =
     then return "-- no node decls"
     else return $ format temp [keepers]
   -- signal w1, w2 : std_logic;
+
+
+
+
+mkUnterminatedNodes topl modname =
+  "Jade.Vhdl.mkUnterminatedNodes" <? do
+  nb "Some components are not connected to submodules"
+  nb "for instance, jumpers.  So, make sure to connect the"
+  nb "drivers to the driven"
+
+  untermedComps <- TopLevel.getCompsWithoutTerms topl modname
+
+  let connectSigs (GComp nodes) = "connectSigs" <? do
+        let sigs = [s | Just s <- map Part.sig $ map nodePart nodes]
+        --driver <- TopLevel.findDriver sigs
+        undefined
+  undefined
+
+
+  
+    {- From these nodes find the one driver, There can be only one! the
+   driver can be from the module inputs, or it can be contained in the 
+-}
+           
+  
+        
+  
   

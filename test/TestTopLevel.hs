@@ -83,7 +83,8 @@ buildUserAnd24 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-4.json"
   printJ $ do let modname =  "/user/UseAND2_4"
               cs <- TopLevel.components topl modname
-              return $ map nodePart $ cs !! 5
+              let (GComp cs') = cs !! 5
+              return $ map nodePart $ cs'
 
 bendyWire1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/bendy-wire-1.json"
@@ -151,4 +152,18 @@ testTopLevelGetInputs = do
 
               -- find which signal is driving the input terminal.
               TopLevel.getInputTermDriver topl modname (terms !! 1)
-  
+
+testSigConnectedToSubModuleP1 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
+
+  printJ $ do 
+    Outputs outs <- TopLevel.getOutputs topl "/user/Jumper1" 
+    eh <- TopLevel.sigConnectedToSubModuleP topl "/user/Jumper1" (outs !! 0)
+    return eh
+
+testSigConnectedToSubModuleP2 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/UseAND2_3.json"
+  printJ $ do
+    let modname =  "/user/UseAND2_3"
+    Outputs outs <- TopLevel.getOutputs topl modname 
+    mapM (TopLevel.sigConnectedToSubModuleP topl modname) outs

@@ -18,7 +18,11 @@ hasSigName :: Part -> Bool
 hasSigName = isJust . sig 
 
 
+isJumper (JumperC _) = True
+isJumper _ = False
 
+isSubModule (SubModuleC _) = True
+isSubModule _ = False
 
 
 loc part =

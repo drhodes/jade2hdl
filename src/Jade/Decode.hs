@@ -185,7 +185,7 @@ instance FromJSON Part where
 instance FromJSON Schematic where
   parseJSON (Array v) = do
     cs <- mapM parseJSON v
-    return $ Schematic cs
+    return $ Schematic (V.toList cs)
 
 instance FromJSON Module where
   parseJSON (Object o) = do

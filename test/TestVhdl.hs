@@ -32,6 +32,7 @@ spawnOneTest jadefile modname = do
       outfile = autoTestPath ++ (hashid modname) ++ ".vhdl"
       
   SD.removePathForcibly autoTestPath
+  SD.createDirectoryIfMissing False "test-data/auto-vhdl"
   SD.createDirectory autoTestPath
   Right topl <- Decode.decodeTopLevel jadefile
   errlog <- runJIO $ do
@@ -74,13 +75,12 @@ fork1 f = CC.forkFinally f $
           Right ecode -> print $ "Good, " ++ show ecode
 
 spawnAllTests = do  
-  mapM_ fork1 [ spawnOneTest "./test-data/And41.json" "/user/And41"
-              , spawnOneTest "./test-data/AndStuff4.json" "/user/AndStuff4"
-              , spawnOneTest "./test-data/AndStuff5.json" "/user/AndStuff5"
-              , spawnOneTest "./test-data/AndStuff6.json" "/user/AndStuff6"
-              , spawnBuiltIn
-              , spawnBuiltInAnd4Messy
-              ]
+  spawnOneTest "./test-data/And41.json" "/user/And41"
+  spawnOneTest "./test-data/AndStuff4.json" "/user/AndStuff4"
+  spawnOneTest "./test-data/AndStuff5.json" "/user/AndStuff5"
+  spawnOneTest "./test-data/AndStuff6.json" "/user/AndStuff6"
+  spawnBuiltIn
+  spawnBuiltInAnd4Messy
   
 spawnBuiltIn = spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
 spawnJumper1 = spawnOneTest "./test-data/Jumper1.json" "/user/Jumper1"
