@@ -167,3 +167,11 @@ testSigConnectedToSubModuleP2 = do
     let modname =  "/user/UseAND2_3"
     Outputs outs <- TopLevel.getOutputs topl modname 
     mapM (TopLevel.sigConnectedToSubModuleP topl modname) outs
+
+
+testJumper41 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/Jumper41.json"
+  printJ $ do
+    let modname =  "/user/Jumper41"
+    gcomps <- TopLevel.components topl modname
+    return $ length gcomps

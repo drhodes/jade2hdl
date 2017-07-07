@@ -62,7 +62,6 @@ makePartEdge wire j@(JumperC (Jumper (Coord3 x y r))) = do
              (_, _, True, _) -> econ loc2 wire loc3 j
              (_, _, _, True) -> econ loc2 wire loc4 j
              _ -> Nothing
-  
 
 makePartEdge wire part = do
   let (loc1, loc2) = Wire.ends wire
@@ -87,7 +86,6 @@ makeWire2WireEdge w1 w2 =
                      (_, _, True, _) -> econ loc2 w1 loc3 w2
                      (_, _, _, True) -> econ loc2 w1 loc4 w2
                      _ -> Nothing
-
 
 jumperToWire j@(Jumper (Coord3 x y r)) = do
   nb $ "TopLevel.jumperToWire: "
@@ -121,6 +119,8 @@ components topl modname = do
 
   let comps = UF.components (edges ++ wireEdges) 
   return comps
+
+
 
 getInputTerminals :: TopLevel -> SubModule -> J [Terminal]
 getInputTerminals topl (SubModule name offset) = do
@@ -253,18 +253,22 @@ getCompsWithoutTerms :: TopLevel -> String -> J [GComp]
 getCompsWithoutTerms topl modname = "getCompsWithoutTerms" <?
   (fmap (filter (not . GComp.hasTerm)) (components topl modname))
 
-compDrivenByInputs topl modname comp = "compDrivenByInputs" <? do
-  Inputs inputSigs <- getInputs topl modname
-  return $ map (GComp.hasSig comp) inputSigs
+-- compDrivenByInputs topl modname comp = "compDrivenByInputs" <? do
+--   Inputs inputSigs <- getInputs topl modname
+--   return $ map (GComp.hasSig comp) inputSigs
 
 
-getDrivers :: TopLevel -> String -> J [Sig]
-getDrivers topl modname = "getDrivers" <? do
-  
-
-  undefined
+-- getDrivers :: TopLevel -> String -> J [Sig]
+-- getDrivers topl modname = "getDrivers" <? do
+--   undefined
 
 -- findDriver topl modname sig = "findDriver" <? do
 --   gcomps <- components topl modname  
+
+
   
   --   return sig
+
+
+-- If there is no driving signal in this component, then find other other components
+
