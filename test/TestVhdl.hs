@@ -84,6 +84,7 @@ spawnAllTests = do
   
 spawnBuiltIn = spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
 spawnJumper1 = spawnOneTest "./test-data/Jumper1.json" "/user/Jumper1"
+spawnJumper41 = spawnOneTest "./test-data/Jumper41.json" "/user/Jumper41"
   
 spawnBuiltInAnd4Messy =
   spawnOneTest "./test-data/BuiltInAnd4Messy.json" "/user/BuiltInAnd4Messy"

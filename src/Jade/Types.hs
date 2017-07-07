@@ -30,6 +30,9 @@ import Jade.Util
 
 import Control.Monad.Writer
 
+debug = False
+
+
 hashid :: Hashable a => a -> String
 hashid x =
   let ctx = WH.hashidsSimple "salt"
@@ -80,9 +83,13 @@ runJIO x =
              
 die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
 
-nb :: String -> J ()
-nb s = s <? tell (s ++ "\n")
+impossible msg = die $ "The impossible happened: " ++ msg
 
+
+nb :: String -> J ()
+nb s = if debug == True
+       then s <? tell (s ++ "\n")
+       else return ()
 
 bail :: J a
 bail = die "bailing!"
@@ -264,16 +271,15 @@ data ModTest = ModTest { modPower :: Maybe Power
 
 ------------------------------------------------------------------
 
-data Node a = Node { nodeElement :: a
-                   , nodePart :: Part
+data Node a = Node { nodePart :: Part
                    } deriving (Eq, Generic, Show, Hashable, Ord)
 
-data GComp = GComp [Node (Integer, Integer)]
+data GComp = GComp [Node]
            deriving (Show, Eq)
 
 
-data Edge a = Edge (Node a) (Node a)
-            deriving (Generic, Show, Hashable, Ord, Eq)
+data Edge = Edge (Node (Integer, Integer)) (Node (Integer, Integer))
+          deriving (Generic, Show, Hashable, Ord, Eq)
 
 
 data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int

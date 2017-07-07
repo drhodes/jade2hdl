@@ -26,6 +26,8 @@ library
                      , Jade.Part
                      , Jade.Module
                      , Jade.Wire
+                     , Jade.Coord
+                     , Jade.Jumper
                      , Jade.Vhdl
                      , Jade.Util
   build-depends:       QuickCheck >= 2.9.2,

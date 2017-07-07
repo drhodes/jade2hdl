@@ -1,52 +1,26 @@
 module Jade.Wire where
 
 import Jade.Types
--- import qualified Jade.Graph as G
--- --Wire(Coord5(x, y, rot, dx, dy), SignalName) 
--- rotateWire :: Wire -> Integer -> Wire
--- rotateWire wire rot =
---   case rot of 
+import qualified Jade.Coord as Coord
 
-transformX rot x y =
-  case fromEnum rot of
-    0 -> x
-    1 -> -y
-    2 -> -x
-    3 -> y
-    4 -> -x
-    5 -> -y
-    6 -> x
-    7 -> y
-
-transformY rot x y =
-  case fromEnum rot of
-    0 -> y
-    1 -> x
-    2 -> -y
-    3 -> -x
-    4 -> y
-    5 -> -x
-    6 -> -y  
-    7 -> x
-
-ends w@(Wire (Coord5 x y rot dx dy) _) =
-  let x' = x + (transformX rot dx dy)
-      y' = y + (transformY rot dx dy)
-      n1 = (x, y)
-      n2 = (x', y')
-  in (n1, n2)
-
-
-
-wireToEdge w@(Wire (Coord5 x y rot dx dy) _) =
-  let x' = x + (transformX rot dx dy)
-      y' = y + (transformY rot dx dy)
+toEdge w@(Wire (Coord5 x y rot dx dy) _) =
+  let x' = x + (Coord.transformX rot dx dy)
+      y' = y + (Coord.transformY rot dx dy)
       n1 = Node (x, y) (WireC w)
       n2 = Node (x', y') (WireC w)
   in Edge n1 n2
 
 w1 = Wire (Coord5 0 0 Rot0 8 0) Nothing
 w2 = Wire (Coord5 0 0 Rot270 8 0) Nothing
+
+ends w@(Wire c5 _) = Coord.coord5ends c5
+
+
+new (x1, y1) (x2, y2) =
+  let dx = x2 - x1
+      dy = y2 - y2
+  in Wire (Coord5 x1 y1 Rot0 dx dy) Nothing
+
 
 portToEdge p@(Port (Coord3 x y r) _) =
   let n = Node (x, y) (PortC p)

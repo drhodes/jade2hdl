@@ -73,7 +73,7 @@ collect uf (x:rest) = do
   liftM (cnx:) (collect uf notcnx)
 
 
-components :: [Edge (Integer, Integer)] -> [GComp]
+components :: [Edge] -> [GComp]
 components edges = runST $ do
   let nodes = DL.nub $ concat [[n1, n2] | (Edge n1 n2) <- edges]
       table = DM.fromList (zip nodes [0..])
@@ -88,7 +88,6 @@ components edges = runST $ do
 
   xss <- collect uf [0 .. length nodes - 1]
   return $ map (\xs -> GComp $ map (nodes !!) xs) xss
-
 
   
 nameComp :: GComp -> J String

@@ -173,5 +173,19 @@ testJumper41 = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper41.json"
   printJ $ do
     let modname =  "/user/Jumper41"
-    gcomps <- TopLevel.components topl modname
-    return $ length gcomps
+    TopLevel.components topl modname
+
+
+testJumper41NumComponents = do
+  Right topl <- Decode.decodeTopLevel "./test-data/Jumper41.json"
+  return $ TopLevel.numComponents topl "/user/Jumper41"
+
+
+testJumper3NumComponents = do
+  Right topl <- Decode.decodeTopLevel "./test-data/Jumper3.json"
+  return $ TopLevel.numComponents topl "/user/Jumper3"
+
+testJumper3Components = do
+  Right topl <- Decode.decodeTopLevel "./test-data/Jumper3.json"
+  printJ $ TopLevel.components topl "/user/Jumper3"
+  

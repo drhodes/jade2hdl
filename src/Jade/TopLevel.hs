@@ -15,6 +15,7 @@ import qualified Jade.Part as Part
 import qualified Jade.Sig as Sig
 import qualified Jade.GComp as GComp
 import qualified Jade.Schematic as Schem
+import qualified Jade.Jumper as Jumper
 import Jade.Types
 import Jade.Util
 import Control.Monad
@@ -45,24 +46,7 @@ getSubModules topl modname = do
   return $ Schem.getSubModules schem
 
 -- a function to possible create an edge given a wire and a part
-makePartEdge :: Wire -> Part -> J (Maybe (Edge (Integer, Integer)))
-
-makePartEdge wire j@(JumperC (Jumper (Coord3 x y r))) = do
-  nb $ "TopLevel.makePartEdge: "
-  
-  let (loc1, loc2) = Wire.ends wire
-      fakeWire = Wire (Coord5 x y r (x+8) y) Nothing
-      (loc3, loc4) = Wire.ends fakeWire
-      econ p1 v p2 w = Just $ Edge (Node p1 (WireC v)) (Node p2 j)
-
-  (show ((loc1, loc2), (loc3, loc4))) <? do
-  return $ case (loc1 == loc3, loc1 == loc4, loc2 == loc3, loc2 == loc4) of
-             (True, _, _, _) -> econ loc1 wire loc3 j
-             (_, True, _, _) -> econ loc1 wire loc4 j
-             (_, _, True, _) -> econ loc2 wire loc3 j
-             (_, _, _, True) -> econ loc2 wire loc4 j
-             _ -> Nothing
-
+makePartEdge :: Wire -> Part -> J (Maybe Edge)
 makePartEdge wire part = do
   let (loc1, loc2) = Wire.ends wire
   ploc <- Part.loc part ? "TopLevel.makePartEdge"
@@ -73,7 +57,7 @@ makePartEdge wire part = do
          then return $ Just $ Edge (Node loc2 (WireC wire)) (Node ploc part)
          else return Nothing
 
-makeWire2WireEdge :: Wire -> Wire -> J (Maybe (Edge (Integer, Integer)))
+makeWire2WireEdge :: Wire -> Wire -> J (Maybe Edge)
 makeWire2WireEdge w1 w2 = 
   if w1 == w2
   then return Nothing
@@ -86,14 +70,11 @@ makeWire2WireEdge w1 w2 =
                      (_, _, True, _) -> econ loc2 w1 loc3 w2
                      (_, _, _, True) -> econ loc2 w1 loc4 w2
                      _ -> Nothing
-
-jumperToWire j@(Jumper (Coord3 x y r)) = do
-  nb $ "TopLevel.jumperToWire: "
-  return $ Wire (Coord5 x y r (x+8) y) Nothing
           
+processEdges :: [Wire] -> [Part] -> J [Edge]
 processEdges wires parts = do
   -- with all wires, make an edge from ones that share a point with a part 
-  let wireEdges = map Wire.wireToEdge wires
+  let wireEdges = map Wire.toEdge wires
   partEdges <- sequence [makePartEdge w p | w <- wires, p <- parts]
   -- nb $ "TopLevel.processEdges"
   -- nb $ show partEdges
@@ -101,6 +82,33 @@ processEdges wires parts = do
   wireNbrs <- sequence [makeWire2WireEdge v w | v <- wires, w <- wires]
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
   return $ edges ++ nbrs
+
+
+findWireWithEndPoint parts p = "findWireWithEndPoint" <? do
+  let matches = [wire | wire@(WireC w) <- parts, let (p1, p2) = Wire.ends w
+                                                 in p == p1 || p == p2 ]
+  if null matches
+    then die $ "Couldn't find wire with end point: " ++ show p
+    else return $ head matches
+
+makeJumperEdge :: [Part] -> Jumper -> J Edge
+makeJumperEdge wires jumper = "makeJumperEdge" <? do
+  nb "find the endpoints of the jumper"
+  let (p1, p2) = Jumper.getEnds jumper
+  
+  nb "find the two parts that share these endpoints"
+  w1 <- findWireWithEndPoint wires p1
+  w2 <- findWireWithEndPoint wires p1
+  
+  nb "create an edge between the wires."
+  return $ Edge (Node p1 w1) (Node p2 w2)
+
+connectWiresWithSameSigName :: [Part] -> J [Wire]
+connectWiresWithSameSigName parts =
+  return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2)
+         | wc1@(WireC w1) <- parts,
+           wc2@(WireC w2) <- parts, and [ w1 /= w2
+                                        , wireSignal w1 == wireSignal w2]]
 
 components  :: TopLevel -> String -> J [GComp] 
 components topl modname = do
@@ -111,16 +119,15 @@ components topl modname = do
       ports = [PortC p | PortC p <- parts]
       jumpers = Schem.getJumpers schem --[JumperC j | JumperC j <- DV.toList parts]
       terms = map TermC $ concat terms'
+  
+  sameNameWires <- connectWiresWithSameSigName parts
+  
+  let wireEdges = map Wire.toEdge (wires ++ sameNameWires)
+  edges <- processEdges (wires ++ sameNameWires) (terms ++ ports)  
+  jumperEdges <- mapM (makeJumperEdge parts) jumpers
 
-  jwires <- mapM jumperToWire jumpers
-  let wireEdges = map Wire.wireToEdge (wires ++ jwires)
-
-  edges <- processEdges (wires ++ jwires) (terms ++ ports)
-
-  let comps = UF.components (edges ++ wireEdges) 
+  let comps = UF.components (edges ++ wireEdges ++ jumperEdges) 
   return comps
-
-
 
 getInputTerminals :: TopLevel -> SubModule -> J [Terminal]
 getInputTerminals topl (SubModule name offset) = do
@@ -221,12 +228,33 @@ getInputTermDriver topl modname term =
       let submods = Maybe.catMaybes . concat . concat $ submods'
       case submods of
         [(Terminal coord sig, submod)] -> Sig.hashMangle (hashid submod) sig 
-        [] -> die $ "Couldn't find the driving signal in a test script input or sub module output: " ++ show partList
-        xs -> die $ "The impossible happened, many submodules output to this terminal" ++ show xs
+        [] -> "looing in component attached to terminal" <? do
+          comp <- getComponentWithTerminal topl modname term
+          nb "Does this component have a .input signal?"
+          -- let (Terminal _ s) = term
+          
+          let drivers = filter (GComp.hasSig comp) inputSigs
+          case drivers of
+            [sig] -> return sig
+            [] -> die $ "Couldn't find driving signal in a test script input, \
+                        \sub module output or in shared component: " ++ show partList
+            _ -> impossible $ "More than one driver found in terminal component: " ++ show term
+        xs -> impossible $ "Many submodules output to this terminal" ++ show xs
       
     _ -> die $ "component somehow contains more than one .input, \
                \ which is impossible because that would mean more \
                \ than one signal is driving this component: " ++ show partsMatchingInput
+
+
+getComponentWithTerminal :: TopLevel -> String -> Terminal -> J GComp
+getComponentWithTerminal topl modname term  = "getComponentWithTerminal" <? do
+  comps <- components topl modname
+  let matches =  [c | c <- comps, GComp.hasTerm c term] 
+  case matches of
+    [c] -> return c
+    [] -> die $ "No component found with terminal: " ++ show term
+    _ -> impossible $ "More than one component found with terminal: " ++ show term
+
 
 subModuleWithOutputTerminal topl modname term = "subModuleWithOutputTerminal" <? do
   allsubs <- getSubModules topl modname
@@ -247,23 +275,15 @@ sigConnectedToSubModuleP topl modname sig = do
   nb "Find the components with signal name"
   let compsWithSig = filter (flip GComp.hasSig sig) gcomps
   nb "Of those components, do any have a terminal?"
-  return $ or $ map GComp.hasTerm compsWithSig
+  return $ or $ map GComp.hasAnyTerm compsWithSig
   
 getCompsWithoutTerms :: TopLevel -> String -> J [GComp]
 getCompsWithoutTerms topl modname = "getCompsWithoutTerms" <?
-  (fmap (filter (not . GComp.hasTerm)) (components topl modname))
-
--- compDrivenByInputs topl modname comp = "compDrivenByInputs" <? do
---   Inputs inputSigs <- getInputs topl modname
---   return $ map (GComp.hasSig comp) inputSigs
+  (fmap (filter (not . GComp.hasAnyTerm)) (components topl modname))
 
 
--- getDrivers :: TopLevel -> String -> J [Sig]
--- getDrivers topl modname = "getDrivers" <? do
---   undefined
 
--- findDriver topl modname sig = "findDriver" <? do
---   gcomps <- components topl modname  
+--getCompDriver 
 
 
   
