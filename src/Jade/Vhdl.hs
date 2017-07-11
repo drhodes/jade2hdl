@@ -13,6 +13,7 @@ import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module
 import qualified Jade.UnionFindST as UnionFindST
 import qualified Jade.Sig as Sig
+import qualified Jade.GComp as GComp
 import Control.Monad
 import Jade.Util
 import Text.Mustache.Compile (mustache)
@@ -162,6 +163,9 @@ mkModule topl modname = do
   mapM (UnionFindST.nameComp) comps
 
   nodeDecls <- mkNodeDecls topl modname
+
+
+  outputWires <- liftM (DL.intercalate "\n") (mapM (connectOutput topl modname) outs)
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt
@@ -169,6 +173,7 @@ mkModule topl modname = do
                             , ("ports", toMustache ports)
                             , ("node-declarations", toMustache nodeDecls)
                             , ("submodule-entity-instances", toMustache  (T.intercalate  (T.pack "\n") instances))
+                            , ("maybe-wire-output", toMustache outputWires)
                             ]
   return $ substitute temp mapping
   
@@ -226,32 +231,35 @@ mkNodeDecls topl modname =
   if null keepers
     then return "-- no node decls"
     else return $ format temp [keepers]
-  -- signal w1, w2 : std_logic;
 
 
+-- If output signals are not connected directly to a submodule output,
+-- then there is no structural output to that output.
+connectOutput :: TopLevel -> String -> Sig -> J String
+connectOutput topl modname outSig = "Jade.Vhdl.connectOutput" <? do
+  nb "Does outSig share a component with a terminal?"
+  connectedToSubMod <- TopLevel.sigConnectedToSubModuleP topl modname outSig
+  nb "If so, then it's all set"
 
-
-mkUnterminatedNodes topl modname =
-  "Jade.Vhdl.mkUnterminatedNodes" <? do
-  nb "Some components are not connected to submodules"
-  nb "for instance, jumpers.  So, make sure to connect the"
-  nb "drivers to the driven"
-
-  untermedComps <- TopLevel.getCompsWithoutTerms topl modname
-
-  let connectSigs (GComp nodes) = "connectSigs" <? do
-        let sigs = [s | Just s <- map Part.sig $ map nodePart nodes]
-        --driver <- TopLevel.findDriver sigs
-        undefined
-  undefined
-
-
-  
-    {- From these nodes find the one driver, There can be only one! the
-   driver can be from the module inputs, or it can be contained in the 
--}
-           
-  
-        
-  
+  if not connectedToSubMod
+    then do nb "otherwise look in that component to see if contains an .input"
+            comps <- TopLevel.components topl modname
+            let compsWithOutputs = filter (flip GComp.hasSig outSig) comps
+            
+            case length compsWithOutputs of
+              0 -> die $ "No comps found with sig: " ++ show outSig
+              1 -> "if it does, then connect .input to outSig" <? do
+                      let comp = head compsWithOutputs
+                      Inputs ins <- TopLevel.getInputs topl modname
+                      
+                      case filter (GComp.hasSig comp) ins of
+                        [driver] -> do
+                          d <- Sig.getName driver
+                          o <- Sig.getName outSig
+                          return $ format "{0} <= {1};" [o, d]
+                        _ -> return "WUT"
+                      
+              _ -> die $ "strange, more than one component found with outSig: " ++ show outSig
+    else return ""
+    
   

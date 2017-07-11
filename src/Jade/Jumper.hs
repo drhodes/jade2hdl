@@ -6,4 +6,4 @@ import qualified Jade.Coord as Coord
 
 
 getEnds :: Jumper -> ((Integer, Integer), (Integer, Integer))
-getEnds (Jumper (Coord3 x y r)) = Coord.coord5ends (Coord5 x y r (x+8) 0)
+getEnds (Jumper (Coord3 x y r)) = Coord.coord5ends (Coord5 x y r 8 0)

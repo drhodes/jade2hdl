@@ -3,7 +3,8 @@ module Test.TestTopLevel where
 import Jade.Types
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
-import qualified Jade.Module as Module
+import qualified Jade.Module as Modul
+import qualified Jade.GComp as GComp
 
 testWires2 = do
   -- a box made of wires, should have one component
@@ -95,7 +96,7 @@ bendyWire1 = do
                 x -> die $ "hmm, found: " ++ show x
 
 testWire1 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/wires/wire1.json" 
+  Right topl <- Decode.decodeTopLevel "./test-data/wires/wire1.json"
   printJ $ do let modname =  "/user/Wire1"
               cs <- TopLevel.components topl modname
               case length cs of
@@ -147,7 +148,7 @@ testTopLevelGetInputs = do
               let term = terms !! 0
               -- find the connected components to that input terminal.
               connected <- TopLevel.componentWithTerminal topl modname term
-              
+
               --return $ filter (/= (TermC term)) $ map nodePart connected
 
               -- find which signal is driving the input terminal.
@@ -156,8 +157,8 @@ testTopLevelGetInputs = do
 testSigConnectedToSubModuleP1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
 
-  printJ $ do 
-    Outputs outs <- TopLevel.getOutputs topl "/user/Jumper1" 
+  printJ $ do
+    Outputs outs <- TopLevel.getOutputs topl "/user/Jumper1"
     eh <- TopLevel.sigConnectedToSubModuleP topl "/user/Jumper1" (outs !! 0)
     return eh
 
@@ -165,16 +166,14 @@ testSigConnectedToSubModuleP2 = do
   Right topl <- Decode.decodeTopLevel "./test-data/UseAND2_3.json"
   printJ $ do
     let modname =  "/user/UseAND2_3"
-    Outputs outs <- TopLevel.getOutputs topl modname 
+    Outputs outs <- TopLevel.getOutputs topl modname
     mapM (TopLevel.sigConnectedToSubModuleP topl modname) outs
-
 
 testJumper41 = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper41.json"
   printJ $ do
     let modname =  "/user/Jumper41"
     TopLevel.components topl modname
-
 
 testJumper41NumComponents = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper41.json"
@@ -188,4 +187,45 @@ testJumper3NumComponents = do
 testJumper3Components = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper3.json"
   printJ $ TopLevel.components topl "/user/Jumper3"
-  
+
+testJumper4NumComponents = do
+  Right topl <- Decode.decodeTopLevel "./test-data/Jumper4.json"
+  case runJ $ TopLevel.numComponents topl "/user/Jumper4" of
+    Right 1 -> putStrLn "PASS"
+    Right x -> putStrLn $ "Expected 1, got: " ++ show x
+    Left msg -> fail msg
+
+testJumper5NumComponents = do
+  Right topl <- Decode.decodeTopLevel "./test-data/Jumper5.json"
+  case runJ $ do comps <- TopLevel.numComponents topl "/user/Jumper5"
+                 return comps
+    of
+    Right 1 -> putStrLn "PASS"
+    Right x -> putStrLn $ "Expected 1, got: " ++ show x
+    Left msg -> fail msg
+
+testJumper21NumComponents = do
+  Right topl <- Decode.decodeTopLevel "./test-data/Jumper21.json"
+  case runJ $ TopLevel.numComponents topl "/user/Jumper21"
+    of
+    Right 3 -> putStrLn "PASS"
+    Right x -> putStrLn $ "Expected 3, got: " ++ show x
+    Left msg -> fail msg
+
+testJumper21components = do
+  Right topl <- Decode.decodeTopLevel "./test-data/Jumper21.json"
+  case runJ $ do TopLevel.components topl "/user/Jumper21" of
+    Right comps -> print $ map GComp.getSigs comps
+    Left msg -> fail msg
+
+testJumper1components = do
+  Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
+  case runJ $ do TopLevel.components topl "/user/Jumper1" of
+    Right comps -> print (map GComp.getSigs comps)
+    Left msg -> fail msg
+
+testLoneJumper1 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/LoneJumper1.json"
+  case runJ $ do TopLevel.components topl "/user/LoneJumper1" of
+    Right comps -> print $ (map GComp.getSigs comps) == [[]]
+    Left msg -> fail msg

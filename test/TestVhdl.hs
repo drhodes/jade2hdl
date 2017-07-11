@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -25,6 +26,7 @@ import Control.Exception.Base as CEB
 import Control.Concurrent as CC
        
 spawnOneTest jadefile modname = do
+  putStrLn $ "Testing: " ++ modname
   -- create a test directory
   let autoTestPath = format "test-data/auto-vhdl/{0}/" [hashid modname]
       tbname = Module.testBenchName modname
@@ -46,10 +48,13 @@ spawnOneTest jadefile modname = do
                                                      , std_out = CreatePipe
                                                      , std_err= CreatePipe
                                                      }
-  let cmd2  = (shell $  "ghdl -r --std=08 " ++ tbname) { cwd = Just autoTestPath
-                                                       , std_out = CreatePipe
-                                                       , std_err= CreatePipe
-                                                       }
+
+  let cmdStr2 = format "ghdl -r --std=08 {0} --vcd={0}.vcd" [tbname]
+  --let cmd2  = (shell $  "ghdl -r --std=08 " ++ tbname) { cwd = Just autoTestPath
+  let cmd2  = (shell $  cmdStr2) { cwd = Just autoTestPath
+                                 , std_out = CreatePipe
+                                 , std_err= CreatePipe
+                                 }
               
   (ecode, stdout, stderr) <- readCreateProcessWithExitCode cmd1 ""
   case ecode of
@@ -74,17 +79,21 @@ fork1 f = CC.forkFinally f $
           Left e -> CEB.throw e
           Right ecode -> print $ "Good, " ++ show ecode
 
-spawnAllTests = do  
-  spawnOneTest "./test-data/And41.json" "/user/And41"
-  spawnOneTest "./test-data/AndStuff4.json" "/user/AndStuff4"
-  spawnOneTest "./test-data/AndStuff5.json" "/user/AndStuff5"
-  spawnOneTest "./test-data/AndStuff6.json" "/user/AndStuff6"
+
+spawn s = spawnOneTest ("./test-data/" ++ s ++ ".json") ("/user/" ++ s)
+
+spawnAllTests = do
+  mapM spawn [ "And41"
+             , "AndStuff4"
+             , "AndStuff5"
+               -- "AndStuff6" optimize this, eventually.
+             , "Jumper1"
+             , "Jumper41"
+             , "Jumper3" ]
   spawnBuiltIn
   spawnBuiltInAnd4Messy
   
 spawnBuiltIn = spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
-spawnJumper1 = spawnOneTest "./test-data/Jumper1.json" "/user/Jumper1"
-spawnJumper41 = spawnOneTest "./test-data/Jumper41.json" "/user/Jumper41"
   
 spawnBuiltInAnd4Messy =
   spawnOneTest "./test-data/BuiltInAnd4Messy.json" "/user/BuiltInAnd4Messy"
@@ -144,5 +153,8 @@ testGenMakeModule = do
       -- TIO.putStrLn moduleCode
       -- TIO.putStrLn testCode
 
-
-
+testConnectOutputJumper1 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
+  runJIO $ "testConnectOutputJumper1" <? do
+    let modname = "/user/Jumper1"
+    liftM print $ Vhdl.connectOutput topl modname (SigSimple "vout")

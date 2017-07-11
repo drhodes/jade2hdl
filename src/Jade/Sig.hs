@@ -123,4 +123,9 @@ hashMangle s sig =
     SigRangeStep name x y z -> return $ SigRangeStep (f name) x y z
     x -> die $ "hashMangle doesn't support: " ++ show x
 
+getName :: Sig -> J String
+getName sig = case sig of
+                SigSimple name -> return name
+                x -> die $ "Sig.name doesn't support: " ++ show x
+
 

@@ -25,6 +25,7 @@ isSubModule (SubModuleC _) = True
 isSubModule _ = False
 
 
+
 loc part =
   case part of
     PortC (Port (Coord3 x y _) _) -> return (x, y)

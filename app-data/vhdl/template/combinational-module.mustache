@@ -10,8 +10,9 @@ end {{module-name}};
 architecture struct of {{module-name}} is
   -- node declarations
   {{{node-declarations}}}
-
 begin
   -- each submodule is wired up here.
   {{{submodule-entity-instances}}}
+  {{{maybe-wire-output}}}
+
 end struct;

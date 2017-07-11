@@ -91,24 +91,23 @@ findWireWithEndPoint parts p = "findWireWithEndPoint" <? do
     then die $ "Couldn't find wire with end point: " ++ show p
     else return $ head matches
 
-makeJumperEdge :: [Part] -> Jumper -> J Edge
-makeJumperEdge wires jumper = "makeJumperEdge" <? do
+makeJumperWire :: [Part] -> Jumper -> J Wire
+makeJumperWire wires jumper = "makeJumperEdge" <? do
   nb "find the endpoints of the jumper"
   let (p1, p2) = Jumper.getEnds jumper
-  
-  nb "find the two parts that share these endpoints"
-  w1 <- findWireWithEndPoint wires p1
-  w2 <- findWireWithEndPoint wires p1
-  
-  nb "create an edge between the wires."
-  return $ Edge (Node p1 w1) (Node p2 w2)
+  nb "create a wire where the jumper is"
+  return $ Wire.new p1 p2
 
-connectWiresWithSameSigName :: [Part] -> J [Wire]
-connectWiresWithSameSigName parts =
-  return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2)
-         | wc1@(WireC w1) <- parts,
-           wc2@(WireC w2) <- parts, and [ w1 /= w2
-                                        , wireSignal w1 == wireSignal w2]]
+--connectWiresWithSameSigName :: [Part] -> J [Wire]
+connectWiresWithSameSigName parts = do
+  let pairs = DL.nub [DL.sort [wc1, wc2] |
+                      wc1@(WireC w1) <- parts,
+                      wc2@(WireC w2) <- parts, (w1 /= w2) && (w1 `Wire.hasSameSig` w2)]
+  return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | [WireC w1, WireC w2] <- pairs]
+
+lulu topl modname = do
+  (Module (Just schem@(Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
+  connectWiresWithSameSigName parts
 
 components  :: TopLevel -> String -> J [GComp] 
 components topl modname = do
@@ -117,16 +116,15 @@ components topl modname = do
   
   let wires = [w | WireC w <- parts]
       ports = [PortC p | PortC p <- parts]
-      jumpers = Schem.getJumpers schem --[JumperC j | JumperC j <- DV.toList parts]
+      jumpers = Schem.getJumpers schem
       terms = map TermC $ concat terms'
   
-  sameNameWires <- connectWiresWithSameSigName parts
-  
-  let wireEdges = map Wire.toEdge (wires ++ sameNameWires)
-  edges <- processEdges (wires ++ sameNameWires) (terms ++ ports)  
-  jumperEdges <- mapM (makeJumperEdge parts) jumpers
+  ssnw <- connectWiresWithSameSigName parts 
+  jumperWires <- mapM (makeJumperWire parts) jumpers
+  let wireEdges = map Wire.toEdge (wires ++ jumperWires ++ ssnw)
+  edges <- processEdges (wires ++ jumperWires ++ ssnw) (terms ++ ports)  
 
-  let comps = UF.components (edges ++ wireEdges ++ jumperEdges) 
+  let comps = UF.components (edges ++ wireEdges)
   return comps
 
 getInputTerminals :: TopLevel -> SubModule -> J [Terminal]
@@ -214,14 +212,6 @@ getInputTermDriver topl modname term =
   let partsMatchingInput = DL.nub [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
 
   case length partsMatchingInput of
-    1 -> let match = head partsMatchingInput
-         in case Part.sig match of
-              Just sig -> return sig
-              Nothing -> die $ "Impossible, no signal was found in this part: " ++ show match
-      -- ok, so none of the parts have signals matching the a signal
-      -- found in the .input line of the module's test script.  See if
-      -- any of the parts are terminals, and if those terminals belong
-      -- to the output of a sub module, and which sub module.
     0 -> "no parts matching inputs" <? do
       let terms = [t | (TermC t) <- partList]
       submods' <- mapM (subModuleWithOutputTerminal topl modname) terms
@@ -237,13 +227,14 @@ getInputTermDriver topl modname term =
           case drivers of
             [sig] -> return sig
             [] -> die $ "Couldn't find driving signal in a test script input, \
-                        \sub module output or in shared component: " ++ show partList
+                        \sub module output or in shared component: " ++ show comp
             _ -> impossible $ "More than one driver found in terminal component: " ++ show term
         xs -> impossible $ "Many submodules output to this terminal" ++ show xs
       
-    _ -> die $ "component somehow contains more than one .input, \
-               \ which is impossible because that would mean more \
-               \ than one signal is driving this component: " ++ show partsMatchingInput
+    _ -> let match = head partsMatchingInput
+         in case Part.sig match of
+              Just sig -> return sig
+              Nothing -> die $ "Impossible, no signal was found in this part: " ++ show match
 
 
 getComponentWithTerminal :: TopLevel -> String -> Terminal -> J GComp

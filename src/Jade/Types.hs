@@ -270,17 +270,24 @@ data ModTest = ModTest { modPower :: Maybe Power
                        } deriving (Generic, Show, Eq, Hashable, Ord)
 
 ------------------------------------------------------------------
-
-data Node a = Node { nodePart :: Part
-                   } deriving (Eq, Generic, Show, Hashable, Ord)
+data Node = Node { nodeLocation :: (Integer, Integer)
+                 , nodePart :: Part                   
+                 } deriving (Eq, Generic, Show, Hashable, Ord)
 
 data GComp = GComp [Node]
            deriving (Show, Eq)
 
+data ComponentType = CtNoTerms
+                   | CtSubModIns
+                   | CtSybModOuts
 
-data Edge = Edge (Node (Integer, Integer)) (Node (Integer, Integer))
+
+
+data Edge = Edge Node Node
           deriving (Generic, Show, Hashable, Ord, Eq)
 
+data UfInstruction = LinkEdge Edge
+                   | LinkNodes Node Node
 
 data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    , store :: DM.Map a Int
