@@ -19,9 +19,6 @@ hasSameSig (Wire _ Nothing) _ = False
 hasSameSig _ (Wire _ Nothing) = False
 hasSameSig (Wire _ s1) (Wire _ s2) = s1 == s2
 
-
-
-
 new (x1, y1) (x2, y2) =
   let dx = x2 - x1
       dy = y2 - y1

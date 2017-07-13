@@ -5,6 +5,8 @@ import qualified Text.Parsec.Number as TPN
 import Text.Parsec
 import Jade.Types
 import qualified Numeric as N
+import Text.Format
+
 {-
 signal names need to be parsed.
 
@@ -125,7 +127,12 @@ hashMangle s sig =
 
 getName :: Sig -> J String
 getName sig = case sig of
-                SigSimple name -> return name
-                x -> die $ "Sig.name doesn't support: " ++ show x
+                SigSimple name ->
+                  return name
+                SigRange name from to ->
+                  return name
+                  -- return $ format "{0}({1} downto {2})" [name, show from, show to]
+                x ->
+                  die $ "Sig.name doesn't support: " ++ show x
 
 

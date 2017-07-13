@@ -229,3 +229,10 @@ testLoneJumper1 = do
   case runJ $ do TopLevel.components topl "/user/LoneJumper1" of
     Right comps -> print $ (map GComp.getSigs comps) == [[]]
     Left msg -> fail msg
+
+
+testWireWidth2 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/WireWidth2.json"
+  case runJ $ do TopLevel.components topl "/user/WireWidth2" of
+    Right comps -> print comps
+    Left msg -> fail msg

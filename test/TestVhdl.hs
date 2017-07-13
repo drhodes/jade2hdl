@@ -83,13 +83,14 @@ fork1 f = CC.forkFinally f $
 spawn s = spawnOneTest ("./test-data/" ++ s ++ ".json") ("/user/" ++ s)
 
 spawnAllTests = do
-  mapM spawn [ "And41"
-             , "AndStuff4"
-             , "AndStuff5"
-               -- "AndStuff6" optimize this, eventually.
-             , "Jumper1"
-             , "Jumper41"
-             , "Jumper3" ]
+  mapM_ spawn [ "And41"
+              , "AndStuff4"
+              , "AndStuff5"
+                -- "AndStuff6" optimize this, eventually.
+              , "Jumper1"
+              , "Jumper1Rot90"
+              , "Jumper41"
+              , "Jumper3" ]
   spawnBuiltIn
   spawnBuiltInAnd4Messy
   

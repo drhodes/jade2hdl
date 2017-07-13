@@ -41,7 +41,7 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
       -- a <= '0'; b <= '0'; c <= '0'; d <= '0';
       let TestLine asserts _ _ = testline
       Inputs ins <- Module.getInputs m
-      inputNames <- mapM sigName ins
+      inputNames <- mapM Sig.getName ins
       recurse $ zipWith sigAssert inputNames asserts
 
     Sample _ -> "Samples" <? do
@@ -51,7 +51,7 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
           c = case comment of
                 Just s -> "// " ++ s
                 Nothing -> ""
-      os <- mapM sigName outs      
+      os <- mapM Sig.getName outs      
       let txt = [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
       recurse $ map T.unpack txt
 
@@ -71,13 +71,18 @@ testCaseIfBlock testnum signal expected comment =
 binValToStdLogic bv = case bv of { H -> "'1'" ; L -> "'0'" ; Z -> "'Z'" } 
 sigAssert x bv = format "{0} <= {1};" [x, binValToStdLogic bv]
 
-sigName sig = case sig of
-                SigSimple name -> return name
-                x -> die $ format "unsupported signal: {0}" [show x]
+--sigName sig = "Vhdl.sigName" <? Sig.getName sig
+  -- case sig of
+  --   SigSimple name ->
+  --     return name
+  --   SigRange name from to ->
+  --     return $ format "{0}({1} downto {2})" [name, show from, show to]
+  --   x ->
+  --     die $ format "unsupported signal: {0}" [show x]
 
 portAssoc :: Sig -> J String
 portAssoc sig = do
-   name <- sigName sig
+   name <- Sig.getName sig
    return $ format "{0} => {0}" [name]
 
 --dut : entity work.AND23 port map (a => a, b => b, c => c, d => d, output => result);
@@ -93,13 +98,8 @@ mkDUT m modname = "Vhdl.testDUT" <? do
 mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
-
-  let getSigName sig =
-        case sig of
-          SigSimple name -> return name
-          x -> die $ format "unsupported signal: {0}" [show x]
   
-  names <- mapM getSigName (ins ++ outs)
+  names <- mapM Sig.getName (ins ++ outs)
   if null names
     then return $ "-- no signal decls"
     else return $ "signal " ++ DL.intercalate ", " names ++ ": std_logic;"
@@ -153,10 +153,10 @@ mkModule topl modname = do
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
 
-  inNames <- mapM sigName ins
+  inNames <- mapM Sig.getName ins
   let portIns = map (++" : in std_logic") inNames
 
-  outNames <- mapM sigName outs
+  outNames <- mapM Sig.getName outs
   let portOuts = map (++" : out std_logic") outNames
 
   let ports = T.pack $ DL.intercalate "; " (portIns ++ portOuts)
@@ -190,7 +190,7 @@ mkSubModuleInstance topl modname submod@(SubModule name loc) = do
   inputTerms <- Module.getInputTerminals m loc
   outputTerms <- Module.getOutputTerminals m loc
 
-  let termName (Terminal _ sig)  = sigName sig
+  let termName (Terminal _ sig)  = Sig.getName sig
   
   inComps <- mapM (TopLevel.componentWithTerminal topl modname) inputTerms
   inSigNames <- mapM UnionFindST.nameComp inComps
@@ -220,7 +220,7 @@ mkNodeDecls topl modname =
   "Jade.Vhdl.mkNodeDecls" <? do
   Inputs ins <- TopLevel.getInputs topl modname
   Outputs outs <- TopLevel.getOutputs topl modname
-  ignore <- mapM sigName (ins ++ outs)
+  ignore <- mapM Sig.getName (ins ++ outs)
   
   comps <- TopLevel.components topl modname
   compNames <- mapM UnionFindST.nameComp comps

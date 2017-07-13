@@ -67,18 +67,18 @@ doRightTestWith testname f = do
                                , "FAIL:     " ++ testname
                                , msg
                                ]
-    Right _ -> return () --putStrLn $ "PASS: " ++ testname
+    Right _ -> putStrLn $ "PASS: " ++ testname
   
 testTerminal1 = do
   let tstring = "[ \"terminal\", [ 16, 0, 4 ], { \"name\": \"out\" } ]"
-      expected = Right (Terminal (Coord3 {c3x = 16, c3y = 0, c3r = 4}) (SigSimple "out"))
+      expected = Right (Terminal (Coord3 {c3x = 16, c3y = 0, c3r = FlipX}) (SigSimple "out"))
   dotest "testTerminal1" tstring expected
 
 
 testTerminal2 :: IO (Either String IconPart)
 testTerminal2 = do
   let tstring = "[ \"terminal\", [ 16, 0, 4 ], { \"name\": \"out\" } ]"
-      expected = Right (IconTerm (Terminal (Coord3 {c3x = 16, c3y = 0, c3r = 4}) (SigSimple "out")))
+      expected = Right (IconTerm (Terminal (Coord3 {c3x = 16, c3y = 0, c3r = FlipX}) (SigSimple "out")))
   dotest "testTerminal2" tstring expected
 
 testAll = do
@@ -86,7 +86,6 @@ testAll = do
   testLine1
   testTerminal1
   testTerminal2
-
 
   let f x y = doRightTestWith x (return y)
 
@@ -99,3 +98,5 @@ testAll = do
   f "testComp1" testComp1 
   f "testSub1" testSub1 
   f "testSchem1 " testSchem1 
+
+
