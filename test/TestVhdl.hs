@@ -44,17 +44,16 @@ spawnOneTest jadefile modname = do
     return $ do
       TIO.writeFile outfile (T.concat [ prelude, moduleCode, testCode ])
 
-  let cmd1  = (shell $  "ghdl -a -g --std=08 *.vhdl") { cwd = Just autoTestPath
-                                                     , std_out = CreatePipe
-                                                     , std_err= CreatePipe
-                                                     }
+  let cmd1  = (shell "ghdl -a -g --std=08 *.vhdl") { cwd = Just autoTestPath
+                                                   , std_out = CreatePipe
+                                                   , std_err= CreatePipe
+                                                   }
 
   let cmdStr2 = format "ghdl -r --std=08 {0} --vcd={0}.vcd" [tbname]
-  --let cmd2  = (shell $  "ghdl -r --std=08 " ++ tbname) { cwd = Just autoTestPath
-  let cmd2  = (shell $  cmdStr2) { cwd = Just autoTestPath
-                                 , std_out = CreatePipe
-                                 , std_err= CreatePipe
-                                 }
+  let cmd2  = (shell cmdStr2) { cwd = Just autoTestPath
+                              , std_out = CreatePipe
+                              , std_err= CreatePipe
+                              }
               
   (ecode, stdout, stderr) <- readCreateProcessWithExitCode cmd1 ""
   case ecode of
@@ -63,15 +62,15 @@ spawnOneTest jadefile modname = do
       case ecode' of
         ExitSuccess -> putStrLn modname
         ExitFailure err' -> do
+          putStrLn errlog
           print err'
           putStrLn stderr'
-          putStrLn errlog
       return ecode'
     ExitFailure err -> do
+      putStrLn errlog
       putStrLn modname
       putStrLn stderr
       print err
-      putStrLn errlog
       return ecode
 
 fork1 f = CC.forkFinally f $
@@ -79,10 +78,9 @@ fork1 f = CC.forkFinally f $
           Left e -> CEB.throw e
           Right ecode -> print $ "Good, " ++ show ecode
 
-
 spawn s = spawnOneTest ("./test-data/" ++ s ++ ".json") ("/user/" ++ s)
 
-spawnAllTests = do
+spawnAllTests = do  
   mapM_ spawn [ "And41"
               , "AndStuff4"
               , "AndStuff5"
@@ -93,6 +91,8 @@ spawnAllTests = do
               , "Jumper3" ]
   spawnBuiltIn
   spawnBuiltInAnd4Messy
+  spawn "AND2"
+  spawn "AND2Rot90"
   
 spawnBuiltIn = spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
   

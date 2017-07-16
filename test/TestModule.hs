@@ -1,24 +1,63 @@
 module TestModule where
 
 import qualified Data.Map as DM
-import qualified Language.VHDL.Syntax as S
-import qualified Language.VHDL.Pretty as P
 import Jade.Types
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module
+import qualified Jade.Coord as Coord
 import qualified Jade.Vhdl as Vhdl
 import qualified Data.Hashable as H
+import Text.Format
+import Control.Monad
 
-testEntityDecl = do
-  Right (TopLevel m) <- Decode.decodeTopLevel "./test-data/and2.json"
-  let pair = head $ DM.toList m
-  print $ P.pp $ Vhdl.mkEntityDecl pair
+testRotateUseAND2Rot90 = do
+  let modname = "UseAND2Rot90"
+  --let modname = "UseAND2"
+  let qualModName = "/user/" ++ modname
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
 
-testMkArchBody = do
-  Right (TopLevel m) <- Decode.decodeTopLevel "./test-data/and2.json"
-  let pair = head $ DM.toList m
-  print $ P.pp $ Vhdl.mkArchBody pair
+
+  let func = do
+        m <- TopLevel.getModule topl qualModName
+        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        let (SubModule name c3) = sub
+        nb $ show c3
+        m <- TopLevel.getModule topl name
+        terms <- Module.testTerms m c3
+        nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
+
+        Module.iconBoundingBox m
+
+  print $ [(16, -8), (8, 24), (24, 24)]
+  case runJ func of
+    Right x -> do print x
+                  putStrLn $ runLog func
+                  return x
+    Left msg -> do putStrLn msg
+                   return undefined
+
+
+
+
+-- testEntityDecl = do
+--   Right (TopLevel m) <- Decode.decodeTopLevel "./test-data/and2.json"
+--   let pair = head $ DM.toList m
+--   print $ P.pp $ Vhdl.mkEntityDecl pair
+
+-- testMkArchBody = do
+--   Right (TopLevel m) <- Decode.decodeTopLevel "./test-data/and2.json"
+--   let pair = head $ DM.toList m
+--   print $ P.pp $ Vhdl.mkArchBody pair
+
+
+
+
+
+
+
+
+
 
 {-
 testGraphVoodoo filename modname = do

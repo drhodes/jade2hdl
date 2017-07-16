@@ -71,15 +71,6 @@ testCaseIfBlock testnum signal expected comment =
 binValToStdLogic bv = case bv of { H -> "'1'" ; L -> "'0'" ; Z -> "'Z'" } 
 sigAssert x bv = format "{0} <= {1};" [x, binValToStdLogic bv]
 
---sigName sig = "Vhdl.sigName" <? Sig.getName sig
-  -- case sig of
-  --   SigSimple name ->
-  --     return name
-  --   SigRange name from to ->
-  --     return $ format "{0}({1} downto {2})" [name, show from, show to]
-  --   x ->
-  --     die $ format "unsupported signal: {0}" [show x]
-
 portAssoc :: Sig -> J String
 portAssoc sig = do
    name <- Sig.getName sig
@@ -130,7 +121,6 @@ mkCombinationalTest topl modname =
 
 ------------------------------------------------------------------
 
-
 --mkModule :: TopLevel -> String -> J Maybe String)
 mkModule topl modname = do
   nb $ "Jade.Vhdl.mkModule, convert module to VHDL: " ++ modname
@@ -142,7 +132,6 @@ mkModule topl modname = do
              Nothing -> die $ "No schematic found in module: " ++ modname
   
   -- collect all terminals from submodule in the schematic
-
   subs <- TopLevel.getSubModules topl modname
   terms <- mapM (TopLevel.getInputTerminals topl) subs
   drivers <- mapM (TopLevel.getInputTermDriver topl modname) (concat terms)
@@ -163,8 +152,6 @@ mkModule topl modname = do
   mapM (UnionFindST.nameComp) comps
 
   nodeDecls <- mkNodeDecls topl modname
-
-
   outputWires <- liftM (DL.intercalate "\n") (mapM (connectOutput topl modname) outs)
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
@@ -176,11 +163,6 @@ mkModule topl modname = do
                             , ("maybe-wire-output", toMustache outputWires)
                             ]
   return $ substitute temp mapping
-  
-
-
-
-
 
 ------------------------------------------------------------------
 mkSubModuleInstance topl modname submod@(SubModule name loc) = do

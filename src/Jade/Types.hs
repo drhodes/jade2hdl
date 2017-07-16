@@ -30,30 +30,14 @@ import Jade.Util
 
 import Control.Monad.Writer
 
-debug = False
-
+debug = True
 
 hashid :: Hashable a => a -> String
 hashid x =
   let ctx = WH.hashidsSimple "salt"
       in B.unpack $ WH.encode ctx . abs . DH.hash $ x
 
-------------------------------------------------------------------
---log :: Monad m => String -> WriterT [String] m ()
-
--- type X a = Except (Writer String) a
-
--- --runX :: Writer String (Except e) a -> Either e String
--- runX x = runExcept $ execWriter x
-
 type J = ExceptT String (Writer String) 
-
-foo :: String -> J Integer 
-foo s = do
-  tell s
-  throwError s
-  return (12 :: Integer)
-
 
 runX :: J a -> (Either String a, String)
 runX x = 
@@ -61,11 +45,11 @@ runX x =
       (a, b) = runWriter result -- :: Writer String (Either String Integer)
   in (a, b)
 
+runLog :: J a -> String
 runLog = snd . runX
+
+runJ :: J a -> Either String a
 runJ = fst . runX
-
-
---type J a = Except String a
 
 printJ x = case runJ x of
              Left msg -> putStrLn msg
@@ -74,13 +58,11 @@ printJ x = case runJ x of
 runJIO :: J (IO a) -> IO String
 runJIO x =
   case runX x of
-    (Left msg, log) -> do putStrLn $ log ++ msg
-                          return log
+    (Left msg, log) -> do putStrLn msg
+                          return $ "Cool Story:\n" ++ log
     (Right f, log) -> do f
                          return ""
 
---runJ x = runExcept x
-             
 die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
 
 impossible msg = die $ "The impossible happened: " ++ msg
@@ -88,7 +70,7 @@ impossible msg = die $ "The impossible happened: " ++ msg
 
 nb :: String -> J ()
 nb s = if debug == True
-       then s <? tell (s ++ "\n")
+       then tell (s ++ "\n")
        else return ()
 
 bail :: J a
@@ -96,7 +78,7 @@ bail = die "bailing!"
 
 (?) x msg = x `catchError` (\e -> (throwError $ e ++ "\n" ++ "! " ++ msg))
 
-(<?) msg x = x ? msg
+(<?) msg x = nb msg >> x ? msg
 
 
 ------------------------------------------------------------------

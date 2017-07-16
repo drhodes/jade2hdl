@@ -21,8 +21,9 @@ library
                      , Jade.TopLevel
                      , Jade.ModTest
                      , Jade.Sig
-                     , Jade.UnionFind
                      , Jade.UnionFindST
+                     , Jade.Schematic
+                     , Jade.GComp
                      , Jade.Part
                      , Jade.Module
                      , Jade.Wire

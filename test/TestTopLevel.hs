@@ -5,6 +5,7 @@ import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Modul
 import qualified Jade.GComp as GComp
+import Text.Format
 
 testWires2 = do
   -- a box made of wires, should have one component
@@ -204,13 +205,7 @@ testJumper5NumComponents = do
     Right x -> putStrLn $ "Expected 1, got: " ++ show x
     Left msg -> fail msg
 
-testJumper21NumComponents = do
-  Right topl <- Decode.decodeTopLevel "./test-data/Jumper21.json"
-  case runJ $ TopLevel.numComponents topl "/user/Jumper21"
-    of
-    Right 3 -> putStrLn "PASS"
-    Right x -> putStrLn $ "Expected 3, got: " ++ show x
-    Left msg -> fail msg
+testJumper21NumComponents = testNumComponents "Jumper21" 3 -- numcomps 
 
 testJumper21components = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper21.json"
@@ -230,9 +225,38 @@ testLoneJumper1 = do
     Right comps -> print $ (map GComp.getSigs comps) == [[]]
     Left msg -> fail msg
 
-
 testWireWidth2 = do
   Right topl <- Decode.decodeTopLevel "./test-data/WireWidth2.json"
   case runJ $ do TopLevel.components topl "/user/WireWidth2" of
     Right comps -> print comps
     Left msg -> fail msg
+
+testNumComponents modname numcomps = do
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+  case runJ $ do comps <- TopLevel.numComponents topl ("/user/" ++ modname)
+                 return comps
+    of
+    Right x -> if x == numcomps
+               then putStrLn "PASS"
+               else putStrLn $ format "Expected {0}, got: {1}" [show numcomps, show x]
+    Left msg -> fail msg
+
+
+testComponentUseAND2Rot90 = do
+  let modname = "UseAND2Rot90"
+  --let modname = "UseAND2"
+  print modname
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+  let expected = [ [SigSimple "out1",SigSimple "useOut1"]
+                 , [SigSimple "in1",SigSimple "useIn1"]
+                 , [SigSimple "in2",SigSimple "useIn2"]]
+
+  let func = do comps <- TopLevel.components topl ("/user/" ++ modname)
+                die $ show $ map GComp.getSigs comps
+                
+  case runJ func of
+    Right _ -> undefined
+    Left msg -> putStrLn msg
+
+  putStrLn $ runLog func
+                 

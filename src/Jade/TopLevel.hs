@@ -27,7 +27,7 @@ modules (TopLevel m) = DM.toList m
 
 -- |Get a module from a TopLevel given a module name
 getModule :: TopLevel -> String -> J Module
-getModule (TopLevel m) name =
+getModule (TopLevel m) name = "TopLevel.getModule" <? do
   -- if name `startsWith` "/gate"
   -- then return $ BuiltInModule name
   case DM.lookup name m of
@@ -83,7 +83,6 @@ processEdges wires parts = do
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
   return $ edges ++ nbrs
 
-
 findWireWithEndPoint parts p = "findWireWithEndPoint" <? do
   let matches = [wire | wire@(WireC w) <- parts, let (p1, p2) = Wire.ends w
                                                  in p == p1 || p == p2 ]
@@ -98,21 +97,19 @@ makeJumperWire wires jumper = "makeJumperEdge" <? do
   nb "create a wire where the jumper is"
   return $ Wire.new p1 p2
 
---connectWiresWithSameSigName :: [Part] -> J [Wire]
-connectWiresWithSameSigName parts = do
+connectWiresWithSameSigName parts = "connectWiresWithSameSigName" <? do
   let pairs = DL.nub [DL.sort [wc1, wc2] |
                       wc1@(WireC w1) <- parts,
                       wc2@(WireC w2) <- parts, (w1 /= w2) && (w1 `Wire.hasSameSig` w2)]
   return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | [WireC w1, WireC w2] <- pairs]
 
-lulu topl modname = do
-  (Module (Just schem@(Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
-  connectWiresWithSameSigName parts
-
 components  :: TopLevel -> String -> J [GComp] 
 components topl modname = do
   (Module (Just schem@(Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
   terms' <- sequence [terminals topl submod | submod <- Schem.getSubModules schem]
+  nb $ DL.intercalate "\n" $ map show parts
+  nb $ DL.intercalate "\n" $ map show terms'
+
   
   let wires = [w | WireC w <- parts]
       ports = [PortC p | PortC p <- parts]
@@ -133,13 +130,16 @@ getInputTerminals topl (SubModule name offset) = do
   Module.getInputTerminals m offset
 
 -- |Get the graph component which contains the terminals.
-componentWithTerminal topl modname term@(Terminal (Coord3 x y _) _) = do
+componentWithTerminal topl modname term@(Terminal c3@(Coord3 x y _) _) =
+  ("TopLevel.componentWithTerminal: " ++ modname) <? do
   comps <- components topl modname
   let pred (GComp set) = (Node (x, y) (TermC term)) `elem` set
       result = filter pred comps -- filter out components that don't contain term
   case length result of
-    0 -> die $ concat [ " No component found in module: ", modname
-                      , " that has a terminal: ", show term ]
+    0 -> do
+      nb $ show $ map GComp.getSigs comps
+      die $ concat [ " No component found in module: ", modname
+                   , " that has a terminal: ", show term ]
     1 -> return $ head result
     x -> die $ concat [ show x, " components found in module: ", modname
                       , " that has a terminal: ", show term, "."                     
@@ -150,9 +150,9 @@ componentWithTerminal topl modname term@(Terminal (Coord3 x y _) _) = do
 -- the position of the submodule
 
 terminals :: TopLevel -> SubModule -> J [Terminal]
-terminals topl (SubModule modname offset) = do
-  mod <- getModule topl modname ? "TopLevel.terminals"
-  Module.terminals mod offset
+terminals topl (SubModule modname offset) = "TopLevel.terminals" <? do
+  mod <- getModule topl modname
+  Module.testTerms mod offset
 
 -- | Get the number of distinct nodes in the schematic
 numComponents :: TopLevel -> String -> J Int
@@ -164,22 +164,18 @@ numComponents topl modname =
 -- indicate the target signals in the schematic
 
 getInputs :: TopLevel -> String -> J Inputs
-getInputs topl modname = do
-  let msg = "TopLevel.getInputs couldn't find inputs"
-  mod <- getModule topl modname ? msg
-  Module.getInputs mod ? msg
+getInputs topl modname =
+  "TopLevel.getInputs" <? getModule topl modname >>= Module.getInputs 
 
 -- | Get the outputs of a module. This requires tests to be defined in
 -- the module referenced, because the .output directive of the test
 -- script indicate the source signals in the schematic
 
 getOutputs :: TopLevel -> String -> J Outputs
-getOutputs topl modname = do
-  mod <- getModule topl modname ? "TopLevel.getOutputs"
+getOutputs topl modname = "TopLevel.getOutputs" <? do
+  mod <- getModule topl modname
   let msg = "TopLevel.getOutputs couldn't find outputs in module: " ++ modname
   Module.getOutputs mod ? msg
-
--- unit1 : AND2 port map (in1 => a, in2 => b, out1 => c);
 
 -- | The assumption always is, that the jade module works and is
 -- tested. With that in mind, then it's safely assumed that there is
@@ -211,6 +207,7 @@ getInputTermDriver topl modname term =
   (Inputs inputSigs) <- getInputs topl modname
   let partsMatchingInput = DL.nub [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
 
+  nb $ show nodes
   case length partsMatchingInput of
     0 -> "no parts matching inputs" <? do
       let terms = [t | (TermC t) <- partList]

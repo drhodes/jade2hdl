@@ -1,6 +1,10 @@
 build: ## build
 	stack test
 
+test: 
+	# stack test
+	echo ok
+
 app: ## run the app
 	stack exec -- jade2hdl --infile ${USER}.json --enthusiasm 10
 
@@ -10,9 +14,6 @@ profile: ##
 	stack build --profile
 	stack test --profile 
 	@echo "see this file: jade2hdl-test.prof"
-
-test: ## test
-	echo test
 
 clean: ## clean all the things
 	bash clean.sh
