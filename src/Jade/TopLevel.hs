@@ -152,7 +152,7 @@ componentWithTerminal topl modname term@(Terminal c3@(Coord3 x y _) _) =
 terminals :: TopLevel -> SubModule -> J [Terminal]
 terminals topl (SubModule modname offset) = "TopLevel.terminals" <? do
   mod <- getModule topl modname
-  Module.testTerms mod offset
+  Module.terminals mod offset
 
 -- | Get the number of distinct nodes in the schematic
 numComponents :: TopLevel -> String -> J Int

@@ -16,16 +16,19 @@ import Jade.Wire
        -- var new_y = transform_y(rotation, rx, ry) + cy;
        -- var new_rotation = rotate[old_rotation * 8 + rotation];
 
-testTerms :: Module -> Coord3 -> J [Terminal]
-testTerms (Module _ _ icon) offset@(Coord3 dx dy dr) =
-  "Module.testTerms:"   <? do
-  nb $ show offset
-  case icon of
-    Nothing -> die "No icon found in module, module needs an icon to figure\n\
-                   \ out where the terminals are in submodules"
-    Just (Icon parts) ->
-      return $ [Terminal (Coord.transform3 c3 offset) sig |
-                IconTerm (Terminal c3 sig) <- parts]
+-- terminals :: Module -> Coord3 -> J [Terminal]
+-- terminals (Module _ _ icon) offset@(Coord3 dx dy dr) =
+--   "Module.testTerms:"   <? do
+--   nb $ show offset
+  
+--   case icon of
+--     Nothing -> die "No icon found in module, module needs an icon to figure\n\
+--                    \ out where the terminals are in submodules"
+--     Just ic@(Icon parts) -> do
+--       (cx, cy) <- Icon.center ic
+--       nb $ show ("Center", (cx, cy))
+--       return $ [Terminal (Coord.transform3 c3 offset cx cy) sig |
+--                 IconTerm (Terminal c3 sig) <- parts]
 
 terminals :: Module -> Coord3 -> J [Terminal]
 terminals (Module _ _ icon) offset@(Coord3 dx dy _) =

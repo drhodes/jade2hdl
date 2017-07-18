@@ -47,15 +47,21 @@ composeRot r1 r2 = toEnum $
        -- var new_x = transform_x(rotation, rx, ry) + cx;
        -- var new_y = transform_y(rotation, rx, ry) + cy;
        -- var new_rotation = rotate[old_rotation * 8 + rotation];
-
-transform3 (Coord3 x y r) (Coord3 dx dy dr) =
-  let r' = composeRot r dr
-      x' = transformX r' x y
-      y' = transformY r' x y
   
-  in Coord3 (x'+dx) (y'-dy) r'
+-- https://github.com/6004x/jade/blob/ccb840c91a4248aab1764b1f9d27d832167b32a5/model.js#L868
+-- Component.prototype.rotate
+transform3 (Coord3 x y r) (Coord3 dx dy dr) cx cy =
+  let oldX = x
+      oldY = y
+      oldR = r
+      rx = oldX - cx
+      ry = oldY - cy
 
-
+      newX = cx + transformX r rx ry
+      newY = cy + transformY r rx ry 
+      newR = composeRot r dr
+ 
+  in Coord3 newX newY newR
 
 coord5ends (Coord5 x y rot dx dy) =
   let x' = x + (transformX rot dx dy)

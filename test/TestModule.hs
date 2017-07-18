@@ -5,6 +5,7 @@ import Jade.Types
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module
+import qualified Jade.Icon as Icon
 import qualified Jade.Coord as Coord
 import qualified Jade.Vhdl as Vhdl
 import qualified Data.Hashable as H
@@ -27,7 +28,8 @@ testRotateUseAND2Rot90 = do
         terms <- Module.testTerms m c3
         nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
 
-        Module.iconBoundingBox m
+        let Just icon = moduleIcon m
+        Icon.boundingBox icon
 
   print $ [(16, -8), (8, 24), (24, 24)]
   case runJ func of
@@ -36,6 +38,90 @@ testRotateUseAND2Rot90 = do
                   return x
     Left msg -> do putStrLn msg
                    return undefined
+
+
+
+testIconBoundingBox5 = do
+  let modname = "IconBoundingBox5"
+  let qualModName = "/user/" ++ modname 
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+
+  let func = do
+        m <- TopLevel.getModule topl qualModName
+        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        let (SubModule name c3) = sub
+        nb $ show c3
+        m <- TopLevel.getModule topl name
+        terms <- Module.testTerms m c3
+        nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
+        let Just icon = moduleIcon m
+        bb <- Icon.boundingBox icon
+        return bb
+  
+  print $ [(16, -8), (8, 24), (24, 24)]
+  case runJ func of
+    Right x -> do print x
+                  putStrLn $ runLog func
+                  return (Just x)
+    Left msg -> do putStrLn msg
+                   putStrLn $ runLog func
+                   return Nothing
+
+
+testIconBoundingBox5Rot90 = do
+  let modname = "IconBoundingBox5Rot90"
+  let qualModName = "/user/" ++ modname 
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+
+  let func = do
+        m <- TopLevel.getModule topl qualModName
+        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        let (SubModule name c3) = sub
+        nb $ show c3
+        m <- TopLevel.getModule topl name
+        terms <- Module.testTerms m c3
+        nb $ show $ map (\(Terminal c3 sig) -> (c3, sig)) terms
+        nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
+        let Just icon = moduleIcon m
+        bb <- Icon.boundingBox icon
+        return bb
+  
+  case runJ func of
+    Right x -> do print x
+                  putStrLn $ runLog func
+                  return (Just x)
+    Left msg -> do putStrLn msg
+                   putStrLn $ runLog func
+                   return Nothing
+
+testIconBoundingBox6 = do
+  let modname = "IconBoundingBox6"
+  let qualModName = "/user/" ++ modname 
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+
+  let func = do
+        m <- TopLevel.getModule topl qualModName
+        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        let (SubModule name c3) = sub
+        nb $ show c3
+        m <- TopLevel.getModule topl name
+        terms <- Module.testTerms m c3
+        --nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint , sig)) terms
+        nb $ show $ map (\(Terminal c3 sig) -> (c3, sig)) terms
+        let Just icon = moduleIcon m
+        bb <- Icon.boundingBox icon
+        return bb
+  
+  case runJ func of
+    Right x -> do print x
+                  putStrLn $ runLog func
+                  return (Just x)
+    Left msg -> do putStrLn msg
+                   putStrLn $ runLog func
+                   return Nothing
+
+
+
 
 
 

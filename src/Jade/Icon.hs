@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Jade.Icon where
 
 import Control.Monad
@@ -10,67 +11,68 @@ import qualified Jade.Coord as Coord
 import Jade.Types
 import Jade.Wire
 
-
-
--- data IconPart = IconLine Line
---               | IconTerm Terminal
---               | IconBox Box
---               | IconTxt Txt
---               | IconCircle
---               | IconProperty
---               | IconArc
---                 deriving (Generic, Show, Eq, Hashable, Ord)
-
-
-
-xMin :: IconPart -> J Integer
+xMin :: IconPart -> J (Maybe Integer)
 xMin ipart = "Icon.xMin" <? do
   case ipart of
-    IconLine (Line c) -> return $ Coord.xMinC5 c
-    IconTerm (Terminal c _) -> return $ Coord.c3x c
-    IconBox (Box c) -> return $ Coord.xMinC5 c
-    IconTxt (Txt c _ _) -> return $ Coord.c3x c
-    -- IconTxt Txt
-    x -> die $ "This IconPart not supported yet: " ++ show x
+    IconLine (Line c) -> return $ Just $ Coord.xMinC5 c
+    IconTerm (Terminal c _) -> return $ Just $ Coord.c3x c
+    IconBox (Box c) -> return $ Just $ Coord.xMinC5 c
+    IconTxt (Txt c _ _) -> return $ Just $ Coord.c3x c
+    x -> do nb $ "xMin is ignoring: " ++ show x
+            return Nothing
 
-xMax :: IconPart -> J Integer
 xMax ipart = "Icon.xMax" <? do
   case ipart of
-    IconLine (Line c) -> return $ Coord.xMaxC5 c
-    IconTerm (Terminal c _) -> return $ Coord.c3x c
-    IconBox (Box c) -> return $ Coord.xMaxC5 c
-    IconTxt (Txt c _ _) -> return $ Coord.c3x c
-    -- IconTxt Txt
-    x -> die $ "This IconPart not supported yet: " ++ show x
+    IconLine (Line c) -> return $ Just $ Coord.xMaxC5 c
+    IconTerm (Terminal c _) -> return $ Just $ Coord.c3x c
+    IconBox (Box c) -> return $ Just $ Coord.xMaxC5 c
+    IconTxt (Txt c _ _) -> return $ Just $ Coord.c3x c
+    x -> do nb $ "xMax is ignoring: " ++ show x
+            return Nothing
 
-yMin :: IconPart -> J Integer
 yMin ipart = "Icon.yMin" <? do
   case ipart of
-    IconLine (Line c) -> return $ Coord.yMinC5 c
-    IconTerm (Terminal c _) -> return $ Coord.c3y c
-    IconBox (Box c) -> return $ Coord.yMinC5 c
-    IconTxt (Txt c _ _) -> return $ Coord.c3y c
-    -- IconTxt Txt
-    y -> die $ "This IconPart not supported yet: " ++ show y
+    IconLine (Line c) -> return $ Just $ Coord.yMinC5 c
+    IconTerm (Terminal c _) -> return $ Just $ Coord.c3y c
+    IconBox (Box c) -> return $ Just $ Coord.yMinC5 c
+    IconTxt (Txt c _ _) -> return $ Just $ Coord.c3y c
+    x -> do nb $ "yMin is ignoring: " ++ show x
+            return Nothing
 
-
-yMax :: IconPart -> J Integer
 yMax ipart = "Icon.yMax" <? do
   case ipart of
-    IconLine (Line c) -> return $ Coord.yMaxC5 c
-    IconTerm (Terminal c _) -> return $ Coord.c3y c
-    IconBox (Box c) -> return $ Coord.yMaxC5 c
-    IconTxt (Txt c _ _) -> return $ Coord.c3y c
-    y -> die $ "This IconPart not supported yet: " ++ show y
+    IconLine (Line c) -> return $ Just $ Coord.yMaxC5 c
+    IconTerm (Terminal c _) -> return $ Just $ Coord.c3y c
+    IconBox (Box c) -> return $ Just $ Coord.yMaxC5 c
+    IconTxt (Txt c _ _) -> return $ Just $ Coord.c3y c
+    x -> do nb $ "yMax is ignoring: " ++ show x
+            return Nothing
 
-
-boundingBox (Icon parts) = "iconBoundingBox" <? do
-  nb $ show parts
-  xMax <- liftM maximum $ mapM xMax parts
-  xMin <- liftM minimum $ mapM xMin parts
-  yMax <- liftM maximum $ mapM yMax parts
-  yMin <- liftM maximum $ mapM yMin parts
+boundingBox :: Icon -> J ((Integer, Integer), (Integer, Integer))
+boundingBox (Icon parts) = "Icon.boundingBox" <? do
+  let f property select = do
+        xs <- mapM select parts
+        when (null xs) (die $ "All nothings found for this property")
+        return $ property [x|Just x <- xs]
+  
+  xMax <- f maximum xMax
+  xMin <- f minimum xMin
+  yMax <- f maximum yMax
+  yMin <- f minimum yMin
   let upperLeft = (xMin, yMin)
       bottomRight = (xMax, yMax)
   return (upperLeft, bottomRight)
+
+center icon = "Icon.center" <? do
+  ((left, top), (right, bottom)) <- boundingBox icon
+
+  --
+  let closest x = let m = x `mod` 8
+                  in if m <= 3
+                     then x - m
+                     else x + (8 - m)
   
+      cx = closest $ (right + left) `div` 2
+      cy = closest $ (bottom + top) `div` 2
+      
+  return (cx, cy)

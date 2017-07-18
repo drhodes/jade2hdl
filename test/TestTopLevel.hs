@@ -7,6 +7,9 @@ import qualified Jade.Module as Modul
 import qualified Jade.GComp as GComp
 import Text.Format
 
+pass = putStrLn "PASS"
+
+
 testWires2 = do
   -- a box made of wires, should have one component
   Right topl <- Decode.decodeTopLevel "./test-data/wires2.json"
@@ -15,7 +18,7 @@ testWires2 = do
               let submodule@(SubModule subname subloc) = subs !! 2
               cs <- TopLevel.components topl modname
               case length cs of
-                1 -> return cs
+                1 -> return "PASS" -- cs
                 x -> die $ "there should only be one component: " ++ show x
 
 testWires21 = do
@@ -26,7 +29,7 @@ testWires21 = do
               let submodule@(SubModule subname subloc) = subs !! 2
               cs <- TopLevel.components topl modname
               case length cs of
-                2 -> return cs
+                2 -> return "PASS" --cs
                 _ -> die "there should be two components"
 
 testWires22 = do
@@ -37,7 +40,7 @@ testWires22 = do
               let submodule@(SubModule subname subloc) = subs !! 2
               cs <- TopLevel.components topl modname
               case length cs of
-                2 -> return cs
+                2 -> return "PASS" --cs
                 _ -> die "there should be two components"
 
 testWires23 = do
@@ -59,8 +62,7 @@ testWires24 = do
               cs <- TopLevel.components topl modname
               case length cs of
                 1 -> return "Pass"
-                _ -> die "there should be two components"
-
+                _ -> die "there should be 1 component"
 
 {- In a world with subcomponents, wires of width one and simple signals -}
 buildUserAnd23 = do
@@ -112,7 +114,8 @@ testTermDriverAnd23 = do
               inputTerms <- TopLevel.getInputTerminals topl submodule
               result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
               case result of
-                [SigSimple "pQ7aGyV4wvYWO_out",SigSimple "7nbK7QoR5Kpao_out"] -> return "Pass"
+                [SigSimple "pg7Bj1XGp2OJ9_out",SigSimple "QxrKbYgWM4dLd_out"] -> return "PASS"
+                --[SigSimple "pQ7aGyV4wvYWO_out",SigSimple "7nbK7QoR5Kpao_out"] -> return "Pass"
                 x -> die $ "hmm, found: " ++ show x
 
 testTermDriverAnd23_Wire = do
@@ -153,70 +156,48 @@ testTopLevelGetInputs = do
               --return $ filter (/= (TermC term)) $ map nodePart connected
 
               -- find which signal is driving the input terminal.
-              TopLevel.getInputTermDriver topl modname (terms !! 1)
-
+              driver <- TopLevel.getInputTermDriver topl modname (terms !! 1)
+              if driver == SigSimple "QxrKbYgWM4dLd_out"
+                then return "PASS"
+                else return "FAIL"
+                
 testSigConnectedToSubModuleP1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
-
   printJ $ do
     Outputs outs <- TopLevel.getOutputs topl "/user/Jumper1"
     eh <- TopLevel.sigConnectedToSubModuleP topl "/user/Jumper1" (outs !! 0)
-    return eh
+    if eh == False then return "PASS" else return "FAIL"
 
 testSigConnectedToSubModuleP2 = do
   Right topl <- Decode.decodeTopLevel "./test-data/UseAND2_3.json"
   printJ $ do
     let modname =  "/user/UseAND2_3"
     Outputs outs <- TopLevel.getOutputs topl modname
-    mapM (TopLevel.sigConnectedToSubModuleP topl modname) outs
-
-testJumper41 = do
+    v <- mapM (TopLevel.sigConnectedToSubModuleP topl modname) outs
+    if v == [True] then return "PASS" else return "FAIL"
+    
+checkJumper41 = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper41.json"
   printJ $ do
     let modname =  "/user/Jumper41"
     TopLevel.components topl modname
 
-testJumper41NumComponents = do
-  Right topl <- Decode.decodeTopLevel "./test-data/Jumper41.json"
-  return $ TopLevel.numComponents topl "/user/Jumper41"
+testJumper4NumComponents = testNumComponents "Jumper4" 1
+testJumper5NumComponents = testNumComponents "Jumper5" 1
+testJumper21NumComponents = testNumComponents "Jumper21" 3
+testJumper41NumComponents = testNumComponents "Jumper41" 7
+testJumper3NumComponents = testNumComponents "Jumper3" 1
 
-
-testJumper3NumComponents = do
-  Right topl <- Decode.decodeTopLevel "./test-data/Jumper3.json"
-  return $ TopLevel.numComponents topl "/user/Jumper3"
-
-testJumper3Components = do
-  Right topl <- Decode.decodeTopLevel "./test-data/Jumper3.json"
-  printJ $ TopLevel.components topl "/user/Jumper3"
-
-testJumper4NumComponents = do
-  Right topl <- Decode.decodeTopLevel "./test-data/Jumper4.json"
-  case runJ $ TopLevel.numComponents topl "/user/Jumper4" of
-    Right 1 -> putStrLn "PASS"
-    Right x -> putStrLn $ "Expected 1, got: " ++ show x
-    Left msg -> fail msg
-
-testJumper5NumComponents = do
-  Right topl <- Decode.decodeTopLevel "./test-data/Jumper5.json"
-  case runJ $ do comps <- TopLevel.numComponents topl "/user/Jumper5"
-                 return comps
-    of
-    Right 1 -> putStrLn "PASS"
-    Right x -> putStrLn $ "Expected 1, got: " ++ show x
-    Left msg -> fail msg
-
-testJumper21NumComponents = testNumComponents "Jumper21" 3 -- numcomps 
-
-testJumper21components = do
+checkJumper21components = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper21.json"
   case runJ $ do TopLevel.components topl "/user/Jumper21" of
     Right comps -> print $ map GComp.getSigs comps
     Left msg -> fail msg
 
-testJumper1components = do
-  Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
-  case runJ $ do TopLevel.components topl "/user/Jumper1" of
-    Right comps -> print (map GComp.getSigs comps)
+checkComponents modname = do
+  Right topl <- Decode.decodeTopLevel $ format "./test-data/{0}.json" [modname]
+  case runJ (TopLevel.components topl (format "/user/{0}" [modname])) of
+    Right comps -> print $ map GComp.getSigs comps
     Left msg -> fail msg
 
 testLoneJumper1 = do
@@ -241,7 +222,6 @@ testNumComponents modname numcomps = do
                else putStrLn $ format "Expected {0}, got: {1}" [show numcomps, show x]
     Left msg -> fail msg
 
-
 testComponentUseAND2Rot90 = do
   let modname = "UseAND2Rot90"
   --let modname = "UseAND2"
@@ -259,4 +239,30 @@ testComponentUseAND2Rot90 = do
     Left msg -> putStrLn msg
 
   putStrLn $ runLog func
-                 
+
+testAll = do
+  testWires2 
+  testWires21 
+  testWires22 
+  testWires23 
+  testWires24 
+  testWire1 
+  testTermDriverAnd23 
+  testTermDriverAnd23_Wire 
+  testTopLevelComponents1 
+  testTopLevelComponents2 
+  testTopLevelGetInputs
+  testTopLevelGetInputs 
+  testSigConnectedToSubModuleP1 
+  testSigConnectedToSubModuleP2 
+  testJumper41NumComponents 
+  testJumper3NumComponents 
+  testJumper4NumComponents 
+  testJumper5NumComponents 
+  testJumper21NumComponents 
+  testLoneJumper1 
+  testWireWidth2 
+  testComponentUseAND2Rot90 
+
+
+

@@ -73,11 +73,6 @@ spawnOneTest jadefile modname = do
       print err
       return ecode
 
-fork1 f = CC.forkFinally f $
-  \x -> case x of
-          Left e -> CEB.throw e
-          Right ecode -> print $ "Good, " ++ show ecode
-
 spawn s = spawnOneTest ("./test-data/" ++ s ++ ".json") ("/user/" ++ s)
 
 spawnAllTests = do  
@@ -92,7 +87,7 @@ spawnAllTests = do
   spawnBuiltIn
   spawnBuiltInAnd4Messy
   spawn "AND2"
-  spawn "AND2Rot90"
+  --spawn "AND2Rot90"
   
 spawnBuiltIn = spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
   

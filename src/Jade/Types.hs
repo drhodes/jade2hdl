@@ -18,6 +18,7 @@ import Data.Traversable
 import Data.ByteString.Lazy.Internal
 import qualified Data.Vector as V
 import qualified Data.Map as DM
+import qualified Data.List as DL
 import qualified Data.Set as DS
 import qualified System.Environment as SE
 import Data.Hashable
@@ -37,16 +38,16 @@ hashid x =
   let ctx = WH.hashidsSimple "salt"
       in B.unpack $ WH.encode ctx . abs . DH.hash $ x
 
-type J = ExceptT String (Writer String) 
+type J = ExceptT String (Writer [String]) 
 
-runX :: J a -> (Either String a, String)
 runX x = 
   let result = runExceptT x
       (a, b) = runWriter result -- :: Writer String (Either String Integer)
   in (a, b)
 
 runLog :: J a -> String
-runLog = snd . runX
+runLog x = let log = snd $ runX x
+           in DL.intercalate "\n" ("Cool Story":DL.nubBy (==) log)
 
 runJ :: J a -> Either String a
 runJ = fst . runX
@@ -59,7 +60,7 @@ runJIO :: J (IO a) -> IO String
 runJIO x =
   case runX x of
     (Left msg, log) -> do putStrLn msg
-                          return $ "Cool Story:\n" ++ log
+                          return $ DL.intercalate "\n" ("Cool Story":DL.nubBy (==) log)
     (Right f, log) -> do f
                          return ""
 
@@ -70,7 +71,7 @@ impossible msg = die $ "The impossible happened: " ++ msg
 
 nb :: String -> J ()
 nb s = if debug == True
-       then tell (s ++ "\n")
+       then tell [s]
        else return ()
 
 bail :: J a
