@@ -13,11 +13,10 @@ import Text.Format
 import Control.Monad
 
 testRotateUseAND2Rot90 = do
-  let modname = "UseAND2Rot90"
-  --let modname = "UseAND2"
+  --let modname = "UseAND2Rot90"
+  let modname = "UseAND2"
   let qualModName = "/user/" ++ modname
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
-
 
   let func = do
         m <- TopLevel.getModule topl qualModName
@@ -25,7 +24,7 @@ testRotateUseAND2Rot90 = do
         let (SubModule name c3) = sub
         nb $ show c3
         m <- TopLevel.getModule topl name
-        terms <- Module.testTerms m c3
+        terms <- Module.terminals m c3
         nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
 
         let Just icon = moduleIcon m
@@ -52,7 +51,7 @@ testIconBoundingBox5 = do
         let (SubModule name c3) = sub
         nb $ show c3
         m <- TopLevel.getModule topl name
-        terms <- Module.testTerms m c3
+        terms <- Module.terminals m c3
         nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
         let Just icon = moduleIcon m
         bb <- Icon.boundingBox icon
@@ -79,7 +78,7 @@ testIconBoundingBox5Rot90 = do
         let (SubModule name c3) = sub
         nb $ show c3
         m <- TopLevel.getModule topl name
-        terms <- Module.testTerms m c3
+        terms <- Module.terminals m c3
         nb $ show $ map (\(Terminal c3 sig) -> (c3, sig)) terms
         nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
         let Just icon = moduleIcon m
@@ -105,7 +104,7 @@ testIconBoundingBox6 = do
         let (SubModule name c3) = sub
         nb $ show c3
         m <- TopLevel.getModule topl name
-        terms <- Module.testTerms m c3
+        terms <- Module.terminals m c3
         --nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint , sig)) terms
         nb $ show $ map (\(Terminal c3 sig) -> (c3, sig)) terms
         let Just icon = moduleIcon m

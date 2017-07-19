@@ -196,6 +196,17 @@ data Module = Module { moduleSchem :: Maybe Schematic
 data TopLevel = TopLevel (DM.Map String Module)
               deriving  (Show, Eq)
 
+data BoundingBox = BB { bbMinX :: Integer
+                      , bbMinY :: Integer
+                      , bbMaxX :: Integer
+                      , bbMaxY :: Integer } deriving (Show, Eq)
+
+class LocRot a where
+  locrot :: a -> Coord3
+
+instance LocRot Coord3 where locrot x = x
+instance LocRot Coord5 where locrot (Coord5 x y r _ _) = Coord3 x y r
+
 ------------------------------------------------------------------
 -- Test Types
 

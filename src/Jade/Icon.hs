@@ -48,23 +48,21 @@ yMax ipart = "Icon.yMax" <? do
     x -> do nb $ "yMax is ignoring: " ++ show x
             return Nothing
 
-boundingBox :: Icon -> J ((Integer, Integer), (Integer, Integer))
+boundingBox :: Icon -> J BoundingBox
 boundingBox (Icon parts) = "Icon.boundingBox" <? do
   let f property select = do
         xs <- mapM select parts
         when (null xs) (die $ "All nothings found for this property")
-        return $ property [x|Just x <- xs]
+        return $ property [x | Just x <- xs]
   
   xMax <- f maximum xMax
   xMin <- f minimum xMin
   yMax <- f maximum yMax
   yMin <- f minimum yMin
-  let upperLeft = (xMin, yMin)
-      bottomRight = (xMax, yMax)
-  return (upperLeft, bottomRight)
+  return $ BB xMin yMin xMax yMax
 
 center icon = "Icon.center" <? do
-  ((left, top), (right, bottom)) <- boundingBox icon
+  BB left top right bottom <- boundingBox icon
 
   --
   let closest x = let m = x `mod` 8

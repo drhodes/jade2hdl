@@ -15,14 +15,14 @@ transformX rot x y =
 
 transformY rot x y =
   case fromEnum rot of
-    0 -> y
     1 -> x
-    2 -> -y
-    3 -> -x
-    4 -> y
-    5 -> -x
-    6 -> -y  
     7 -> x
+    2 -> -y
+    6 -> -y  
+    3 -> -x
+    5 -> -x
+    0 -> y
+    4 -> y
 
 c3ToPoint :: Coord3 -> (Integer, Integer)
 c3ToPoint (Coord3 x y r) = (transformX r x y, transformY r x y)
@@ -47,6 +47,9 @@ composeRot r1 r2 = toEnum $
        -- var new_x = transform_x(rotation, rx, ry) + cx;
        -- var new_y = transform_y(rotation, rx, ry) + cy;
        -- var new_rotation = rotate[old_rotation * 8 + rotation];
+
+
+
   
 -- https://github.com/6004x/jade/blob/ccb840c91a4248aab1764b1f9d27d832167b32a5/model.js#L868
 -- Component.prototype.rotate
@@ -54,8 +57,8 @@ transform3 (Coord3 x y r) (Coord3 dx dy dr) cx cy =
   let oldX = x
       oldY = y
       oldR = r
-      rx = oldX - cx
-      ry = oldY - cy
+      rx = x - cx
+      ry = y - cy
 
       newX = cx + transformX r rx ry
       newY = cy + transformY r rx ry 
@@ -63,12 +66,19 @@ transform3 (Coord3 x y r) (Coord3 dx dy dr) cx cy =
  
   in Coord3 newX newY newR
 
-coord5ends (Coord5 x y rot dx dy) =
-  let x' = x + (transformX rot dx dy)
-      y' = y + (transformY rot dx dy)
-      n1 = (x, y)
-      n2 = (x', y')
+coord5ends p@(Coord5 x y rot dx dy) =
+  let n1 = (x, y)
+      Coord3 x' y' _ = rotate (Coord3 dx dy rot) Rot0 0 0
+      n2 = (x + x', y + y')
   in (n1, n2)
+
+
+-- coord5ends' p@(Coord5 x y rot dx dy) =
+--   let x' = dx + (transformX rot x y)
+--       y' = dy + (transformY rot x y)
+--       n1 = (x, y)
+--       n2 = (x', y')
+--   in (n1, n2)
 
 
 xMinC5 c5 = let ((x1, _), (x2, _)) = coord5ends c5
@@ -84,8 +94,14 @@ yMaxC5 c5 = let ((_, y1), (_, y2)) = coord5ends c5
 c3x = fst . c3ToPoint 
 c3y = snd . c3ToPoint 
 
+rotate :: LocRot a => a -> Rot -> Integer -> Integer -> Coord3
 
--- xMinC3
--- xMaxC3
--- yMinC3
--- yMaxC3
+rotate item rotation cx cy =
+  let Coord3 x y r = locrot item
+      rx = x - cx
+      ry = y - cy
+      newX = cx + transformX rotation rx ry
+      newY = cy + transformY rotation rx ry
+      newR = composeRot r rotation
+  in Coord3 newX newY newR
+

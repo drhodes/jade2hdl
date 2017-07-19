@@ -37,13 +37,15 @@ testIcon tname modname f = do
                    putStrLn $ runLog func
                    return undefined
 
-testBoundingBox modname expTopLeft expBottomRight = do 
-  testIcon "testCenter" modname $ \icon -> do 
-    (topLeft, bottomRight) <- Icon.boundingBox icon
-    when (expTopLeft /= topLeft) $ "topLeft" <? do
-      expected expTopLeft topLeft              
-    when (expBottomRight /= bottomRight) $ "bottomRight" <? do
-      expected expBottomRight bottomRight
+testBoundingBox modname (BB x1 y1 x2 y2) = do
+  testIcon "testCenter" modname $ \icon -> do
+    nb $ show icon
+    bb@(BB left top right bottom) <- Icon.boundingBox icon
+    nb $ show bb
+    when (top    /= y1) $ "top"    <? expected y1 top
+    when (left   /= x1) $ "left"   <? expected x1 left
+    when (bottom /= y2) $ "bottom" <? expected y2 bottom
+    when (right  /= x2) $ "left  " <? expected x2 right
 
 testCenter modname expCenter = do
   testIcon "testCenter" modname $ \icon -> do 
@@ -52,10 +54,18 @@ testCenter modname expCenter = do
       expected expCenter center
 
 allTests = do
-  testBoundingBox "IconBoundingBox1" (-16, -16) (16, 16)
-  testBoundingBox "IconBoundingBox1Rot90" (-16, -16) (16, 16)
-  testBoundingBox "IconBoundingBox3" (8,8) (40, 40)
-  --
+  -- passing
+  testBoundingBox "IconBoundingBox8" $ BB 8 0 16 16
+  testBoundingBox "IconBoundingBox7" $ BB 0 0 24 16
+  testBoundingBox "IconBoundingBox1" $ BB (-16) (-16) 16 16
+  testBoundingBox "IconBoundingBox1Rot90" $ BB (-16) (-16) 16 16
+  testBoundingBox "IconBoundingBox3" $ BB 8 8 40 40
+
+  
   testCenter "IconBoundingBox1" (0, 0)
   testCenter "IconBoundingBox1Rot90" (0, 0)
+
+
+  -- failing
+  
     
