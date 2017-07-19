@@ -12,9 +12,9 @@ import qualified Data.Hashable as H
 import Text.Format
 import Control.Monad
 
+
 testRotateUseAND2Rot90 = do
-  --let modname = "UseAND2Rot90"
-  let modname = "UseAND2"
+  let modname = "UseAND2Rot90"
   let qualModName = "/user/" ++ modname
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
 
@@ -22,13 +22,12 @@ testRotateUseAND2Rot90 = do
         m <- TopLevel.getModule topl qualModName
         sub <- liftM head $ TopLevel.getSubModules topl qualModName
         let (SubModule name c3) = sub
-        nb $ show c3
+        nb $ show sub
         m <- TopLevel.getModule topl name
         terms <- Module.terminals m c3
-        nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
+        return terms
+        --nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
 
-        let Just icon = moduleIcon m
-        Icon.boundingBox icon
 
   print $ [(16, -8), (8, 24), (24, 24)]
   case runJ func of

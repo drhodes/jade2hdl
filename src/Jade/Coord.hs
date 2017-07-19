@@ -53,23 +53,25 @@ composeRot r1 r2 = toEnum $
   
 -- https://github.com/6004x/jade/blob/ccb840c91a4248aab1764b1f9d27d832167b32a5/model.js#L868
 -- Component.prototype.rotate
-transform3 (Coord3 x y r) (Coord3 dx dy dr) cx cy =
-  let oldX = x
-      oldY = y
-      oldR = r
-      rx = x - cx
-      ry = y - cy
+-- transform3 (Coord3 x y r) (Coord3 dx dy dr) cx cy =
+--   let oldX = x
+--       oldY = y
+--       oldR = r
+--       rx = x - cx
+--       ry = y - cy
 
-      newX = cx + transformX r rx ry
-      newY = cy + transformY r rx ry 
-      newR = composeRot r dr
+--       newX = cx + transformX r rx ry
+--       newY = cy + transformY r rx ry 
+--       newR = composeRot r dr
  
-  in Coord3 newX newY newR
+--   in Coord3 newX newY newR
 
 coord5ends p@(Coord5 x y rot dx dy) =
   let n1 = (x, y)
-      Coord3 x' y' _ = rotate (Coord3 dx dy rot) Rot0 0 0
+      --Coord3 x' y' _ = rotate (Coord3 dx dy rot) Rot0 0 0
+      Coord3 x' y' _ = rotate (Coord3 dx dy Rot0) rot 0 0
       n2 = (x + x', y + y')
+      --n2 = (x + x', y - y')
   in (n1, n2)
 
 
@@ -91,8 +93,8 @@ yMinC5 c5 = let ((_, y1), (_, y2)) = coord5ends c5
 yMaxC5 c5 = let ((_, y1), (_, y2)) = coord5ends c5
             in max y1 y2
 
-c3x = fst . c3ToPoint 
-c3y = snd . c3ToPoint 
+c3x (Coord3 x _ _) = x --fst . c3ToPoint 
+c3y (Coord3 _ y _) = y -- = snd . c3ToPoint 
 
 rotate :: LocRot a => a -> Rot -> Integer -> Integer -> Coord3
 

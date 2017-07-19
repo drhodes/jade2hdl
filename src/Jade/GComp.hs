@@ -17,6 +17,7 @@ getSigs (GComp nodes) =
   let parts = map nodePart nodes
   in  [s | (Just s) <- map Part.sig parts]
 
+getWires (GComp nodes) = [w | (Node _ (WireC w)) <- nodes]
 
 
 

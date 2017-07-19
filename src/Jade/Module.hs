@@ -11,34 +11,32 @@ import qualified Jade.Coord as Coord
 import Jade.Types
 import Jade.Wire
 
-       -- // compute new position and rotation
-       -- var new_x = transform_x(rotation, rx, ry) + cx;
-       -- var new_y = transform_y(rotation, rx, ry) + cy;
-       -- var new_rotation = rotate[old_rotation * 8 + rotation];
-
--- terminals :: Module -> Coord3 -> J [Terminal]
--- terminals (Module _ _ icon) offset@(Coord3 dx dy dr) =
---   "Module.testTerms:"   <? do
---   nb $ show offset
-  
---   case icon of
---     Nothing -> die "No icon found in module, module needs an icon to figure\n\
---                    \ out where the terminals are in submodules"
---     Just ic@(Icon parts) -> do
---       (cx, cy) <- Icon.center ic
---       nb $ show ("Center", (cx, cy))
---       return $ [Terminal (Coord.transform3 c3 offset cx cy) sig |
---                 IconTerm (Terminal c3 sig) <- parts]
-
 terminals :: Module -> Coord3 -> J [Terminal]
-terminals (Module _ _ icon) offset@(Coord3 dx dy _) =
-  "Module.terminals:"   <? do
+terminals (Module _ _ icon) offset@(Coord3 dx dy dr) =
+  "Module.testTerms:"   <? do
+  nb $ show offset
+  
   case icon of
     Nothing -> die "No icon found in module, module needs an icon to figure\n\
                    \ out where the terminals are in submodules"
-    Just (Icon parts) ->
-      return $ [Terminal (Coord3 (x+dx) (y+dy) r) sig |
-                IconTerm (Terminal (Coord3 x y r) sig) <- parts]
+    Just ic@(Icon parts) -> do
+      (cx, cy) <- Icon.center ic
+      
+      let rotateTerm (Terminal c3 sig) =
+            let (Coord3 newx newy newr) = Coord.rotate c3 dr cx cy
+            in Terminal (Coord3 (newx + dx) (newy + dy) newr) sig
+  
+      return $ [rotateTerm t | IconTerm t@(Terminal c3 sig) <- parts]
+
+-- terminals :: Module -> Coord3 -> J [Terminal]
+-- terminals (Module _ _ icon) offset@(Coord3 dx dy _) =
+--   "Module.terminals:"   <? do
+--   case icon of
+--     Nothing -> die "No icon found in module, module needs an icon to figure
+--                    \ out where the terminals are in submodules"
+--     Just (Icon parts) ->
+--       return $ [Terminal (Coord3 (x+dx) (y+dy) r) sig |
+--                 IconTerm (Terminal (Coord3 x y r) sig) <- parts]
 
 
 getInputTerminals :: Module -> Coord3 -> J [Terminal]

@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -144,10 +143,6 @@ testGenMakeModule = do
     return $ do
       let outfile = "test-data/vhdl/mod1/" ++ (hashid modname) ++ ".vhdl"
       TIO.writeFile outfile (T.concat [ prelude, moduleCode, testCode ])
-      -- TIO.
-      -- TIO.putStrLn prelude
-      -- TIO.putStrLn moduleCode
-      -- TIO.putStrLn testCode
 
 testConnectOutputJumper1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"

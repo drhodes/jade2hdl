@@ -65,6 +65,7 @@ allTests = do
   testCenter "IconBoundingBox1" (0, 0)
   testCenter "IconBoundingBox1Rot90" (0, 0)
 
+  testBoundingBox "AND2" $ BB (-16) (-16) 16 16
 
   -- failing
   
