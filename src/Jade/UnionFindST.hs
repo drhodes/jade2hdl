@@ -74,6 +74,7 @@ collect uf (x:rest) = do
 
 
 components :: [Edge] -> [GComp]
+components [] = []
 components edges = runST $ do
   let nodes = DL.nub $ concat [[n1, n2] | (Edge n1 n2) <- edges]
       table = DM.fromList (zip nodes [0..])

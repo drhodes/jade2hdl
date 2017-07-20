@@ -74,7 +74,6 @@ testTerminal1 = do
       expected = Right (Terminal (Coord3 {c3x = 16, c3y = 0, c3r = FlipX}) (SigSimple "out"))
   dotest "testTerminal1" tstring expected
 
-
 testTerminal2 :: IO (Either String IconPart)
 testTerminal2 = do
   let tstring = "[ \"terminal\", [ 16, 0, 4 ], { \"name\": \"out\" } ]"
@@ -98,5 +97,3 @@ testAll = do
   f "testComp1" testComp1 
   f "testSub1" testSub1 
   f "testSchem1 " testSchem1 
-
-

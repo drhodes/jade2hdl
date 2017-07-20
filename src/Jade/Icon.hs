@@ -18,6 +18,7 @@ xMin ipart = "Icon.xMin" <? do
     IconTerm (Terminal c _) -> return $ Just $ Coord.c3x c
     IconBox (Box c) -> return $ Just $ Coord.xMinC5 c
     IconTxt (Txt c _ _) -> return $ Just $ Coord.c3x c
+    IconCircle (Circle x y r) -> return $ Just $ x - r
     x -> do nb $ "xMin is ignoring: " ++ show x
             return Nothing
 
@@ -27,6 +28,7 @@ xMax ipart = "Icon.xMax" <? do
     IconTerm (Terminal c _) -> return $ Just $ Coord.c3x c
     IconBox (Box c) -> return $ Just $ Coord.xMaxC5 c
     IconTxt (Txt c _ _) -> return $ Just $ Coord.c3x c
+    IconCircle (Circle x y r) -> return $ Just $ x + r
     x -> do nb $ "xMax is ignoring: " ++ show x
             return Nothing
 
@@ -36,6 +38,7 @@ yMin ipart = "Icon.yMin" <? do
     IconTerm (Terminal c _) -> return $ Just $ Coord.c3y c
     IconBox (Box c) -> return $ Just $ Coord.yMinC5 c
     IconTxt (Txt c _ _) -> return $ Just $ Coord.c3y c
+    IconCircle (Circle x y r) -> return $ Just $ y - r
     x -> do nb $ "yMin is ignoring: " ++ show x
             return Nothing
 
@@ -45,6 +48,7 @@ yMax ipart = "Icon.yMax" <? do
     IconTerm (Terminal c _) -> return $ Just $ Coord.c3y c
     IconBox (Box c) -> return $ Just $ Coord.yMaxC5 c
     IconTxt (Txt c _ _) -> return $ Just $ Coord.c3y c
+    IconCircle (Circle x y r) -> return $ Just $ y + r
     x -> do nb $ "yMax is ignoring: " ++ show x
             return Nothing
 

@@ -92,11 +92,16 @@ data Txt = Txt { txtLoc :: Coord3
                , txtFont :: Maybe String
                }  deriving (Generic, Show, Eq, Hashable, Ord)
 
+data Circle = Circle { circleX :: Integer
+                     , circleY :: Integer
+                     , circleR :: Integer
+                     } deriving (Generic, Show, Eq, Hashable, Ord)
+
 data IconPart = IconLine Line
               | IconTerm Terminal
               | IconBox Box
               | IconTxt Txt
-              | IconCircle
+              | IconCircle Circle
               | IconProperty
               | IconArc
                 deriving (Generic, Show, Eq, Hashable, Ord)

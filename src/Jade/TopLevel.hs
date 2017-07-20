@@ -41,10 +41,12 @@ termToEdge t@(Terminal (Coord3 x y _) _) =
   in Edge n n
 
 getSubModules :: TopLevel -> String -> J [SubModule]
-getSubModules topl modname = do
-  (Module (Just schem) _ _) <- getModule topl modname ? "TopLevel.components"
-  return $ Schem.getSubModules schem
-
+getSubModules topl modname = "TopLevel.getSubModules" <? do
+  (Module schem _ _) <- getModule topl modname
+  case schem of 
+    Just schem -> return $ Schem.getSubModules schem
+    Nothing -> die "No schematics found"
+  
 -- a function to possible create an edge given a wire and a part
 makePartEdge :: Wire -> Part -> J (Maybe Edge)
 makePartEdge wire part = do

@@ -12,7 +12,6 @@ import qualified Data.Hashable as H
 import Text.Format
 import Control.Monad
 
-
 expected :: Show a => a -> a -> J ()
 expected exp got = die $ format "Expected {0}, Got: {1}" [show exp, show got]
 
@@ -60,13 +59,14 @@ allTests = do
   testBoundingBox "IconBoundingBox1" $ BB (-16) (-16) 16 16
   testBoundingBox "IconBoundingBox1Rot90" $ BB (-16) (-16) 16 16
   testBoundingBox "IconBoundingBox3" $ BB 8 8 40 40
-
   
   testCenter "IconBoundingBox1" (0, 0)
   testCenter "IconBoundingBox1Rot90" (0, 0)
+  testCenter "IconBoundingBox3" (24, 24)
 
   testBoundingBox "AND2" $ BB (-16) (-16) 16 16
+  testBoundingBox "AND2Rot90" $ BB (-16) (-16) 16 16
 
-  -- failing
-  
+  -- failing 
+ 
     

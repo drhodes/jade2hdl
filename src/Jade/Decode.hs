@@ -87,6 +87,7 @@ instance FromJSON Wire where
       sig <- parseJSON $ v V.! 2
       return $ Wire c5 (Just sig)
 
+-- [ "line", [ 40, 8, 0, -4, 0 ] ]
 instance FromJSON Line where
   parseJSON (Array v) =
     if V.length v == 2
@@ -107,40 +108,68 @@ instance FromJSON Box where
       return $ Box c5
     else fail "Not a box"
 
+instance FromJSON Circle where
+  -- [ "circle", [ x, y, r, filled ] ]
+  parseJSON (Array v) =
+    if V.length v == 2
+    then do 
+      lbl <- parseJSON (v V.! 0) :: (Parser String)
+      when (lbl /= "circle") (fail "Not a circle")
+
+      ints <- parseJSON (v V.! 1) :: Parser [Double]
+      case ints of
+        -- there is a filled number in this vector that may be
+        -- floating, so above the array is parsed as doubles otherwise
+        -- parsec complains about floats being there. Here they get
+        -- floored to integers.        
+        [x, y, r, _] -> return $ Circle (floor x) (floor y) (floor r)
+        _ -> fail "Not a circle"
+    else fail "Not a circle"
+
+
 --"text", [ 42, -5, 0 ], { "text": "nd", "font": "4pt sans-serif" } ],
 instance FromJSON Txt where
   parseJSON (Array v) = do
-    c3 <- parseJSON $ v V.! 1
-    Object o <- parseJSON $ v V.! 2
-    txt <- o .: "text"
-    font <- o .:? "font"
-    return $ Txt c3 txt font
+    case (v V.!? 1, v V.!? 2) of
+      (Just v1, Just v2) -> do
+        c3 <- parseJSON v1
+        Object o <- parseJSON v2
+        txt <- o .: "text"
+        font <- o .:? "font"
+        return $ Txt c3 txt font
+      otherwise -> fail "Decode.FromJSON Txt got unexpected array"
+
+
 
 -- [ "terminal", [ 16, 0, 4 ], { "name": "out" } ]
 instance FromJSON Terminal where
   parseJSON (Array v) = do
-    label <- parseJSON $ v V.! 0
-    when ((label :: String) /= "terminal") $ fail "Not a terminal"
+    case (v V.!? 0, v V.!? 1, v V.!? 2) of
+      (Just v0, Just v1, Nothing) -> fail $ "Terminal is missing a name: " ++ (show v)
+      (Just v0, Just v1, Just v2) -> do 
+        label <- parseJSON v0
+        when ((label :: String) /= "terminal") $ fail "Not a terminal"
     
-    c3 <- parseJSON $ v V.! 1
-    Object o <- parseJSON $ v V.! 2
+        c3 <- parseJSON v1
+        Object o <- parseJSON v2
     
-    s <- o .: "name" -- signal name
+        s <- o .: "name" -- signal name
     
-    case Sig.parseSig s of
-      Right sig -> return $ Terminal c3 sig 
-      Left msg -> fail (show msg)
+        case Sig.parseSig s of
+          Right sig -> return $ Terminal c3 sig 
+          Left msg -> fail (show msg)
+      otherwise -> fail $ "Decode.FromJSON Terminal got unexpected array" ++ (show v)
 
 instance FromJSON IconPart where
   parseJSON arr@(Array v) = do
     kind <- parseJSON $ v V.! 0
-
+    
     case (kind :: String) of
       "line" -> IconLine <$> parseJSON arr
       "terminal" -> IconTerm <$> parseJSON arr
       "text" -> IconTxt <$> parseJSON arr
       "box" -> IconBox <$> parseJSON arr
-      "circle" -> return IconCircle -- todo
+      "circle" -> IconCircle <$> parseJSON arr
       "property" -> return IconProperty -- todo
       "arc" -> return IconArc -- todo
       _ -> fail $ "Unknown IconPart: " ++ kind
@@ -203,6 +232,7 @@ instance FromJSON Module where
 
 instance FromJSON TopLevel where
   parseJSON (Array arr) = do
+    when (V.length arr < 2) (fail $ "Decode.TopLevel.parseJson fails because array not long enough: " ++ show arr)
     mods <- parseJSON $ arr V.! 1
     return $ TopLevel mods
 
@@ -219,7 +249,8 @@ decodeTopLevel filename = do
     Right (TopLevel gates) -> do 
       top <- DBL.readFile filename
       case eitherDecode top of
-        Right (TopLevel mods) -> return $ Right $ TopLevel (DM.union gates mods)
-        Left msg -> fail msg
+        Right (TopLevel mods) -> do
+          return $ Right $ TopLevel (DM.union gates mods)
+        Left msg -> fail ("Decode.decodeTopLevel: " ++ msg)
     Left msg -> fail $ msg ++ "\nDecode.decodeTopLevel fails to decode 'app-data/gates.json'"
 

@@ -14,11 +14,8 @@ pass = putStrLn "PASS"
 buildUserAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
   printJ $ do let modname =  "/user/UseAND2_3"
-              -- subs <- TopLevel.getSubModules topl modname
-              -- let submodule@(SubModule subname subloc) = subs !! 2
               cs <- TopLevel.components topl modname
               return $ cs !! 4
-              --return $ map nodePart $ cs !! 7
 
 portTest1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/port-test-1.json"
@@ -44,7 +41,6 @@ bendyWire1 = do
                 1 -> return "Pass"
                 x -> die $ "hmm, found: " ++ show x
 
-
 testTermDriverAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
   printJ $ do let modname =  "/user/UseAND2_3"
@@ -54,7 +50,6 @@ testTermDriverAnd23 = do
               result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
               case result of
                 [SigSimple "pg7Bj1XGp2OJ9_out",SigSimple "QxrKbYgWM4dLd_out"] -> return "PASS"
-                --[SigSimple "pQ7aGyV4wvYWO_out",SigSimple "7nbK7QoR5Kpao_out"] -> return "Pass"
                 x -> die $ "hmm, found: " ++ show x
 
 testTermDriverAnd23_Wire = do
@@ -127,12 +122,6 @@ testLoneJumper1 = do
                    else fail "FAIL: unexpected result in testLoneJumper1"
     Left msg -> fail msg
 
--- testWireWidth2 = do
---   Right topl <- Decode.decodeTopLevel "./test-data/WireWidth2.json"
---   case runJ $ do TopLevel.components topl "/user/WireWidth2" of
---     Right comps -> print comps
---     Left msg -> fail msg
-
 testNumComponents modname numcomps = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   case runJ $ do comps <- TopLevel.components topl ("/user/" ++ modname)
@@ -153,14 +142,9 @@ testComponentUseAND2Rot90 = do
 
   let func = do comps <- TopLevel.components topl ("/user/" ++ modname)
                 return $ map GComp.getSigs comps
-                -- if comps == expected
-                --   then return "PASS"
-                --   else die $ format "Got {0}, expected {1}" [show x, show expected]                
   case runJ func of
     Right x -> print "PASS"
     Left msg -> print msg
-
-  --putStrLn $ runLog func
 
 testAll = do
   testNumComponents "Jumper4" 1

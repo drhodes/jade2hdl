@@ -1,6 +1,7 @@
 module TestModule where
 
 import qualified Data.Map as DM
+import qualified Data.List as DL
 import Jade.Types
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
@@ -12,6 +13,75 @@ import qualified Data.Hashable as H
 import Text.Format
 import Control.Monad
 
+
+withTopLevel :: String -> (TopLevel -> b) -> IO b
+withTopLevel modname f = do
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname]) 
+  return $ f topl
+
+expected :: Show a => a -> a -> J ()
+expected exp got = do nb $ "Expected : " ++ show exp
+                      nb $ "Got      : " ++ show got
+                      
+hasTerminalsAt modname locs = do
+  let qualModName = "/user/" ++ modname
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+  
+  let func = "hasTerminalsAt" <? do
+        topm <- TopLevel.getModule topl qualModName
+        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        let (SubModule name c3) = sub        
+        nb $ show sub
+        m@(Module _ _ maybeIcon) <- TopLevel.getModule topl name
+        bb <- case maybeIcon of
+          (Just icon) -> do bb <- Icon.boundingBox icon
+                            return bb
+          _ -> die "Couldn't find icon."
+        nb $ show bb
+        terms <- Module.terminals m c3
+        let locs' = [(x, y) | (Terminal (Coord3 x y _) _) <- terms]
+        expected locs locs'
+        return $ DL.sort locs == DL.sort locs'
+  
+  case runJ func of
+    Right True -> putStrLn "PASS"
+    Right False -> putStrLn $ runLog func
+    Left msg -> do putStrLn msg
+                   return undefined
+  
+testHasTerminalsAt = do
+  hasTerminalsAt "IconBoundingBox6" [(8,40),(24,40),(16,-8)]
+  hasTerminalsAt "TermRot1" [(16,16), (-16,16), (-16,-16), (16, -16)]
+  hasTerminalsAt "TermRot2" [(8,8),(40,8),(8,40),(40,40)]
+  hasTerminalsAt "TermRot3" [(16,8),(16,40),(48,8),(48,40)]
+  hasTerminalsAt "TermRot4" [(16,8),(16,40),(48,8),(48,40)]
+  hasTerminalsAt "TermRot5" [(16,0),(16,32),(48,0),(48,32)]
+
+
+
+testBuiltInIconBoundingBox modname = do
+  let qualModName = "/gates/" ++ modname 
+  Right topl <- Decode.decodeTopLevel (format "./app-data/gates.json" [modname])
+
+  let func = do
+        m <- TopLevel.getModule topl qualModName
+        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        let (SubModule name c3) = sub
+        nb $ show c3
+        m <- TopLevel.getModule topl name
+        terms <- Module.terminals m c3
+        nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
+        let Just icon = moduleIcon m
+        bb <- Icon.boundingBox icon
+        return bb
+        
+  case runJ func of
+    Right x -> do print x
+                  putStrLn $ runLog func
+                  return (Just x)
+    Left msg -> do putStrLn msg
+                   putStrLn $ runLog func
+                   return Nothing
 
 testRotateUseAND2Rot90 = do
   let modname = "UseAND2Rot90"
@@ -28,7 +98,6 @@ testRotateUseAND2Rot90 = do
         return terms
         --nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
 
-
   print $ [(16, -8), (8, 24), (24, 24)]
   case runJ func of
     Right x -> do print x
@@ -36,8 +105,6 @@ testRotateUseAND2Rot90 = do
                   return x
     Left msg -> do putStrLn msg
                    return undefined
-
-
 
 testIconBoundingBox5 = do
   let modname = "IconBoundingBox5"
@@ -64,6 +131,10 @@ testIconBoundingBox5 = do
     Left msg -> do putStrLn msg
                    putStrLn $ runLog func
                    return Nothing
+
+
+
+
 
 
 testIconBoundingBox5Rot90 = do
