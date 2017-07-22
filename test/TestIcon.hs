@@ -18,8 +18,8 @@ expected exp got = die $ format "Expected {0}, Got: {1}" [show exp, show got]
 withTopLevelTest modname f = 
   liftM f $ Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
 
-testIcon tname modname f = do
-  let qualModName = "/user/" ++ modname
+testIcon tname libname modname f = do
+  let qualModName = libname ++ modname
       testName = tname ++ ": " ++ modname
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
 
@@ -37,7 +37,7 @@ testIcon tname modname f = do
                    return undefined
 
 testBoundingBox modname (BB x1 y1 x2 y2) = do
-  testIcon "testCenter" modname $ \icon -> do
+  testIcon "testBoundingBox" "/user/" modname $ \icon -> do
     nb $ show icon
     bb@(BB left top right bottom) <- Icon.boundingBox icon
     nb $ show bb
@@ -47,10 +47,24 @@ testBoundingBox modname (BB x1 y1 x2 y2) = do
     when (right  /= x2) $ "left  " <? expected x2 right
 
 testCenter modname expCenter = do
-  testIcon "testCenter" modname $ \icon -> do 
+  testIcon "testCenter" "/user/" modname $ \icon -> do 
     center <- Icon.center icon
     when (expCenter /= center) $ "test.func.center" <? do
       expected expCenter center
+
+testBuiltInBoundingBox modname (BB x1 y1 x2 y2) = do
+  testIcon "testBoundingBox" "/gates/" modname $ \icon -> do
+    nb $ show icon
+    bb@(BB left top right bottom) <- Icon.boundingBox icon
+    nb $ show bb
+    when (top    /= y1) $ "top"    <? expected y1 top
+    when (left   /= x1) $ "left"   <? expected x1 left
+    when (bottom /= y2) $ "bottom" <? expected y2 bottom
+    when (right  /= x2) $ "left  " <? expected x2 right
+
+
+
+
 
 allTests = do
   -- passing
@@ -67,6 +81,7 @@ allTests = do
   testBoundingBox "AND2" $ BB (-16) (-16) 16 16
   testBoundingBox "AND2Rot90" $ BB (-16) (-16) 16 16
 
+  testBuiltInBoundingBox "and2" $ BB {bbLeft=0, bbTop=(-4), bbRight=48, bbBottom=20}
   -- failing 
  
     

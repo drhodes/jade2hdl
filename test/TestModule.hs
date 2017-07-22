@@ -45,17 +45,62 @@ hasTerminalsAt modname locs = do
   
   case runJ func of
     Right True -> putStrLn "PASS"
-    Right False -> putStrLn $ runLog func
-    Left msg -> do putStrLn msg
-                   return undefined
+    Right False -> do
+      putStrLn modname
+      putStrLn $ runLog func
+    Left msg -> do
+      putStrLn modname
+      putStrLn msg
+      return undefined
   
-testHasTerminalsAt = do
+testAll = do
   hasTerminalsAt "IconBoundingBox6" [(8,40),(24,40),(16,-8)]
   hasTerminalsAt "TermRot1" [(16,16), (-16,16), (-16,-16), (16, -16)]
   hasTerminalsAt "TermRot2" [(8,8),(40,8),(8,40),(40,40)]
   hasTerminalsAt "TermRot3" [(16,8),(16,40),(48,8),(48,40)]
   hasTerminalsAt "TermRot4" [(16,8),(16,40),(48,8),(48,40)]
   hasTerminalsAt "TermRot5" [(16,0),(16,32),(48,0),(48,32)]
+
+  
+  testSubModBoundingBox "SubBuiltIn1" $ BB {bbLeft=0, bbTop=(-4), bbRight=48, bbBottom=20}
+  testSubModBoundingBox "SubBuiltIn2" $ BB {bbLeft=6, bbTop=(-16), bbRight=36, bbBottom=32}
+  testSubModBoundingBox "SubBuiltIn3" $ BB {bbLeft=(-4), bbTop=(-48), bbRight=20, bbBottom=0}
+  
+  hasTerminalsAt "SubBuiltIn1" [(0,0), (0, 16), (48, 8)]
+  hasTerminalsAt "SubBuiltIn2" [(16,32), (32, 32), (24, -16)]
+  hasTerminalsAt "SubBuiltIn3" [(0,0), (16,0), (8,-48)]
+  hasTerminalsAt "SubBuiltIn4" [(0,0), (16,0), (8,48)]
+  
+  --failing
+
+testSubModBoundingBox modname exp = do 
+  let qualModName = "/user/" ++ modname 
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+
+  let func = do
+        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        let (SubModule name c3) = sub
+        nb $ format "offset coord: {0}" [show c3]
+        nb $ show sub
+        m <- TopLevel.getModule topl name
+        bb <- Module.boundingBox m c3
+        if bb == exp
+          then return ()
+          else expected exp bb
+          
+  case runJ func of
+    Right x -> do putStrLn "PASS"
+                  return (Just x)
+    Left msg -> do putStrLn msg
+                   putStrLn $ runLog func
+                   return Nothing
+
+
+
+  
+
+
+
 
 
 

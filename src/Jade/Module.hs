@@ -8,35 +8,73 @@ import qualified Jade.Decode as D
 import qualified Jade.Part as Part
 import qualified Jade.Icon as Icon
 import qualified Jade.Coord as Coord
+import qualified Jade.BoundingBox as BoundingBox
 import Jade.Types
 import Jade.Wire
 
-terminals :: Module -> Coord3 -> J [Terminal]
-terminals (Module _ _ icon) offset@(Coord3 dx dy dr) =
-  "Module.testTerms:"   <? do
-  nb $ show offset
+-- terminals :: Module -> Coord3 -> J [Terminal]
+-- terminals (Module _ _ icon) offset@(Coord3 dx dy dr) =
+--   "Module.testTerms:"   <? do
+--   nb $ show offset
   
-  case icon of
-    Nothing -> die "No icon found in module, module needs an icon to figure\n\
-                   \ out where the terminals are in submodules"
-    Just ic@(Icon parts) -> do
-      (cx, cy) <- Icon.center ic
+--   case icon of
+--     Nothing -> die "No icon found in module, module needs an icon to figure \n\
+--                    \ out where the terminals are in submodules"
+--     Just ic@(Icon parts) -> do
+--       (cx, cy) <- Icon.center ic
       
-      let rotateTerm (Terminal c3 sig) =
-            let (Coord3 newx newy newr) = Coord.rotate c3 dr cx cy
-            in Terminal (Coord3 (newx + dx) (newy + dy) newr) sig
+--       let rotateTerm (Terminal c3 sig) =
+--             let (Coord3 newx newy newr) = Coord.rotate c3 dr cx cy
+--             in Terminal (Coord3 (newx + dx) (newy + dy) newr) sig
   
-      return $ [rotateTerm t | IconTerm t@(Terminal c3 sig) <- parts]
+--       return $ [rotateTerm t | IconTerm t@(Terminal c3 sig) <- parts]
+
+getIcon :: Module -> J Icon
+getIcon (Module _ _ (Just x)) = return x
+getIcon _ = die "No icon found in module"
+
 
 -- terminals :: Module -> Coord3 -> J [Terminal]
--- terminals (Module _ _ icon) offset@(Coord3 dx dy _) =
---   "Module.terminals:"   <? do
---   case icon of
---     Nothing -> die "No icon found in module, module needs an icon to figure
---                    \ out where the terminals are in submodules"
---     Just (Icon parts) ->
---       return $ [Terminal (Coord3 (x+dx) (y+dy) r) sig |
---                 IconTerm (Terminal (Coord3 x y r) sig) <- parts]
+-- terminals mod offset@(Coord3 dx dy dr) = "Module.testTerms:" <? do
+--   nb $ show offset
+--   icon <- getIcon mod
+  
+--   newBB <- boundingBox mod offset
+--   let (cx, cy) = BoundingBox.center newBB
+           
+--   let rotateTerm (Terminal (Coord3 x y r) sig) =
+--         let p = Coord.rotate (Coord3 (x + dx) (y + dy) Rot0) dr cx cy 
+--         in Terminal p sig -- change this Rot0 to composed rotation
+  
+--   return $ [rotateTerm t | IconTerm t@(Terminal c3 sig) <- iconParts icon]
+
+
+terminals :: Module -> Coord3 -> J [Terminal]
+terminals mod p@(Coord3 mx my mr) = "Module.testTerms:" <? do
+  nb $ show p
+  icon <- getIcon mod
+  
+  -- newBB <- boundingBox mod offset
+  -- let (cx, cy) = BoundingBox.center newBB
+           
+  let rotateTerm (Terminal (Coord3 tx ty tr) sig) =
+        let tv@(Coord3 dx dy _) = Coord.rotate (Coord3 tx ty Rot0) mr 0 0
+        in Terminal (Coord3 (mx + dx) (my + dy) (Coord.composeRot mr tr)) sig
+  
+  return $ [rotateTerm t | IconTerm t@(Terminal c3 sig) <- iconParts icon]
+
+
+
+
+boundingBox :: Module -> Coord3 -> J BoundingBox
+boundingBox (Module _ _ icon) offset = "Module.boundingBox" <? do
+  -- move the bounding box of the icon to the offset coord
+  -- rotate the new bounding box points around the center of the bounding box.
+  case icon of 
+    (Just icon) -> do bb <- Icon.boundingBox icon
+                      return $ BoundingBox.transRot bb offset
+    Nothing -> die "No icon found in, can't find bounding box."
+  
 
 
 getInputTerminals :: Module -> Coord3 -> J [Terminal]

@@ -9,9 +9,6 @@ import Data.Aeson
 import Control.Monad
 import Test.QuickCheck.Arbitrary
 
--- main :: IO ()
--- main = putStrLn "Test suite not yet implemented"
-
 testWire1 :: Either String Wire
 testWire1 = eitherDecode "[\"wire\", [136, 64, 1, 0, 0], {\"signal\": \"wd\"}]" 
 

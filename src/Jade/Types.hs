@@ -201,10 +201,10 @@ data Module = Module { moduleSchem :: Maybe Schematic
 data TopLevel = TopLevel (DM.Map String Module)
               deriving  (Show, Eq)
 
-data BoundingBox = BB { bbMinX :: Integer
-                      , bbMinY :: Integer
-                      , bbMaxX :: Integer
-                      , bbMaxY :: Integer } deriving (Show, Eq)
+data BoundingBox = BB { bbLeft :: Integer
+                      , bbTop :: Integer
+                      , bbRight :: Integer
+                      , bbBottom :: Integer } deriving (Show, Eq)
 
 class LocRot a where
   locrot :: a -> Coord3

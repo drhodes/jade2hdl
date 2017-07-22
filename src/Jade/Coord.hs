@@ -43,35 +43,10 @@ composeRot r1 r2 = toEnum $
   ] !! (fromEnum r1 * 8 + fromEnum r2)
   
 
-       -- // compute new position and rotation
-       -- var new_x = transform_x(rotation, rx, ry) + cx;
-       -- var new_y = transform_y(rotation, rx, ry) + cy;
-       -- var new_rotation = rotate[old_rotation * 8 + rotation];
-
-
-
-  
--- https://github.com/6004x/jade/blob/ccb840c91a4248aab1764b1f9d27d832167b32a5/model.js#L868
--- Component.prototype.rotate
--- transform3 (Coord3 x y r) (Coord3 dx dy dr) cx cy =
---   let oldX = x
---       oldY = y
---       oldR = r
---       rx = x - cx
---       ry = y - cy
-
---       newX = cx + transformX r rx ry
---       newY = cy + transformY r rx ry 
---       newR = composeRot r dr
- 
---   in Coord3 newX newY newR
-
 coord5ends p@(Coord5 x y rot dx dy) =
   let n1 = (x, y)
-      --Coord3 x' y' _ = rotate (Coord3 dx dy rot) Rot0 0 0
       Coord3 x' y' _ = rotate (Coord3 dx dy Rot0) rot 0 0
       n2 = (x + x', y + y')
-      --n2 = (x + x', y - y')
   in (n1, n2)
 
 
