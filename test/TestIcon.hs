@@ -66,7 +66,7 @@ testBuiltInBoundingBox modname (BB x1 y1 x2 y2) = do
 
 
 
-allTests = do
+testAll = do
   -- passing
   testBoundingBox "IconBoundingBox8" $ BB 8 0 16 16
   testBoundingBox "IconBoundingBox7" $ BB 0 0 24 16

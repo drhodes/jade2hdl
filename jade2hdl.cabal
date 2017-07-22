@@ -18,6 +18,7 @@ library
   hs-source-dirs:      src, test
   exposed-modules:     Jade.Decode
                      , Jade.Types
+                     , Jade.BoundingBox
                      , Jade.TopLevel
                      , Jade.ModTest
                      , Jade.Sig

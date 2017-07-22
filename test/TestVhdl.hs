@@ -59,7 +59,7 @@ spawnOneTest jadefile modname = do
     ExitSuccess -> do 
       (ecode', stdout', stderr') <- readCreateProcessWithExitCode cmd2 ""
       case ecode' of
-        ExitSuccess -> putStrLn modname
+        ExitSuccess -> return () --ecode' --putStrLn modname
         ExitFailure err' -> do
           putStrLn errlog
           print err'
@@ -82,11 +82,12 @@ spawnAllTests = do
               , "Jumper1"
               , "Jumper1Rot90"
               , "Jumper41"
-              , "Jumper3" ]
+              , "Jumper3"
+              , "AND2"
+              , "AND2Rot90"              
+              ]
   spawnBuiltIn
   spawnBuiltInAnd4Messy
-  spawn "AND2"
-  --spawn "AND2Rot90"
   
 spawnBuiltIn = spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
   

@@ -1,4 +1,4 @@
-module Test.TestTopLevel where
+module TestTopLevel where
 
 import Jade.Types
 import qualified Jade.TopLevel as TopLevel
