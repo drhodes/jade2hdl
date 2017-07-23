@@ -25,7 +25,7 @@ import Control.Exception.Base as CEB
 import Control.Concurrent as CC
        
 spawnOneTest jadefile modname = do
-  putStrLn $ "Testing: " ++ modname
+  putStrLn $ "Vhdl.Testing: " ++ modname
   -- create a test directory
   let autoTestPath = format "test-data/auto-vhdl/{0}/" [hashid modname]
       tbname = Module.testBenchName modname

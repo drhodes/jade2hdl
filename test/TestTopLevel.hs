@@ -122,17 +122,6 @@ testLoneJumper1 = do
                    else fail "FAIL: unexpected result in testLoneJumper1"
     Left msg -> fail msg
 
-testNumComponents modname numcomps = do
-  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
-  case runJ $ do comps <- TopLevel.components topl ("/user/" ++ modname)
-                 let wires = map Wire.ends (concat $ map GComp.getWires comps)
-                 return (length comps, comps)
-    of
-    Right (n, comps) -> if n == numcomps
-               then putStrLn "PASS"
-               else putStrLn $ format "Expected {0}, got: {1}" [show numcomps, show n]
-    Left msg -> fail msg
-
 testComponentUseAND2Rot90 = do
   let modname = "UseAND2Rot90"
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
@@ -145,6 +134,28 @@ testComponentUseAND2Rot90 = do
   case runJ func of
     Right x -> print "PASS"
     Left msg -> print msg
+
+
+printLog f = putStrLn $ runLog f
+
+testNumComponents modname numcomps = do
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+  
+  let func = do
+        comps <- TopLevel.components topl ("/user/" ++ modname)
+        let wires = map Wire.ends (concat $ map GComp.getWires comps)                 
+        return (length comps, comps)
+        
+  case runJ func of
+    Right (n, comps) -> if n == numcomps
+                        then putStrLn $ modname ++ ": PASS"
+                        else do putStrLn $ format "{2}: Expected {0}, got: {1}" [show numcomps, show n, modname]
+                                printLog func
+    Left msg -> fail msg
+
+
+
+
 
 testAll = do
   testNumComponents "Jumper4" 1
@@ -170,7 +181,11 @@ testAll = do
   testLoneJumper1
   testComponentUseAND2Rot90 
 
+  testNumComponents "And2Ports2" 3
   -- failing
+
+  testNumComponents "And2Ports" 3
+  
   --testWireWidth2 
 
 

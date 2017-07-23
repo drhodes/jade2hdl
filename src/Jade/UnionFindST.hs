@@ -101,7 +101,6 @@ nameComp (GComp nodes) = "UnionFind.nameComp" <? do
   return $ if length names > 0
            then head names
            else take genNameLen $ "wire_" ++ hashid parts
-
   
 
 main = runST $ do

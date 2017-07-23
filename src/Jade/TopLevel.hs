@@ -49,9 +49,9 @@ getSubModules topl modname = "TopLevel.getSubModules" <? do
   
 -- a function to possible create an edge given a wire and a part
 makePartEdge :: Wire -> Part -> J (Maybe Edge)
-makePartEdge wire part = do
+makePartEdge wire part = "TopLevel.makePartEdge" <? do
   let (loc1, loc2) = Wire.ends wire
-  ploc <- Part.loc part ? "TopLevel.makePartEdge"
+  ploc <- Part.loc part 
   
   if ploc == loc1 
     then return $ Just $ Edge (Node loc1 (WireC wire)) (Node ploc part)
@@ -78,8 +78,8 @@ processEdges wires parts = do
   -- with all wires, make an edge from ones that share a point with a part 
   let wireEdges = map Wire.toEdge wires
   partEdges <- sequence [makePartEdge w p | w <- wires, p <- parts]
-  -- nb $ "TopLevel.processEdges"
-  -- nb $ show partEdges
+  nb $ "TopLevel.processEdges"
+  nb $ show partEdges
   let Just edges = sequence $ filter Maybe.isJust partEdges
   wireNbrs <- sequence [makeWire2WireEdge v w | v <- wires, w <- wires]
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
@@ -92,12 +92,17 @@ findWireWithEndPoint parts p = "findWireWithEndPoint" <? do
     then die $ "Couldn't find wire with end point: " ++ show p
     else return $ head matches
 
-makeJumperWire :: [Part] -> Jumper -> J Wire
-makeJumperWire wires jumper = "makeJumperEdge" <? do
+makeJumperWire :: Jumper -> J Wire
+makeJumperWire jumper = "makeJumperEdge" <? do
   nb "find the endpoints of the jumper"
   let (p1, p2) = Jumper.getEnds jumper
   nb "create a wire where the jumper is"
   return $ Wire.new p1 p2
+
+makePortWire :: Port -> J Wire
+makePortWire (Port (Coord3 x y r) sig)  = "makePortWire" <? do
+  nb "create a wire of length zero, that has the signal from the port"
+  return $ Wire (Coord5 x y r 0 0) sig
 
 connectWiresWithSameSigName parts = "connectWiresWithSameSigName" <? do
   let pairs = DL.nub [DL.sort [wc1, wc2] |
@@ -112,16 +117,18 @@ components topl modname = do
   nb $ DL.intercalate "\n" $ map show parts
   nb $ DL.intercalate "\n" $ map show terms'
 
+  -- need to check to see if ports are directly on terminals.
   
   let wires = [w | WireC w <- parts]
-      ports = [PortC p | PortC p <- parts]
+      ports = [p | PortC p <- parts]
       jumpers = Schem.getJumpers schem
       terms = map TermC $ concat terms'
   
   ssnw <- connectWiresWithSameSigName parts 
-  jumperWires <- mapM (makeJumperWire parts) jumpers
-  let wireEdges = map Wire.toEdge (wires ++ jumperWires ++ ssnw)
-  edges <- processEdges (wires ++ jumperWires ++ ssnw) (terms ++ ports)  
+  jumperWires <- mapM makeJumperWire jumpers
+  portWires <- mapM makePortWire ports
+  let wireEdges = map Wire.toEdge (wires ++ jumperWires ++ ssnw ++ portWires)
+  edges <- processEdges (wires ++ jumperWires ++ ssnw ++ portWires) (terms) -- ++ ports)  
 
   let comps = UF.components (edges ++ wireEdges)
   return comps
@@ -217,14 +224,14 @@ getInputTermDriver topl modname term =
       let submods = Maybe.catMaybes . concat . concat $ submods'
       case submods of
         [(Terminal coord sig, submod)] -> Sig.hashMangle (hashid submod) sig 
-        [] -> "looing in component attached to terminal" <? do
+        [] -> "looking in component attached to terminal" <? do
           comp <- getComponentWithTerminal topl modname term
           nb "Does this component have a .input signal?"
-          -- let (Terminal _ s) = term
-          
+          nb $ "Checking input signals: " ++ show inputSigs
           let drivers = filter (GComp.hasSig comp) inputSigs
           case drivers of
-            [sig] -> return sig
+            [sig] -> do nb $ "found sig: " ++ show sig
+                        return sig
             [] -> die $ "Couldn't find driving signal in a test script input, \
                         \sub module output or in shared component: " ++ show comp
             _ -> impossible $ "More than one driver found in terminal component: " ++ show term
@@ -241,7 +248,8 @@ getComponentWithTerminal topl modname term  = "getComponentWithTerminal" <? do
   comps <- components topl modname
   let matches =  [c | c <- comps, GComp.hasTerm c term] 
   case matches of
-    [c] -> return c
+    [c] -> do nb $ "found component with terminal: " ++ show term
+              return c
     [] -> die $ "No component found with terminal: " ++ show term
     _ -> impossible $ "More than one component found with terminal: " ++ show term
 

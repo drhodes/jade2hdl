@@ -12,7 +12,7 @@ sig part =
     WireC (Wire _ (Just s)) -> signalName s
     WireC (Wire _ Nothing) -> Nothing
     TermC (Terminal _ s) -> Just s    
-    x -> error $ "Partonent.driverSig: Not implemented for: " ++ show x
+    x -> error $ "Parse.sig: Not implemented for: " ++ show x
 
 hasSigName :: Part -> Bool
 hasSigName = isJust . sig 
