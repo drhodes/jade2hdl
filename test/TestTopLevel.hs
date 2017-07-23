@@ -1,12 +1,14 @@
 module TestTopLevel where
 
 import Jade.Types
+import qualified Data.List as DL
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Modul
 import qualified Jade.GComp as GComp
 import qualified Jade.Wire as Wire
 import Text.Format
+import TestUtil
 
 pass = putStrLn "PASS"
 
@@ -154,8 +156,22 @@ testNumComponents modname numcomps = do
     Left msg -> fail msg
 
 
+--testComponents :: String -> [GComp] -> IO ()
 
-
+testComponents modname exp = do
+  Right topl <- Decode.decodeTopLevel $ format "./test-data/{0}.json" [modname]
+  let func = do
+        comps <- TopLevel.components topl $ format "/user/{0}" [modname]
+        let r1 = DL.sort exp
+            r2 = DL.sort $ map GComp.getSigs comps
+        if r1 == r2
+          then return True
+          else do expected exp (map GComp.getSigs comps)
+                  (return False) :: J Bool
+  case runJ func of
+    Left msg -> print msg
+    Right True -> print "PASS"
+    Right False -> putStrLn $ runLog func
 
 testAll = do
   testNumComponents "Jumper4" 1
@@ -182,12 +198,20 @@ testAll = do
   testComponentUseAND2Rot90 
 
   testNumComponents "And2Ports2" 3
-  -- failing
 
   testNumComponents "And2Ports" 3
-  
-  --testWireWidth2 
+  testNumComponents "And2Ports4" 3
 
+
+  testComponents "And2Ports4" [ [SigSimple "B", SigSimple "in2"]
+                              , [SigSimple "vout", SigSimple "out1"]
+                              , [SigSimple "A", SigSimple "in1"]]
+  testNumComponents "JumperPort1" 1
+  testNumComponents "JumperPort2" 1
+
+  
+  -- failing
+  --testWireWidth2 
 
 -- manual inspections
 
@@ -200,11 +224,17 @@ checkJumper21components = do
 checkComponents modname = do
   Right topl <- Decode.decodeTopLevel $ format "./test-data/{0}.json" [modname]
   case runJ (TopLevel.components topl (format "/user/{0}" [modname])) of
-    Right comps -> print $ map GComp.getSigs comps
+    Right comps -> mapM_ print $ map GComp.getSigs comps
     Left msg -> fail msg
+
+
+
+
 
 checkJumper41 = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper41.json"
   printJ $ do
     let modname =  "/user/Jumper41"
     TopLevel.components topl modname
+
+

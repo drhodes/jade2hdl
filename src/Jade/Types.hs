@@ -274,7 +274,7 @@ data Node = Node { nodeLocation :: (Integer, Integer)
                  } deriving (Eq, Generic, Show, Hashable, Ord)
 
 data GComp = GComp [Node]
-           deriving (Show, Eq)
+           deriving (Show, Eq, Ord)
 
 data ComponentType = CtNoTerms
                    | CtSubModIns

@@ -74,12 +74,12 @@ makeWire2WireEdge w1 w2 =
                      _ -> Nothing
           
 processEdges :: [Wire] -> [Part] -> J [Edge]
-processEdges wires parts = do
-  -- with all wires, make an edge from ones that share a point with a part 
+processEdges wires parts = "TopLevel.processEdges" <? do
+  nb "with all wires, make an edge from ones that share a point with a part"
   let wireEdges = map Wire.toEdge wires
   partEdges <- sequence [makePartEdge w p | w <- wires, p <- parts]
-  nb $ "TopLevel.processEdges"
-  nb $ show partEdges
+  
+  --nb $ show partEdges
   let Just edges = sequence $ filter Maybe.isJust partEdges
   wireNbrs <- sequence [makeWire2WireEdge v w | v <- wires, w <- wires]
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
@@ -110,27 +110,31 @@ connectWiresWithSameSigName parts = "connectWiresWithSameSigName" <? do
                       wc2@(WireC w2) <- parts, (w1 /= w2) && (w1 `Wire.hasSameSig` w2)]
   return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | [WireC w1, WireC w2] <- pairs]
 
-components  :: TopLevel -> String -> J [GComp] 
-components topl modname = do
-  (Module (Just schem@(Schematic parts)) _ _) <- getModule topl modname ? "TopLevel.components"
-  terms' <- sequence [terminals topl submod | submod <- Schem.getSubModules schem]
-  nb $ DL.intercalate "\n" $ map show parts
-  nb $ DL.intercalate "\n" $ map show terms'
+list x = nb $ DL.intercalate "\n" $ map show x
 
-  -- need to check to see if ports are directly on terminals.
+components  :: TopLevel -> String -> J [GComp] 
+components topl modname = "TopLevel.components" <? do
+  (Module (Just schem@(Schematic parts)) _ _) <- getModule topl modname
+  terms <- sequence [terminals topl submod | submod <- Schem.getSubModules schem]
+  
+  list parts
+  list terms
+  nb "check to see if ports are directly on terminals."
   
   let wires = [w | WireC w <- parts]
       ports = [p | PortC p <- parts]
       jumpers = Schem.getJumpers schem
-      terms = map TermC $ concat terms'
+      termcs = map TermC $ concat terms
   
   ssnw <- connectWiresWithSameSigName parts 
   jumperWires <- mapM makeJumperWire jumpers
   portWires <- mapM makePortWire ports
   let wireEdges = map Wire.toEdge (wires ++ jumperWires ++ ssnw ++ portWires)
-  edges <- processEdges (wires ++ jumperWires ++ ssnw ++ portWires) (terms) -- ++ ports)  
+  edges <- processEdges (wires ++ jumperWires ++ ssnw ++ portWires) (termcs) -- ++ ports)  
 
-  let comps = UF.components (edges ++ wireEdges)
+  list edges
+  
+  let comps = UF.components $ edges ++ wireEdges
   return comps
 
 getInputTerminals :: TopLevel -> SubModule -> J [Terminal]
@@ -165,7 +169,7 @@ terminals topl (SubModule modname offset) = "TopLevel.terminals" <? do
 
 -- | Get the number of distinct nodes in the schematic
 numComponents :: TopLevel -> String -> J Int
-numComponents topl modname = 
+numComponents topl modname = "TopLevel.numComponents" <? do
   liftM length $ components topl modname ? "Couldn't get number of componenents"
 
 -- | Get the input of a module. This requires tests to be defined in
@@ -173,8 +177,9 @@ numComponents topl modname =
 -- indicate the target signals in the schematic
 
 getInputs :: TopLevel -> String -> J Inputs
-getInputs topl modname =
-  "TopLevel.getInputs" <? getModule topl modname >>= Module.getInputs 
+getInputs topl modname = "TopLevel.getInputs" <? do
+  nb modname
+  getModule topl modname >>= Module.getInputs 
 
 -- | Get the outputs of a module. This requires tests to be defined in
 -- the module referenced, because the .output directive of the test

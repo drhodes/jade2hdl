@@ -10,10 +10,9 @@ import qualified Jade.Coord as Coord
 import qualified Jade.Vhdl as Vhdl
 import qualified Data.Hashable as H
 import Text.Format
+import TestUtil
 import Control.Monad
 
-expected :: Show a => a -> a -> J ()
-expected exp got = die $ format "Expected {0}, Got: {1}" [show exp, show got]
 
 withTopLevelTest modname f = 
   liftM f $ Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
