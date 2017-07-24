@@ -117,8 +117,8 @@ components edges = runST $ do
   mapM_ tie edges
   
   xs <- sequence [filterM (find uf x) [0.. length nodes - 1] | x <- [0.. length nodes - 1]]
-  let results = DL.nub xs
-  return $ [GComp $ DL.nub $ map (nodes !!) xs | xs <- results]
+  let indexes = DL.nub xs
+  return $ [GComp $ DL.nub $ map (nodes !!) xs | xs <- indexes]
 
 
   --sequence [find uf x y | x <- DM.elems table, y <- DM.elems table]

@@ -111,10 +111,6 @@ testSigConnectedToSubModuleP2 = do
     Outputs outs <- TopLevel.getOutputs topl modname
     v <- mapM (TopLevel.sigConnectedToSubModuleP topl modname) outs
     if v == [True] then return "PASS" else return "FAIL"
-    
-
-
-
 
 testLoneJumper1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/LoneJumper1.json"
@@ -136,7 +132,6 @@ testComponentUseAND2Rot90 = do
   case runJ func of
     Right x -> print "PASS"
     Left msg -> print msg
-
 
 printLog f = putStrLn $ runLog f
 
@@ -161,7 +156,7 @@ testComponents modname exp = do
   let func = do
         comps <- TopLevel.components topl $ format "/user/{0}" [modname]
         let r1 = DL.sort exp
-            r2 = DL.sort $ map GComp.getSigs comps
+            r2 = DL.sort $ map GComp.getSigs [GComp $ DL.nub xs | GComp xs <- comps]
         if r1 == r2
           then return True
           else do expected exp (map GComp.getSigs comps)
@@ -197,23 +192,18 @@ testAll = do
   testComponentUseAND2Rot90 
 
   testNumComponents "And2Ports2" 3
-
   testNumComponents "And2Ports" 3
   testNumComponents "And2Ports4" 3
-
-
   testNumComponents "JumperPort1" 1
   testNumComponents "JumperPort2" 1
 
-  
-  -- failing
+  -- heads up, components contain two nodes per wire, one for each end.
+  -- testComponents "JumperPort1" [[SigSimple "A",SigSimple "vout"]]
 
   -- testComponents "And2Ports4" [ [SigSimple "B", SigSimple "in2"]
   --                             , [SigSimple "vout", SigSimple "out1"]
   --                             , [SigSimple "A", SigSimple "in1"]]
-
   
-  --testWireWidth2 
 
 -- manual inspections
 

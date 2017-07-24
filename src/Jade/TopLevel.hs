@@ -28,8 +28,6 @@ modules (TopLevel m) = DM.toList m
 -- |Get a module from a TopLevel given a module name
 getModule :: TopLevel -> String -> J Module
 getModule (TopLevel m) name = "TopLevel.getModule" <? do
-  -- if name `startsWith` "/gate"
-  -- then return $ BuiltInModule name
   case DM.lookup name m of
     Just mod -> return mod
     Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
@@ -79,7 +77,6 @@ processEdges wires parts = "TopLevel.processEdges" <? do
   let wireEdges = map Wire.toEdge wires
   partEdges <- sequence [makePartEdge w p | w <- wires, p <- parts]
   
-  --nb $ show partEdges
   let Just edges = sequence $ filter Maybe.isJust partEdges
   wireNbrs <- sequence [makeWire2WireEdge v w | v <- wires, w <- wires]
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
@@ -115,10 +112,6 @@ components topl modname = "TopLevel.components" <? do
   (Module (Just schem@(Schematic parts)) _ _) <- getModule topl modname
   terms <- sequence [terminals topl submod | submod <- Schem.getSubModules schem]
   
-  list parts
-  list terms
-  nb "check to see if ports are directly on terminals."
-  
   let wires = [w | WireC w <- parts]
       ports = [p | PortC p <- parts]
       jumpers = Schem.getJumpers schem
@@ -127,13 +120,8 @@ components topl modname = "TopLevel.components" <? do
   ssnw <- connectWiresWithSameSigName parts 
   jumperWires <- mapM makeJumperWire jumpers
   portWires <- mapM makePortWire ports
-
-  list portWires
-  
   let wireEdges = map Wire.toEdge (wires ++ jumperWires ++ ssnw ++ portWires)
   edges <- processEdges (wires ++ jumperWires ++ ssnw ++ portWires) (termcs) -- ++ ports)  
-
-  list edges
   
   let comps = UF.components $ edges ++ wireEdges
   return comps
@@ -178,8 +166,7 @@ numComponents topl modname = "TopLevel.numComponents" <? do
 -- indicate the target signals in the schematic
 
 getInputs :: TopLevel -> String -> J Inputs
-getInputs topl modname = "TopLevel.getInputs" <? do
-  nb modname
+getInputs topl modname = ("TopLevel.getInputs: " ++ modname) <? do
   getModule topl modname >>= Module.getInputs 
 
 -- | Get the outputs of a module. This requires tests to be defined in
@@ -284,15 +271,3 @@ sigConnectedToSubModuleP topl modname sig = do
 getCompsWithoutTerms :: TopLevel -> String -> J [GComp]
 getCompsWithoutTerms topl modname = "getCompsWithoutTerms" <?
   (fmap (filter (not . GComp.hasAnyTerm)) (components topl modname))
-
-
-
---getCompDriver 
-
-
-  
-  --   return sig
-
-
--- If there is no driving signal in this component, then find other other components
-
