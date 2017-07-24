@@ -293,3 +293,6 @@ data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    , curId :: Int
                                    } deriving (Show)
 
+
+list x = nb $ DL.intercalate "\n" $ map show x
+

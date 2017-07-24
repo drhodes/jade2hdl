@@ -73,45 +73,71 @@ collect uf (x:rest) = do
   liftM (cnx:) (collect uf notcnx)
 
 
-components :: [Edge] -> [GComp]
-components [] = []
+--components :: [Edge] -> [GComp]
+--components [] = []
+-- components edges = runST $ do
+--   let nodes = DL.nub $ concat [[n1, n2] | (Edge n1 n2) <- edges]
+--       table = DM.fromList (zip nodes [0..])
+
+--   uf <- newUnionFind $ length nodes
+        
+--   let f (Edge node2 node1) =
+--         case (DM.lookup node1 table, DM.lookup node2 table) of
+--           (Just i, Just j) -> unite uf j i
+--           _ -> return ()
+--   mapM_ f edges
+
+--   -- This is just completely insane.  I've some how screwed up the
+--   -- collect function here, need to really take a hard look at it.
+--   xss <- collect uf $ reverse $ DM.elems table --[0 .. length nodes - 1]
+--   return $ map (helper nodes) xss
+
+--getConnected :: UnionFind s -> [Int] -> [Int] -> ST s [[Int]]
+
+-- getConnected :: UnionFind s -> [Int] -> [Int] -> ST s [[Int]]
+-- getConnected _ _ [] = return []
+-- getConnected uf alreadySeen (nodeIdx:rest) = do
+--   if nodeIdx `elem` alreadySeen
+--     then getConnected uf alreadySeen rest
+--     else do connectedNodes <- filterM (find uf nodeIdx) rest
+--             liftM (connectedNodes:) (getConnected uf (alreadySeen ++ connectedNodes) rest)
+
+--components :: [Edge] -> [GComp]
 components edges = runST $ do
-  let nodes = DL.nub $ concat [[n1, n2] | (Edge n1 n2) <- edges]
-      table = DM.fromList (zip nodes [0..])
+  let nodes = DL.nub $ DL.sort $ concat [[n1, n2] | Edge n1 n2 <- edges]
+      table = DM.fromList $ zip nodes [0..]
+      elbat = DM.fromList $ zip [0..] nodes
+  uf <- newUnionFind 100000
 
-  uf <- newUnionFind $ length nodes
-      
-  let f (Edge node1 node2) =
-        case (DM.lookup node1 table, DM.lookup node2 table) of
-          (Just i, Just j) -> unite uf i j
-          _ -> return ()
-  mapM_ f edges
+  let tie (Edge n1 n2) =
+        case (DM.lookup n1 table, DM.lookup n2 table) of
+          (Just idx1, Just idx2) -> unite uf idx1 idx2
+          _ -> error "Can't find somehitkas asdf asdfkasjdf"
 
-  xss <- collect uf [0 .. length nodes - 1]
-  return $ map (\xs -> GComp $ map (nodes !!) xs) xss
+  mapM_ tie edges
+  
+  xs <- sequence [filterM (find uf x) [0.. length nodes - 1] | x <- [0.. length nodes - 1]]
+  let results = DL.nub xs
+  return $ [GComp $ DL.nub $ map (nodes !!) xs | xs <- results]
+
+
+  --sequence [find uf x y | x <- DM.elems table, y <- DM.elems table]
+
+
+
+
+helper :: [Node] -> [Int] -> GComp
+helper nodes xs = GComp $ map (nodes !!) xs
 
   
 nameComp :: GComp -> J String
 nameComp (GComp nodes) = "UnionFind.nameComp" <? do
   let parts = map nodePart nodes
       signals1 = [signal | WireC (Wire _ (Just signal)) <- parts]
-      signals2 = [signal | PortC (Port _ (Just signal)) <- parts]
-      names = [n | Signal (Just (SigSimple n)) _ _ <- signals1 ++ signals2]
+      --signals2 = [signal | PortC (Port _ (Just signal)) <- parts]
+      names = [n | Signal (Just (SigSimple n)) _ _ <- signals1] -- ++ signals2]
       genNameLen = 10
   
   return $ if length names > 0
            then head names
            else take genNameLen $ "wire_" ++ hashid parts
-  
-
-main = runST $ do
-    uf <- newUnionFind 10
-    unite uf 3 4 -- 0, 1, 2, {3, 4}, 5, 6, 7, 8, 9
-    unite uf 4 9 -- 0, 1, 2, {3, 4, 9}, 5, 6, 7, 8
-    unite uf 8 0 -- {0, 8}, 1, 2, {3, 4, 9}, 5, 6, 7, 8
-    unite uf 2 3 -- {0, 8}, 1, {2, 3, 4, 9}, 5, 6, 7
-    unite uf 5 6 -- {0, 8}, 1, {2, 3, 4, 9}, {5, 6}, 7
-    unite uf 5 9 -- {0, 8}, 1, {2, 3, 4, 5, 6, 9}, 7
-    unite uf 7 3 -- {0, 8}, 1, {2, 3, 4, 5, 6, 7, 9}
-    unite uf 4 8 -- 1, {0, 2, 3, 4, 5, 6, 7, 8, 9}
-    find uf 1 2 -- False

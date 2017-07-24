@@ -3,6 +3,7 @@
 module Jade.Util where
 
 import Text.Format
+import Data.List as DL
 
 class (Show a) => Fmt a where
   fmt :: String -> a -> String

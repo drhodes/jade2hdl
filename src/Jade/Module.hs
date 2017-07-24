@@ -25,7 +25,7 @@ terminals mod p@(Coord3 mx my mr) = "Module.testTerms:" <? do
         let tv@(Coord3 dx dy _) = Coord.rotate (Coord3 tx ty Rot0) mr 0 0
         in Terminal (Coord3 (mx + dx) (my + dy) (Coord.composeRot mr tr)) sig
   
-  return $ [rotateTerm t | IconTerm t@(Terminal c3 sig) <- iconParts icon]
+  return $ [rotateTerm t | IconTerm t <- iconParts icon]
 
 boundingBox :: Module -> Coord3 -> J BoundingBox
 boundingBox (Module _ _ icon) offset = "Module.boundingBox" <? do

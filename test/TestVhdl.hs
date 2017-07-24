@@ -84,7 +84,11 @@ spawnAllTests = do
               , "Jumper41"
               , "Jumper3"
               , "AND2"
-              , "AND2Rot90"              
+              , "AND2Rot90"
+              , "And2Ports"
+              , "And2Ports2"
+              , "And2Ports3"
+              , "And2Ports4"
               ]
   spawnBuiltIn
   spawnBuiltInAnd4Messy

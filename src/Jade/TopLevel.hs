@@ -110,8 +110,6 @@ connectWiresWithSameSigName parts = "connectWiresWithSameSigName" <? do
                       wc2@(WireC w2) <- parts, (w1 /= w2) && (w1 `Wire.hasSameSig` w2)]
   return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | [WireC w1, WireC w2] <- pairs]
 
-list x = nb $ DL.intercalate "\n" $ map show x
-
 components  :: TopLevel -> String -> J [GComp] 
 components topl modname = "TopLevel.components" <? do
   (Module (Just schem@(Schematic parts)) _ _) <- getModule topl modname
@@ -129,6 +127,9 @@ components topl modname = "TopLevel.components" <? do
   ssnw <- connectWiresWithSameSigName parts 
   jumperWires <- mapM makeJumperWire jumpers
   portWires <- mapM makePortWire ports
+
+  list portWires
+  
   let wireEdges = map Wire.toEdge (wires ++ jumperWires ++ ssnw ++ portWires)
   edges <- processEdges (wires ++ jumperWires ++ ssnw ++ portWires) (termcs) -- ++ ports)  
 
