@@ -303,8 +303,7 @@ replicationDepth topl modname submod  = "TopLevel.replicationDepth" <? do
             return $ cw `div` tw
           (_, []) -> do
             die $ "component width couldn't be determined"
-          (_, _) -> do
-            die $ "Couldn't find guess for terminal width nor component width."
+          (_, _) -> return 1 -- die $ "Couldn't find guess for terminal width nor component width."
 
   
   -- get the components for each terminal

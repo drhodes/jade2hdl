@@ -202,8 +202,13 @@ testAll = do
   testNumComponents "JumperPort1" 1
   testNumComponents "JumperPort2" 1
 
+  --------------------------------------------
   testReplicationDepth "RepAnd2" 2
-  
+  testReplicationDepth "And2Ports" 1 
+  testReplicationDepth "And2Ports2" 1
+  testReplicationDepth "And2Ports3" 1
+  testReplicationDepth "And2Ports4" 1
+ 
   -- failing
   --repand2 = testNumComponents "RepAnd2" 6
 
@@ -224,21 +229,7 @@ testReplicationDepth modname expDepth = do
   case runJ func of
     Right True -> putStrLn $ modname ++ ": PASS"
     Right False -> printLog func
-    Left msg -> fail msg
-
-
---numReplicated
-
-
-
-  -- testComponents "And2Ports4" [ [SigSimple "B", SigSimple "in2"]
-  --                             , [SigSimple "vout", SigSimple "out1"]
-  --                             , [SigSimple "A", SigSimple "in1"]]
-
-  
-  --testWireWidth2 
-
--- manual inspections
+    Left msg -> printLog func >> fail msg
 
 checkJumper21components = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper21.json"
