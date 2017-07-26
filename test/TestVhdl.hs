@@ -26,6 +26,7 @@ import Control.Concurrent as CC
        
 spawnOneTest jadefile modname = do
   putStrLn $ "Vhdl.Testing: " ++ modname
+  
   -- create a test directory
   let autoTestPath = format "test-data/auto-vhdl/{0}/" [hashid modname]
       tbname = Module.testBenchName modname
@@ -43,16 +44,9 @@ spawnOneTest jadefile modname = do
     return $ do
       TIO.writeFile outfile (T.concat [ prelude, moduleCode, testCode ])
 
-  let cmd1  = (shell "ghdl -a -g --std=08 *.vhdl") { cwd = Just autoTestPath
-                                                   , std_out = CreatePipe
-                                                   , std_err= CreatePipe
-                                                   }
-
-  let cmdStr2 = format "ghdl -r --std=08 {0} --vcd={0}.vcd" [tbname]
-  let cmd2  = (shell cmdStr2) { cwd = Just autoTestPath
-                              , std_out = CreatePipe
-                              , std_err= CreatePipe
-                              }
+  let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }
+  let cmd1 = sh "ghdl -a -g --std=08 *.vhdl"
+      cmd2 = sh (format "ghdl -r --std=08 {0} --vcd={0}.vcd" [tbname])
               
   (ecode, stdout, stderr) <- readCreateProcessWithExitCode cmd1 ""
   case ecode of

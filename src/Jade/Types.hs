@@ -130,7 +130,7 @@ data Sig = SigSimple String
          deriving (Show, Eq, Generic, Hashable, Ord)
 
 data Signal = Signal { signalName :: Maybe Sig
-                     , signalWidth :: Maybe String
+                     , signalWidth :: Maybe Integer
                      , signalDirection :: Maybe Direction
                      } deriving (Show, Eq, Generic, Hashable, Ord)
 
@@ -174,6 +174,8 @@ data SubModule = SubModule { subName :: String
                            , subCoord3 :: Coord3
                            } deriving (Generic, Show, Eq, Hashable, Ord)
 
+data Replicated a = Rep a
+
 data Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord)
 
 data Part = PortC Port
@@ -183,6 +185,8 @@ data Part = PortC Port
           | TermC Terminal
           | Nop
           deriving (Generic, Show, Eq, Hashable, Ord)
+
+
 
 type Test = String
 

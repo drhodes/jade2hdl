@@ -181,3 +181,4 @@ flycheck_*.el
 .projectile
 
 TAGS
+test-data/auto-vhdl/

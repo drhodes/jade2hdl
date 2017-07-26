@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Jade.GComp where
 
+import qualified Data.List as DL
 import Jade.Types
 import qualified Jade.Part as Part
 
@@ -19,6 +20,11 @@ getSigs (GComp nodes) =
 
 getWires (GComp nodes) = [w | (Node _ (WireC w)) <- nodes]
 
+removeTerms (GComp nodes) = GComp [n | n@(Node _ part) <- nodes, not $ Part.isTerm part]
 
+width (GComp nodes) = "GComp.width" <? do
+  ws <- sequence [Part.width p | (Node _ p) <- nodes]
+  return $ DL.nub ws
+   
 
 

@@ -57,7 +57,7 @@ instance FromJSON Direction where
 instance FromJSON Signal where
   parseJSON (Object o) = do
     sigString <- o .:? "signal"
-    w <-  o .:? "width" 
+    w <-  o .:? "width" -- this could fail obstrusively.
     dir <-  o .:? "direction"
 
     case sigString of
