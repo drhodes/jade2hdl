@@ -197,16 +197,40 @@ testAll = do
   testComponentUseAND2Rot90 
 
   testNumComponents "And2Ports2" 3
-
   testNumComponents "And2Ports" 3
   testNumComponents "And2Ports4" 3
-
-
   testNumComponents "JumperPort1" 1
   testNumComponents "JumperPort2" 1
 
+  testReplicationDepth "RepAnd2" 2
   
   -- failing
+  --repand2 = testNumComponents "RepAnd2" 6
+
+testReplicationDepth :: String -> Integer -> IO ()
+testReplicationDepth modname expDepth = do
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+  let func = do
+        let parentModuleName = "/user/" ++ modname
+        subs <- TopLevel.getSubModules topl parentModuleName
+        let sub = subs !! 0
+        d <- TopLevel.replicationDepth topl ("/user/" ++ modname) sub
+        nb $ show d
+        return False
+        -- if (expDepth == d)
+        --   then return True
+        --   else do expected expDepth d
+        --           return False
+        
+  case runJ func of
+    Right True -> print "PASS"
+    Right False -> printLog func
+    Left msg -> fail msg
+
+
+--numReplicated
+
+
 
   -- testComponents "And2Ports4" [ [SigSimple "B", SigSimple "in2"]
   --                             , [SigSimple "vout", SigSimple "out1"]

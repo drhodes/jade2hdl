@@ -92,6 +92,7 @@ findWireWithEndPoint parts p = "findWireWithEndPoint" <? do
     then die $ "Couldn't find wire with end point: " ++ show p
     else return $ head matches
 
+
 makeJumperWire :: Jumper -> J Wire
 makeJumperWire jumper = "makeJumperEdge" <? do
   nb "find the endpoints of the jumper"
@@ -115,8 +116,8 @@ components topl modname = "TopLevel.components" <? do
   (Module (Just schem@(Schematic parts)) _ _) <- getModule topl modname
   terms <- sequence [terminals topl submod | submod <- Schem.getSubModules schem]
   
-  list parts
-  list terms
+  --list parts
+  --list terms
   nb "check to see if ports are directly on terminals."
   
   let wires = [w | WireC w <- parts]
@@ -128,12 +129,12 @@ components topl modname = "TopLevel.components" <? do
   jumperWires <- mapM makeJumperWire jumpers
   portWires <- mapM makePortWire ports
 
-  list portWires
+  --list portWires
   
   let wireEdges = map Wire.toEdge (wires ++ jumperWires ++ ssnw ++ portWires)
   edges <- processEdges (wires ++ jumperWires ++ ssnw ++ portWires) (termcs) -- ++ ports)  
 
-  list edges
+  --list edges
   
   let comps = UF.components $ edges ++ wireEdges
   return comps
@@ -286,13 +287,35 @@ getCompsWithoutTerms topl modname = "getCompsWithoutTerms" <?
   (fmap (filter (not . GComp.hasAnyTerm)) (components topl modname))
 
 
+replicationDepth topl modname submod  = "TopLevel.replicationDepth" <? do
+  -- get the terminals of the submodule
+  terms <- terminals topl submod
 
---getCompDriver 
-
+  let determineWidthFromTerm t = do
+        comp <- getComponentWithTerminal topl modname t
+        nb "know the width of the terminals?"
+        termWidth <- Part.width (TermC t)
+        nb "remove terms from component and guess its width"
+        cw <- GComp.width (GComp.removeTerms comp)
+        case (termWidth, cw) of
+          (Just tw, [Just cw]) -> do
+            nb "found guesses for terminal width and component width"
+            return $ cw `div` tw
+          (_, []) -> do
+            die $ "component width couldn't be determined"
+          (_, _) -> do
+            die $ "Couldn't find guess for terminal width nor component width."
 
   
-  --   return sig
+  -- get the components for each terminal
+  
+  -- if the width of a component is undeclared, this may mean that
+  guesses <- mapM determineWidthFromTerm terms
+  if length (DL.nub guesses) == 1
+    then return $ head guesses
+    else do nb $ show guesses
+            die "guesses contain more than one guess for width"
+            
+    
 
-
--- If there is no driving signal in this component, then find other other components
-
+  

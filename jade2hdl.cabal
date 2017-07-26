@@ -33,7 +33,8 @@ library
                      , Jade.Vhdl
                      , Jade.Util
                      , Jade.Icon
-                     , TestModule
+                     , Jade.Signal
+                     , TestModule                     
   build-depends:       QuickCheck >= 2.9.2,
                        aeson >= 1.0.2.1,
                        array >= 0.5.1.1,
@@ -87,7 +88,13 @@ test-suite jade2hdl-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             TestAll.hs
-  other-modules:       TestDecode, TestVhdl
+  
+  other-modules:       TestDecode
+                     , TestVhdl
+                     , TestModule
+                     , TestTopLevel
+                     , TestUtil
+                     , TestIcon
   
   build-depends:       QuickCheck
                      , QuickCheck >= 2.9.2

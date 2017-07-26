@@ -301,17 +301,11 @@ testLineSignals modt (TestLine asserts samples _) = do
       outWidths = map Sig.width outSigs
 
   -- improve these error messages
-  when (sum inWidths /= length asserts) $
-    fail $ "testline asserts doesn't match the width of the signals"
-    ++ (show (inSigs, asserts))
+  when (sum inWidths /= (fromIntegral $ length asserts)) $ 
+    fail $ "testline asserts doesn't match the width of the signals: " ++ (show (inSigs, asserts))
 
-  when (sum outWidths /= length samples) $
-    fail $ "testline samples do not match the width of the signals"
-    ++ (show (outSigs, samples))
-
-  return $ concat [ zip inSigs (bust inWidths asserts)
-                  , zip outSigs (bust outWidths samples) ]
-
-
-
-
+  when (sum outWidths /= (fromIntegral $ length samples)) $ 
+    fail $ "testline samples do not match the width of the signals: " ++ (show (outSigs, samples))
+    
+  return $ concat [ zip inSigs (bust (map fromIntegral inWidths) asserts)
+                  , zip outSigs (bust (map fromIntegral outWidths) samples) ]
