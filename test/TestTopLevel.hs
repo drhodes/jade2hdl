@@ -203,12 +203,16 @@ testAll = do
   testNumComponents "JumperPort2" 1
 
   --------------------------------------------
-  testReplicationDepth "RepAnd2" 2
   testReplicationDepth "And2Ports" 1 
   testReplicationDepth "And2Ports2" 1
   testReplicationDepth "And2Ports3" 1
   testReplicationDepth "And2Ports4" 1
- 
+
+  testReplicationDepth "RepAnd2" 2
+  testReplicationDepth "RepAnd3" 4
+  testReplicationDepth "RepAnd4" 4
+
+  
   -- failing
   --repand2 = testNumComponents "RepAnd2" 6
 

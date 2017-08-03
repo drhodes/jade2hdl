@@ -23,3 +23,17 @@ instance (Show a1, Show a2, Show a3, Show a4, Show a5) =>
 
 startsWith tgt src = take (length src) tgt == src
 
+-- zip4 [] _ _ _ = []
+-- zip4 _ [] _ _ = []
+-- zip4 _ _ [] _ = []
+-- zip4 _ _ _ [] = []
+-- zip4 (x1:xs1) (x2:xs2) (x3:xs3) (x4:xs4) = (x1,x2,x3,x4):(zip4 xs1 xs2 xs3 xs4)
+
+uniq [x] = [x]
+uniq [x, y] = if x == y then [y] else [x, y]
+uniq (x:y:rest) = if x == y
+                  then uniq (y:rest)
+                  else x : (uniq (y:rest))
+
+chunk n [] = []
+chunk n xs = take (fromIntegral n) xs : chunk (fromIntegral n) (drop (fromIntegral n) xs)

@@ -45,7 +45,10 @@ width part = do
   case part of 
     PortC (Port _ (Just s)) -> return $ Signal.width s
     PortC (Port _ (Nothing)) -> return Nothing
-    WireC (Wire _ (Just s)) -> return $ Signal.width s
+    WireC (Wire _ (Just s)) -> do
+      nb $ "For this wire: " ++ show part
+      nb $ "Found width:   " ++ (show $ Signal.width s)
+      return $ Signal.width s
     WireC (Wire _ Nothing) -> return Nothing
     TermC (Terminal _ s) -> return $ Just $ Sig.width s
     x -> die $ "Part.width: Not implemented for: " ++ show x

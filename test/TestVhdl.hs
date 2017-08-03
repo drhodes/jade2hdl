@@ -68,7 +68,7 @@ spawnOneTest jadefile modname = do
 
 spawn s = spawnOneTest ("./test-data/" ++ s ++ ".json") ("/user/" ++ s)
 
-spawnAllTests = do  
+testAll = do  
   mapM_ spawn [ "And41"
               , "AndStuff4"
               , "AndStuff5"

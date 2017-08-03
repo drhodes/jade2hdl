@@ -30,7 +30,7 @@ import qualified Data.ByteString.Char8 as B
 import Jade.Util
 
 import Control.Monad.Writer
-
+import Control.Monad.State.Lazy
 debug = True
 
 hashid :: Hashable a => a -> String
@@ -38,7 +38,9 @@ hashid x =
   let ctx = WH.hashidsSimple "salt"
       in B.unpack $ WH.encode ctx . abs . DH.hash $ x
 
-type J = ExceptT String (Writer [String]) 
+
+type J = ExceptT String (Writer [String])
+
 
 runX x = 
   let result = runExceptT x
@@ -47,7 +49,7 @@ runX x =
 
 runLog :: J a -> String
 runLog x = let log = snd $ runX x
-           in DL.intercalate "\n" ("Cool Story":DL.nubBy (==) log)
+           in DL.intercalate "\n" ("Cool Story": uniq log)
 
 runJ :: J a -> Either String a
 runJ = fst . runX
@@ -60,7 +62,7 @@ runJIO :: J (IO a) -> IO String
 runJIO x =
   case runX x of
     (Left msg, log) -> do putStrLn msg
-                          return $ DL.intercalate "\n" ("Cool Story":DL.nubBy (==) log)
+                          return $ DL.intercalate "\n" ("Cool Story" : uniq log)
     (Right f, log) -> do f
                          return ""
 
@@ -296,6 +298,8 @@ data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    , store :: DM.Map a Int
                                    , curId :: Int
                                    } deriving (Show)
+
+
 
 
 list x = nb $ DL.intercalate "\n" $ map show x

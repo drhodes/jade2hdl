@@ -310,10 +310,11 @@ replicationDepth topl modname submod  = "TopLevel.replicationDepth" <? do
   
   -- if the width of a component is undeclared, this may mean that
   guesses <- mapM determineWidthFromTerm terms
-  if length (DL.nub guesses) == 1
-    then return $ head guesses
-    else do nb $ show guesses
-            die "guesses contain more than one guess for width"
+  return $ maximum guesses
+  -- if length (DL.nub guesses) == 1
+  --   then return $ head guesses
+  --   else do nb $ show guesses
+  --           die "guesses contain more than one guess for width"
             
     
 

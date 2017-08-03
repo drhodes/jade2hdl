@@ -28,3 +28,14 @@ width (GComp nodes) = "GComp.width" <? do
    
 
 
+name :: GComp -> J String
+name (GComp nodes) = "UnionFind.nameComp" <? do
+  let parts = map nodePart nodes
+      signals1 = [signal | WireC (Wire _ (Just signal)) <- parts]
+      --signals2 = [signal | PortC (Port _ (Just signal)) <- parts]
+      names = [n | Signal (Just (SigSimple n)) _ _ <- signals1] -- ++ signals2]
+      genNameLen = 10
+  
+  return $ if length names > 0
+           then head names
+           else take genNameLen $ "wire_" ++ hashid parts

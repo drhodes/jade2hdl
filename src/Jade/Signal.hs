@@ -11,3 +11,5 @@ width :: Signal -> Maybe Integer
 width (Signal _ (Just w) _) = Just w
 width (Signal (Just sig) _ _) = Just $ Sig.width sig
 width _ = Nothing
+
+
