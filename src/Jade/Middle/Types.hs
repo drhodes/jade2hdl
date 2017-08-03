@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Jade.Middle.Types where
 
 import Control.Monad
@@ -15,9 +16,6 @@ import qualified Jade.Part as Part
 import qualified Jade.Sig as Sig
 import qualified Jade.TopLevel as TopLevel
 
------------------------------------------------------------------------------
--- need a list of replicated sub modules that are ready to transform into vhdl.
-
 data TermAssoc = TermAssoc { taDir :: Direction
                            , taSrc :: Sig
                            , taTgt :: Sig
@@ -31,13 +29,12 @@ flipTermMap xs = map flipTermAssoc xs
 type TermMap = [TermAssoc] 
 
 -- replicated submodule.
-data SubModuleRep = SubModuleRep { smrTermMapInput :: TermMap
-                                 , smrTermMapOutput :: TermMap
+data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
+                                 , smrTermMapOutput :: [TermMap]
                                  , smrSubModule :: SubModule
                                  , smrZIndex :: Integer
                                  } deriving (Show, Eq)
 
-firstAndLast xs = (head xs, last xs)
 ---------------------------------------------------------------------------------------------------
 replicateOneTerminal :: Integer -> Direction -> Terminal -> GComp -> J TermMap
 replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicateOneTerminal" <? do
@@ -48,17 +45,19 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
                                                                        , show compId
                                                                        , show termWidth
                                                                        , show numReplications ]
+  termSigs <- Sig.explode sig
+
   case (compWidth, termWidth) of
     ([Just compWidth], Just termWidth) ->
-      let totalWidth = termWidth * numReplications
+      let totalWidth = fromInteger $ termWidth * numReplications
       in if compWidth == totalWidth
             -- the component has wirewidth equal to the full
             -- replication width, so the component will need to be
             -- sliced in slices equal to the width of the terminal.
          then do nb "case compWidth == totalWidth"
-                 let ranges = map firstAndLast $ chunk termWidth (reverse [0 .. totalWidth - 1])
-                     srcs = [SigRange compId i j | (i, j) <- ranges]
-                     tmap = zipWith (TermAssoc In) srcs (repeat sig)
+                 let singles = reverse [0 .. totalWidth - 1]
+                     srcs = map (SigIndex compId) singles
+                     tmap = zipWith (TermAssoc In) srcs (concat $ repeat termSigs)
                  return $ case dir of
                             In  -> tmap
                             Out -> flipTermMap tmap
@@ -71,10 +70,9 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
                   -- of the replicated submodules. The component input
                   -- signal will have to be replicated to match the
                   -- width of the replicated submodules.
-                  let numSlices = fromIntegral $ totalWidth `div` compWidth
-                      
-                      srcs = take numSlices $ repeat (SigRange compId (compWidth - 1) 0)
-                      tmap = zipWith (TermAssoc In) srcs (repeat sig)
+                  let srcs = map (SigIndex compId) (reverse [0 .. compWidth -1])
+                      srcReplication = concat $ repeat srcs
+                      tmap = take (fromIntegral totalWidth) (cycle $ zipWith (TermAssoc In) srcReplication termSigs)
                   return $ case dir of
                              In -> tmap
                              Out -> flipTermMap tmap
@@ -85,32 +83,28 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
     (_, Nothing) -> die $ "Couldn't determine width of terminal: " ++ show term
     (_, _) -> die $ "Couldn't determine width of componenent: " ++ show comp
 
-allSameLen xs = length (DL.nub $ map length xs) == 1
-
 oneOfEach xs =  
   if 0 `elem` (map length xs)
   then ([], [])
   else (map head xs, map tail xs)
 
-buildSubModuleReps :: [TermMap] -> [TermMap] -> SubModule -> Integer -> J [SubModuleRep]
+buildSubModuleReps :: [[TermMap]] -> [[TermMap]] -> SubModule -> Integer -> J [SubModuleRep]
 buildSubModuleReps inputTermMaps outputTermMaps submod zidx = "buildSubModuleRep" <? do
-  let (inputTermMap, restITM) = oneOfEach inputTermMaps
-      (outputTermMap, restOTM) = oneOfEach outputTermMaps
-      smr = SubModuleRep inputTermMap outputTermMap submod zidx
-
-  -- nb $ show zidx
-  -- nb (subName submod)
-  -- list inputTermMap
-  -- list outputTermMap
+  nb $ show $ length inputTermMaps
+  nb $ show $ length outputTermMaps
+  if zidx < 0 then return []
+    else do let itms = map head inputTermMaps
+                otms = map head outputTermMaps
+                smr = SubModuleRep itms otms submod zidx
   
-  if zidx < 0
-    then return []
-    else liftM (smr:) (buildSubModuleReps restITM restOTM submod (zidx-1))
+            liftM (smr:) (buildSubModuleReps
+                           (map tail inputTermMaps)
+                           (map tail outputTermMaps) submod (zidx-1))
 
 
 subModuleInstances :: TopLevel -> String -> SubModule -> J [SubModuleRep]
 subModuleInstances topl modname submod@(SubModule name loc) = do
-  nb "Jade.Vhdl.mkSubModuleInstance"
+  nb "Middle.Types.subModuleInstances"
   repd <- TopLevel.replicationDepth topl modname submod
   m <- TopLevel.getModule topl name 
   
@@ -125,11 +119,13 @@ subModuleInstances topl modname submod@(SubModule name loc) = do
 
   mapM_ (\(xs) -> list xs >> nb "----") inputTermMaps
   mapM_ (\(xs) -> list xs >> nb "----") outputTermMaps
-  nb $ "REPD: " ++ show repd
+  nb $ "REPD: " ++ show repd  
+  nb $ show repd
+  let itms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- inputTermMaps] :: [[TermMap]]
+      otms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- outputTermMaps] :: [[TermMap]]
 
-  unless (allSameLen inputTermMaps) $ do nb "input term maps are not all the same length" >> bail
-  unless (allSameLen outputTermMaps) $ do nb "output term maps are not all the same length" >> bail
+  smr <- buildSubModuleReps itms otms submod (repd - 1)
+  list smr
+  nb $ show $ length smr
+  return smr
   
-  x <- buildSubModuleReps inputTermMaps outputTermMaps submod (repd-1)
-  --nb $ show x
-  return x

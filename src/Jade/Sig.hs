@@ -136,3 +136,17 @@ getName sig = case sig of
                   die $ "Sig.name doesn't support: " ++ show x
 
 
+explode :: Sig -> J [Sig]
+explode sig = "Sig.explode" <?
+  case sig of 
+    SigSimple name -> return $ [SigIndex name 0]
+    SigIndex name x -> return $ [SigIndex name x]
+    SigHash name x -> die "explode doesn't handle SigHash yet"
+    SigRange name x y -> return $ [SigIndex name i | i <- if x == y then [x]
+                                                          else if x < y
+                                                               then [y, y-1 .. x]
+                                                               else [x, x-1 .. y]]
+    SigRangeStep name x y z -> die "explode doesn't handle SigRangeStep yet"
+    x -> die $ "Sig.explode doesn't support: " ++ show x
+
+

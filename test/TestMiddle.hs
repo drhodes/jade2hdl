@@ -35,23 +35,26 @@ testReplicationDepth modname expDepth = do
                   return False
   testSkeleton modname func 
 
-testSubModuleInstances :: String -> IO ()
-testSubModuleInstances modname = do
+checkSubModuleInstances :: String -> IO ()
+checkSubModuleInstances modname = do
   let func topl = "testSubModuleInstances" <? do
         let parentModuleName = "/user/" ++ modname
         subs <- TopLevel.getSubModules topl parentModuleName
         let sub = subs !! 0
         instances <- subModuleInstances topl parentModuleName sub
-        return False
+        return True
   testSkeleton modname func
 
 testAll = do
   --------------------------------------------
-  --testReplicationDepth "RepAnd2" 2  
-  testSubModuleInstances "RepAnd3" 
-  --testSubModuleInstances "RepAnd4"
+  testReplicationDepth "And2Ports" 1 
+  testReplicationDepth "And2Ports2" 1
+  testReplicationDepth "And2Ports3" 1
+  testReplicationDepth "And2Ports4" 1  
+  testReplicationDepth "RepAnd2" 2
+
+  -- 
+  checkSubModuleInstances "RepAnd2" 
+  checkSubModuleInstances "RepAnd3" 
+  checkSubModuleInstances "RepAnd4"
  
-  -- testReplicationDepth "And2Ports" 1 
-  -- testReplicationDepth "And2Ports2" 1
-  -- testReplicationDepth "And2Ports3" 1
-  -- testReplicationDepth "And2Ports4" 1
