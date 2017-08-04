@@ -49,6 +49,6 @@ width part = do
       nb $ "For this wire: " ++ show part
       nb $ "Found width:   " ++ (show $ Signal.width s)
       return $ Signal.width s
-    WireC (Wire _ Nothing) -> return Nothing
+    WireC (Wire _ Nothing) -> return $ Just 1
     TermC (Terminal _ s) -> return $ Just $ Sig.width s
     x -> die $ "Part.width: Not implemented for: " ++ show x

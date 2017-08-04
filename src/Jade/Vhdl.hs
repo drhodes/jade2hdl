@@ -14,6 +14,8 @@ import qualified Jade.Module as Module
 import qualified Jade.UnionFindST as UnionFindST
 import qualified Jade.Sig as Sig
 import qualified Jade.GComp as GComp
+import qualified Jade.Middle.Types as T
+
 import Control.Monad
 import Jade.Util
 import Text.Mustache.Compile (mustache)

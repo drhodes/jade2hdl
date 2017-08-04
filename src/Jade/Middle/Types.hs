@@ -81,7 +81,8 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
                   nb "case compWidth > totalWidth"
                   impossible "This can't happen if the JADE modules tests pass in JADE"                  
     (_, Nothing) -> die $ "Couldn't determine width of terminal: " ++ show term
-    (_, _) -> die $ "Couldn't determine width of componenent: " ++ show comp
+    (x, y) -> do nb $ "got: " ++ show (x, y)
+                 die $ "Couldn't determine width of componenent: " ++ show comp
 
 oneOfEach xs =  
   if 0 `elem` (map length xs)

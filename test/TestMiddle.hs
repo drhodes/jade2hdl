@@ -54,6 +54,14 @@ testAll = do
   testReplicationDepth "RepAnd2" 2
 
   -- 
+  -- checkSubModuleInstances "RepAnd2" 
+  -- checkSubModuleInstances "RepAnd3" 
+  -- checkSubModuleInstances "RepAnd4"
+
+  testReplicationDepth "And41" 1
+
+test = do  
+  checkSubModuleInstances "And41"
   checkSubModuleInstances "RepAnd2" 
   checkSubModuleInstances "RepAnd3" 
   checkSubModuleInstances "RepAnd4"
