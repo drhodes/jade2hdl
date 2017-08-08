@@ -65,44 +65,12 @@ partitionM f (x:xs) = do
     (as,bs) <- partitionM f xs
     return ([x | res]++as, [x | not res]++bs)
 
-
 collect :: UnionFind s -> [Int] -> ST s [[Int]]
 collect _ [] = return []
 collect uf (x:rest) = do
   (cnx, notcnx) <- partitionM (find uf x) rest
   liftM (cnx:) (collect uf notcnx)
 
-
---components :: [Edge] -> [GComp]
---components [] = []
--- components edges = runST $ do
---   let nodes = DL.nub $ concat [[n1, n2] | (Edge n1 n2) <- edges]
---       table = DM.fromList (zip nodes [0..])
-
---   uf <- newUnionFind $ length nodes
-        
---   let f (Edge node2 node1) =
---         case (DM.lookup node1 table, DM.lookup node2 table) of
---           (Just i, Just j) -> unite uf j i
---           _ -> return ()
---   mapM_ f edges
-
---   -- This is just completely insane.  I've some how screwed up the
---   -- collect function here, need to really take a hard look at it.
---   xss <- collect uf $ reverse $ DM.elems table --[0 .. length nodes - 1]
---   return $ map (helper nodes) xss
-
---getConnected :: UnionFind s -> [Int] -> [Int] -> ST s [[Int]]
-
--- getConnected :: UnionFind s -> [Int] -> [Int] -> ST s [[Int]]
--- getConnected _ _ [] = return []
--- getConnected uf alreadySeen (nodeIdx:rest) = do
---   if nodeIdx `elem` alreadySeen
---     then getConnected uf alreadySeen rest
---     else do connectedNodes <- filterM (find uf nodeIdx) rest
---             liftM (connectedNodes:) (getConnected uf (alreadySeen ++ connectedNodes) rest)
-
---components :: [Edge] -> [GComp]
 components edges = runST $ do
   let nodes = DL.nub $ DL.sort $ concat [[n1, n2] | Edge n1 n2 <- edges]
       table = DM.fromList $ zip nodes [0..]
@@ -119,16 +87,6 @@ components edges = runST $ do
   xs <- sequence [filterM (find uf x) [0.. length nodes - 1] | x <- [0.. length nodes - 1]]
   let indexes = DL.nub xs
   return $ [GComp $ DL.nub $ map (nodes !!) xs | xs <- indexes]
-
-
-  --sequence [find uf x y | x <- DM.elems table, y <- DM.elems table]
-
-
-
-
-helper :: [Node] -> [Int] -> GComp
-helper nodes xs = GComp $ map (nodes !!) xs
-
   
 nameComp :: GComp -> J String
 nameComp (GComp nodes) = "UnionFind.nameComp" <? do
