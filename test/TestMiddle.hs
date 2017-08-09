@@ -42,7 +42,7 @@ checkSubModuleInstances modname = do
         subs <- TopLevel.getSubModules topl parentModuleName
         let sub = subs !! 0
         instances <- subModuleInstances topl parentModuleName sub
-        return True
+        return False
   testSkeleton modname func
 
 testAll = do

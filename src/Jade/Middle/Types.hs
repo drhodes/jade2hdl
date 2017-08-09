@@ -46,7 +46,7 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
                                                                        , show termWidth
                                                                        , show numReplications ]
   termSigs <- Sig.explode sig
-
+  
   case (compWidth, termWidth) of
     ([Just compWidth], Just termWidth) ->
       let totalWidth = fromInteger $ termWidth * numReplications

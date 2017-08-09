@@ -2,7 +2,7 @@
     if {{signal}} /= {{{expected}}} then
       report "{{comment}}";
       report "TestNum {{testnum}}";
-      report "expecting: {{{signal}}} = {{{expected}}}";
+      report "expecting: {{{signal}}} = {{{show-expected}}}";
       report "got      : {{{signal}}} = " & {{{signal_to_string}}};
       stop(-1);
     else

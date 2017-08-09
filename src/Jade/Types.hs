@@ -69,7 +69,7 @@ runJIO x =
 die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
 
 impossible msg = die $ "The impossible happened: " ++ msg
-
+unimplemented s = die $ "unimplemented: " ++ s
 
 nb :: String -> J ()
 nb s = if debug == True

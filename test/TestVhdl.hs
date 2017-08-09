@@ -42,7 +42,7 @@ spawnOneTest jadefile modname = do
     moduleCode <- Vhdl.mkModule topl modname
     testCode <- Vhdl.mkTestBench topl modname 
     return $ do
-      TIO.writeFile outfile (T.concat [ prelude, moduleCode, testCode ])
+      TIO.writeFile outfile (T.concat [prelude, moduleCode, testCode])
 
   let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }
   let cmd1 = sh "ghdl -a -g --std=08 *.vhdl"
@@ -69,13 +69,13 @@ spawnOneTest jadefile modname = do
 spawn s = spawnOneTest ("./test-data/" ++ s ++ ".json") ("/user/" ++ s)
 
 testAll = do  
-  mapM_ spawn [ "And41"
-              , "AndStuff4"
-              , "AndStuff5"
-                -- "AndStuff6" optimize this, eventually.
+  mapM_ spawn [ "Jumper1"
+              --, "And41"     -- these will require recursive descent into
+              --, "AndStuff4" -- modules to 
+              --, "AndStuff5"
+              --, "Jumper41"
               , "Jumper1"
               , "Jumper1Rot90"
-              , "Jumper41"
               , "Jumper3"
               , "AND2"
               , "AND2Rot90"
@@ -84,13 +84,12 @@ testAll = do
               , "And2Ports3"
               , "And2Ports4"
               ]
+  --spawn "AndStuff6" -- optimize this, eventually.
   spawnBuiltIn
   spawnBuiltInAnd4Messy
   
 spawnBuiltIn = spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
-  
-spawnBuiltInAnd4Messy =
-  spawnOneTest "./test-data/BuiltInAnd4Messy.json" "/user/BuiltInAnd4Messy"
+spawnBuiltInAnd4Messy = spawnOneTest "./test-data/BuiltInAnd4Messy.json" "/user/BuiltInAnd4Messy"
 
 testDUT_UseAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"

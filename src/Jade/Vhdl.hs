@@ -14,7 +14,7 @@ import qualified Jade.Module as Module
 import qualified Jade.UnionFindST as UnionFindST
 import qualified Jade.Sig as Sig
 import qualified Jade.GComp as GComp
-import qualified Jade.Middle.Types as T
+import qualified Jade.Middle.Types as MT
 
 import Control.Monad
 import Jade.Util
@@ -57,6 +57,9 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
       let txt = [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
       recurse $ map T.unpack txt
 
+
+removeQuotes = filter (/= '"') 
+
 testCaseIfBlock :: Integer -> String -> String -> String -> T.Text
 testCaseIfBlock testnum signal expected comment =
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/test-case-if-block.mustache")
@@ -65,12 +68,13 @@ testCaseIfBlock testnum signal expected comment =
       mapping = DM.fromList [ ("testnum", toMustache testnum)
                             , ("signal", toMustache signal)
                             , ("expected", toMustache expected)
+                            , ("show-expected", toMustache (removeQuotes expected))
                             , ("signal_to_string", toMustache to_string)
                             , ("comment", toMustache comment)
                             ]
   in substitute temp mapping
 
-binValToStdLogic bv = case bv of { H -> "'1'" ; L -> "'0'" ; Z -> "'Z'" } 
+binValToStdLogic bv = case bv of { H -> "\"1\"" ; L -> "\"0\"" ; Z -> "\"Z\"" } 
 sigAssert x bv = format "{0} <= {1};" [x, binValToStdLogic bv]
 
 portAssoc :: Sig -> J String
@@ -83,19 +87,29 @@ mkDUT m modname = "Vhdl.testDUT" <? do
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
   portAssociates <- mapM portAssoc (ins ++ outs)
-  let portmap = DL.intercalate ", " portAssociates
+  let portmap = DL.intercalate ", \n" portAssociates
       template = "dut : entity work.{0} port map ({1});"
       mn = Module.mangleModName modname
   return $ format template [mn, portmap]
+
 
 mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
   
-  names <- mapM Sig.getName (ins ++ outs)
-  if null names
+  if null (ins ++ outs)
     then return $ "-- no signal decls"
-    else return $ "signal " ++ DL.intercalate ", " names ++ ": std_logic;"
+    else let f sig = do
+               name <- Sig.getName sig
+               let width = Sig.width sig
+               return $ format "signal {0}: std_logic_vector({1} downto 0);" [name, show width]
+         in do sigDecls <- mapM f (ins ++ outs)
+               return $ DL.intercalate "\n" sigDecls
+
+  
+  -- if null names
+  --   then return $ "-- no signal decls"
+  --   else return $ "signal " ++ DL.intercalate ", " names ++ ": std_logic_vector(0 downto 0);"
   
 mkTestBench :: TopLevel -> [Char] -> J T.Text
 mkTestBench topl modname =
@@ -122,11 +136,10 @@ mkCombinationalTest topl modname =
 
 
 ------------------------------------------------------------------
-
 --mkModule :: TopLevel -> String -> J Maybe String)
+
 mkModule topl modname = do
   nb $ "Jade.Vhdl.mkModule, convert module to VHDL: " ++ modname
-
   m <- TopLevel.getModule topl modname
 
   schem <- case moduleSchem m of
@@ -140,18 +153,17 @@ mkModule topl modname = do
 
   comps <- TopLevel.components topl modname
   instances <- mapM (mkSubModuleInstance topl modname) subs
-
+  
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
 
   inNames <- mapM Sig.getName ins
-  let portIns = map (++" : in std_logic") inNames
+  let portIns = map (++" : in std_logic_vector(0 downto 0)") inNames
 
   outNames <- mapM Sig.getName outs
-  let portOuts = map (++" : out std_logic") outNames
+  let portOuts = map (++" : out std_logic_vector(0 downto 0)") outNames
 
-  let ports = T.pack $ DL.intercalate "; " (portIns ++ portOuts)
-  mapM (UnionFindST.nameComp) comps
+  let ports = T.pack $ DL.intercalate ";\n" (portIns ++ portOuts)
 
   nodeDecls <- mkNodeDecls topl modname
   outputWires <- liftM (DL.intercalate "\n") (mapM (connectOutput topl modname) outs)
@@ -167,35 +179,58 @@ mkModule topl modname = do
   return $ substitute temp mapping
 
 ------------------------------------------------------------------
+comma = T.pack ", \n"
+
+mkSigName :: Sig -> J T.Text
+mkSigName sig = do
+  case sig of
+    SigIndex name idx -> return $ T.pack $ format "{0}({1} downto {1})" [name, show idx]
+    x -> unimplemented $ "Vhdl.mkSigName: " ++ show x
+
+
+mkTermAssoc :: MT.TermAssoc -> J T.Text
+mkTermAssoc (MT.TermAssoc dir src tgt) = do
+  -- TermAssoc {taDir = In, taSrc = SigIndex "A" 0, taTgt = SigIndex "in1" 0}
+  srcTxt <- mkSigName src
+  tgtTxt <- mkSigName tgt
+  case dir of 
+    In -> return $ T.concat [ tgtTxt , T.pack " => " , srcTxt ]
+    Out -> return $ T.concat [ srcTxt , T.pack " => " , tgtTxt ]
+
+mkTermMap :: MT.TermMap -> J T.Text
+mkTermMap xs = "Vhdl.mkTermMap" <? do
+  ts <- mapM mkTermAssoc xs
+  return $ T.concat $ DL.intersperse comma ts
+    
+mkPortMap :: [MT.TermMap] -> [MT.TermMap] -> J T.Text
+mkPortMap ins outs = "Vhdl.mkPortMap" <? do
+  portIns <- mapM mkTermMap ins
+  portOuts <- mapM mkTermMap outs
+  return $ T.concat [ T.intercalate comma portIns
+                    , comma
+                    , T.intercalate comma portOuts ]
+    
+------------------------------------------------------------------
+mkSubModuleInstance :: TopLevel -> String -> SubModule -> J T.Text
 mkSubModuleInstance topl modname submod@(SubModule name loc) = do
   nb "Jade.Vhdl.mkSubModuleInstance"
-  
-  m <- TopLevel.getModule topl name 
-  inputTerms <- Module.getInputTerminals m loc
-  outputTerms <- Module.getOutputTerminals m loc
+  subModuleReps <- MT.subModuleInstances topl modname submod
 
-  let termName (Terminal _ sig)  = Sig.getName sig
-  
-  inComps <- mapM (TopLevel.componentWithTerminal topl modname) inputTerms
-  inSigNames <- mapM UnionFindST.nameComp inComps
-  inTermNames <- mapM termName inputTerms
-
-  outComps <- mapM (TopLevel.componentWithTerminal topl modname) outputTerms
-  outSigNames <- mapM UnionFindST.nameComp outComps
-  outTermNames <- mapM termName outputTerms
-  
-  let ps = zipWith (\x y -> x ++ " => " ++ y) (inTermNames ++ outTermNames) (inSigNames ++ outSigNames)
-      portmap = DL.intercalate ", " ps
-      label = (Module.mangleModName name) ++ "_" ++ (take 5 $ hashid loc)
-  
-  -- u1 : entity work.AND2 port map (in1 => a, in2 => b, out1 => w1);
-  let txt = "{{label}} : entity work.{{submod-name}} port map ({{{port-map}}});"
-      Right template = compileTemplate "mkSubModuleInstance" (T.pack txt)
-      mapping = DM.fromList [ ("label", toMustache label)
-                            , ("submod-name", toMustache $ Module.mangleModName name)
-                            , ("port-map", toMustache portmap)
-                            ]
-  return $ substitute template mapping
+  let mkOneInstance submodrep@(MT.SubModuleRep ins outs _ zIdx) = do
+        portmap <- mkPortMap ins outs
+        let label = format "{0}_{1}_{2}" [ Module.mangleModName name
+                                         , take 5 $ hashid loc
+                                         , show zIdx ]
+        
+        -- u1 : entity work.AND2 port map (in1 => a, in2 => b, out1 => w1);
+        let txt = "{{label}} : entity work.{{submod-name}} port map ({{{port-map}}});"
+            Right template = compileTemplate "mkSubModuleInstance" (T.pack txt)
+            mapping = DM.fromList [ ("label", toMustache label)
+                                  , ("submod-name", toMustache $ Module.mangleModName name)
+                                  , ("port-map", toMustache portmap)
+                                  ]
+        return $ substitute template mapping
+  liftM (T.intercalate (T.pack "\n")) $ mapM mkOneInstance subModuleReps
 
 ------------------------------------------------------------------
 -- get all node names needed for wiring.
@@ -207,14 +242,22 @@ mkNodeDecls topl modname =
   ignore <- mapM Sig.getName (ins ++ outs)
   
   comps <- TopLevel.components topl modname
-  compNames <- mapM UnionFindST.nameComp comps
+  compNames <- mapM (GComp.name . GComp.removeTerms) comps
+  
+  let keepers = [comp | (n, comp) <- zip compNames comps, n `notElem` ignore]
 
-  let keepers = DL.intercalate ", " [n | n <- compNames, n `notElem` ignore]
-      temp = "signal {0} : std_logic;"
+  let f comp = do        
+        n <- GComp.name $ GComp.removeTerms comp
+        w <- liftM maximum $ GComp.width comp
+        let temp = "signal {0} : std_logic_vector({1} downto 0);"
+        case w of
+          Just w -> return $ format temp [n, show (w - 1)] -- one less because of zero indexing.
+          Nothing -> die "Couldn't determine width of this component"
       
   if null keepers
     then return "-- no node decls"
-    else return $ format temp [keepers]
+    else do sigDecls <- mapM f keepers
+            return $ concat $ DL.intersperse "\n" sigDecls
 
 
 -- If output signals are not connected directly to a submodule output,
