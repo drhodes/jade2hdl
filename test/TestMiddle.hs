@@ -35,6 +35,7 @@ testReplicationDepth modname expDepth = do
                   return False
   testSkeleton modname func 
 
+
 checkSubModuleInstances :: String -> IO ()
 checkSubModuleInstances modname = do
   let func topl = "testSubModuleInstances" <? do
@@ -45,7 +46,21 @@ checkSubModuleInstances modname = do
         return False
   testSkeleton modname func
 
+checkConnectOneOutput modname outsig = do
+  let func topl = "testSubModuleInstances" <? do
+        let modname' = "/user/" ++ modname                
+        result <- connectOneOutput topl modname' outsig
+        nb $ show result
+        return False        
+  testSkeleton modname func
+
+testConnectOutputs = do
+  checkConnectOneOutput "RepAnd2" (SigRange "out1" 1 0)
+
+
 testAll = do
+
+  
   --------------------------------------------
   testReplicationDepth "And2Ports" 1 
   testReplicationDepth "And2Ports2" 1
@@ -66,3 +81,5 @@ test = do
   checkSubModuleInstances "RepAnd3" 
   checkSubModuleInstances "RepAnd4"
  
+
+  

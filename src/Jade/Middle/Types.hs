@@ -35,6 +35,84 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
                                  , smrZIndex :: Integer
                                  } deriving (Show, Eq)
 
+
+data ModOutput = ModOutput TermMap deriving (Show, Eq)
+
+
+--connectOneOutput :: TopLevel -> String -> Sig -> J ModOutput
+connectOneOutput topl modname outSig = "connectOneOutput" <? do
+  -- find the components with the name from sig.
+  outSigName <- Sig.getName outSig
+  comps <- TopLevel.getComponentsWithName topl modname outSigName
+  
+  -- determine width of outSig, this is absolutely known and defined
+  -- in the jade module, this width can be used to deduce the width of other parts.
+  let outputWidth = Sig.width outSig 
+  
+  -- from the components that have the name from sig, figure out which
+  -- slice of which components to take and stack them up
+  let getSlices comp = "getSlice" <? do
+        compName <- GComp.name (GComp.removeTerms comp)
+        compWidth <- liftM maximum $ GComp.width comp        
+        -- find outSig in comp.
+        matchingSigs <- GComp.getSigsWithIdent comp outSigName
+        -- for each sig create a termmap, use the
+        singles <- mapM Sig.explode matchingSigs
+
+        case compWidth of
+          Nothing -> die $ format "Couldn't determine the width of component: {0}" [compName]
+          Just compWidth -> do
+            let tgts = reverse $ DL.sort $ concat singles
+                srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
+
+            when (length tgts /= length srcs) $ do
+              nb "The lengths of the targets and sources are not the same"
+              bail
+            
+            return $ zipWith (TermAssoc Out) srcs tgts
+        
+  liftM concat $ mapM getSlices comps
+
+
+
+connectOneInput topl modname inSig = "connectOneInput" <? do
+  -- find the components with the name from sig.
+  inSigName <- Sig.getName inSig
+  comps <- TopLevel.getComponentsWithName topl modname inSigName
+  
+  -- determine width of inSig, this is absolutely known and defined
+  -- in the jade module, this width can be used to deduce the width of other parts.
+  let inputWidth = Sig.width inSig 
+  
+  -- from the components that have the name from sig, figure in which
+  -- slice of which components to take and stack them up
+  let getSlices comp = "getSlice" <? do
+        compName <- GComp.name (GComp.removeTerms comp)
+        compWidth <- liftM maximum $ GComp.width comp        
+        -- find inSig in comp.
+        matchingSigs <- GComp.getSigsWithIdent comp inSigName
+        -- for each sig create a termmap, use the
+        singles <- mapM Sig.explode matchingSigs
+
+        case compWidth of
+          Nothing -> die $ format "Couldn't determine the width of component: {0}" [compName]
+          Just compWidth -> do
+            let tgts = reverse $ DL.sort $ concat singles
+                srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
+
+            when (length tgts /= length srcs) $ do
+              nb "The lengths of the targets and sources are not the same"
+              bail
+            
+            return $ zipWith (TermAssoc In) srcs tgts
+        
+  liftM concat $ mapM getSlices comps
+
+
+
+
+
+
 ---------------------------------------------------------------------------------------------------
 replicateOneTerminal :: Integer -> Direction -> Terminal -> GComp -> J TermMap
 replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicateOneTerminal" <? do

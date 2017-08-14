@@ -33,6 +33,11 @@ mkTestLine :: Module -> [Action] -> TestLine -> Integer -> J [String]
 mkTestLine _ [] _ _ = return []
 mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
   let recurse x = liftM (x++) (mkTestLine m actions testline testnum)
+
+  let splitAssert [] xs = [xs]
+      splitAssert widths xs = let n = fromIntegral $ head widths
+                              in (take n xs) : (splitAssert (tail widths) (drop n xs))
+  
   case act of
     Tran dur ->
       case dur of
@@ -42,21 +47,22 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
     Assert _ -> "Assert" <? do
       -- a <= '0'; b <= '0'; c <= '0'; d <= '0';
       let TestLine asserts _ _ = testline
-      Inputs ins <- Module.getInputs m
+      Inputs ins <- Module.getInputs m      
       inputNames <- mapM Sig.getName ins
-      recurse $ zipWith sigAssert inputNames asserts
+      let inputWidths = map Sig.width ins
+      recurse $ zipWith sigAssert inputNames (splitAssert inputWidths asserts)
 
     Sample _ -> "Samples" <? do
       Outputs outs <- Module.getOutputs m
-      let TestLine _ expecteds comment = testline 
-          exps = map binValToStdLogic expecteds
+      let TestLine _ expecteds comment = testline
+          outputWidths = map Sig.width outs
+          exps = splitAssert outputWidths (map binValToChar expecteds)
           c = case comment of
                 Just s -> "// " ++ s
                 Nothing -> ""
       os <- mapM Sig.getName outs      
       let txt = [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
       recurse $ map T.unpack txt
-
 
 removeQuotes = filter (/= '"') 
 
@@ -67,20 +73,26 @@ testCaseIfBlock testnum signal expected comment =
       to_string = format "to_string({0})" [signal]
       mapping = DM.fromList [ ("testnum", toMustache testnum)
                             , ("signal", toMustache signal)
-                            , ("expected", toMustache expected)
+                            , ("expected", toMustache (quote expected))
                             , ("show-expected", toMustache (removeQuotes expected))
                             , ("signal_to_string", toMustache to_string)
                             , ("comment", toMustache comment)
                             ]
   in substitute temp mapping
 
-binValToStdLogic bv = case bv of { H -> "\"1\"" ; L -> "\"0\"" ; Z -> "\"Z\"" } 
-sigAssert x bv = format "{0} <= {1};" [x, binValToStdLogic bv]
+binValToStdLogic bv = case bv of { H -> "\"1\"" ; L -> "\"0\"" ; Z -> "\"Z\"" }
+binValToChar bv = case bv of { H -> '1' ; L -> '0' ; Z -> 'Z' }
+quote x = ['"'] ++ x ++ ['"']
+
+
+sigAssert :: String -> [BinVal] -> String
+sigAssert x bv = format "{0} <= {1};" [x, quote $ map binValToChar bv]
 
 portAssoc :: Sig -> J String
 portAssoc sig = do
    name <- Sig.getName sig
-   return $ format "{0} => {0}" [name]
+   let w = Sig.width sig - 1
+   return $ format "{0}({1} downto 0) => {0}({1} downto 0)" [name,show w]
 
 --dut : entity work.AND23 port map (a => a, b => b, c => c, d => d, output => result);
 mkDUT m modname = "Vhdl.testDUT" <? do  
@@ -93,6 +105,13 @@ mkDUT m modname = "Vhdl.testDUT" <? do
   return $ format template [mn, portmap]
 
 
+-- these need to be added 
+    -- wire_dLeX1 <= in1;
+    -- wire_9651R <= in2;
+    -- out1 <= wire_GPXbK;
+
+
+
 mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
@@ -102,14 +121,14 @@ mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
     else let f sig = do
                name <- Sig.getName sig
                let width = Sig.width sig
-               return $ format "signal {0}: std_logic_vector({1} downto 0);" [name, show width]
+                   initialVal = quote $ take (fromIntegral width) (repeat '0')
+               return $ format "signal {0}: std_logic_vector({1} downto 0) := {2};" [name
+                                                                                    , show (width - 1)
+                                                                                    , initialVal
+                                                                                    ]
+                 
          in do sigDecls <- mapM f (ins ++ outs)
                return $ DL.intercalate "\n" sigDecls
-
-  
-  -- if null names
-  --   then return $ "-- no signal decls"
-  --   else return $ "signal " ++ DL.intercalate ", " names ++ ": std_logic_vector(0 downto 0);"
   
 mkTestBench :: TopLevel -> [Char] -> J T.Text
 mkTestBench topl modname =
@@ -157,16 +176,19 @@ mkModule topl modname = do
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
 
-  inNames <- mapM Sig.getName ins
-  let portIns = map (++" : in std_logic_vector(0 downto 0)") inNames
+  let renderPort dir sig = do
+        name <- Sig.getName sig
+        let w = Sig.width sig
+        return $ format "{0}: {1} std_logic_vector({2} downto 0)" [ name, dir, show $ w - 1]
 
-  outNames <- mapM Sig.getName outs
-  let portOuts = map (++" : out std_logic_vector(0 downto 0)") outNames
-
+  portIns <- mapM (renderPort "in") ins
+  portOuts <- mapM (renderPort "out") outs
+  
   let ports = T.pack $ DL.intercalate ";\n" (portIns ++ portOuts)
 
   nodeDecls <- mkNodeDecls topl modname
-  outputWires <- liftM (DL.intercalate "\n") (mapM (connectOutput topl modname) outs)
+  outputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectOutput topl modname) outs
+  inputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectInput topl modname) ins
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt
@@ -174,6 +196,7 @@ mkModule topl modname = do
                             , ("ports", toMustache ports)
                             , ("node-declarations", toMustache nodeDecls)
                             , ("submodule-entity-instances", toMustache  (T.intercalate  (T.pack "\n") instances))
+                            , ("maybe-wire-input", toMustache inputWires)
                             , ("maybe-wire-output", toMustache outputWires)
                             ]
   return $ substitute temp mapping
@@ -184,9 +207,8 @@ comma = T.pack ", \n"
 mkSigName :: Sig -> J T.Text
 mkSigName sig = do
   case sig of
-    SigIndex name idx -> return $ T.pack $ format "{0}({1} downto {1})" [name, show idx]
+    SigIndex name idx -> return $ T.pack $ format "{0}({1})" [name, show idx]
     x -> unimplemented $ "Vhdl.mkSigName: " ++ show x
-
 
 mkTermAssoc :: MT.TermAssoc -> J T.Text
 mkTermAssoc (MT.TermAssoc dir src tgt) = do
@@ -196,6 +218,17 @@ mkTermAssoc (MT.TermAssoc dir src tgt) = do
   case dir of 
     In -> return $ T.concat [ tgtTxt , T.pack " => " , srcTxt ]
     Out -> return $ T.concat [ srcTxt , T.pack " => " , tgtTxt ]
+
+
+mkTermAssign :: MT.TermAssoc -> J T.Text
+mkTermAssign (MT.TermAssoc dir src tgt) = do
+  -- TermAssoc {taDir = In, taSrc = SigIndex "A" 0, taTgt = SigIndex "in1" 0}
+  srcTxt <- mkSigName src
+  tgtTxt <- mkSigName tgt
+  case dir of 
+    Out -> return $ T.concat [ tgtTxt , T.pack " <= " , srcTxt ]
+    In -> return $ T.concat [ srcTxt , T.pack " <= " , tgtTxt ]
+
 
 mkTermMap :: MT.TermMap -> J T.Text
 mkTermMap xs = "Vhdl.mkTermMap" <? do
@@ -262,31 +295,18 @@ mkNodeDecls topl modname =
 
 -- If output signals are not connected directly to a submodule output,
 -- then there is no structural output to that output.
-connectOutput :: TopLevel -> String -> Sig -> J String
+connectOutput :: TopLevel -> String -> Sig -> J T.Text
 connectOutput topl modname outSig = "Jade.Vhdl.connectOutput" <? do
-  nb "Does outSig share a component with a terminal?"
-  connectedToSubMod <- TopLevel.sigConnectedToSubModuleP topl modname outSig
-  nb "If so, then it's all set"
+  outTermMap <- MT.connectOneOutput topl modname outSig
+  txts <- mapM mkTermAssign outTermMap
+  return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
 
-  if not connectedToSubMod
-    then do nb "otherwise look in that component to see if contains an .input"
-            comps <- TopLevel.components topl modname
-            let compsWithOutputs = filter (flip GComp.hasSig outSig) comps
-            
-            case length compsWithOutputs of
-              0 -> die $ "No comps found with sig: " ++ show outSig
-              1 -> "if it does, then connect .input to outSig" <? do
-                      let comp = head compsWithOutputs
-                      Inputs ins <- TopLevel.getInputs topl modname
-                      
-                      case filter (GComp.hasSig comp) ins of
-                        [driver] -> do
-                          d <- Sig.getName driver
-                          o <- Sig.getName outSig
-                          return $ format "{0} <= {1};" [o, d]
-                        _ -> return "WUT"
-                      
-              _ -> die $ "strange, more than one component found with outSig: " ++ show outSig
-    else return ""
-    
-  
+
+-- If output signals are not connected directly to a submodule output,
+-- then there is no structural output to that output.
+connectInput :: TopLevel -> String -> Sig -> J T.Text
+connectInput topl modname inSig = "Jade.Vhdl.connectInput" <? do
+  inTermMap <- MT.connectOneInput topl modname inSig
+  txts <- mapM mkTermAssign inTermMap
+  return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
+

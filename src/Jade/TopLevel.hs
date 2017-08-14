@@ -305,17 +305,14 @@ replicationDepth topl modname submod  = "TopLevel.replicationDepth" <? do
             die $ "component width couldn't be determined"
           (_, _) -> return 1 -- die $ "Couldn't find guess for terminal width nor component width."
 
-  
-  -- get the components for each terminal
-  
   -- if the width of a component is undeclared, this may mean that
   guesses <- mapM determineWidthFromTerm terms
   return $ maximum guesses
-  -- if length (DL.nub guesses) == 1
-  --   then return $ head guesses
-  --   else do nb $ show guesses
-  --           die "guesses contain more than one guess for width"
-            
-    
+  
+getComponentsWithName :: TopLevel -> String -> String -> J [GComp]
+getComponentsWithName topl modname signame = "TopLevel.getComponentsWithName" <? do
+  comps <- components topl modname
+  filterM (flip GComp.containsSigIdent signame) comps
+  
 
   

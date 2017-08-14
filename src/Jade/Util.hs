@@ -37,3 +37,5 @@ uniq (x:y:rest) = if x == y
 
 chunk n [] = []
 chunk n xs = take (fromIntegral n) xs : chunk (fromIntegral n) (drop (fromIntegral n) xs)
+
+

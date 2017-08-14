@@ -56,7 +56,7 @@ testTermDriverAnd23 = do
 
 testTermDriverAnd23_Wire = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-  printJ $ do let modname =  "/user/UseAND2_3"
+xb  printJ $ do let modname =  "/user/UseAND2_3"
               subs <- TopLevel.getSubModules topl modname
               let submodule@(SubModule subname subloc) = subs !! 0
               inputTerms <- TopLevel.getInputTerminals topl submodule
@@ -68,6 +68,20 @@ testTermDriverAnd23_Wire = do
 testTopLevelComponents1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
   return $ TopLevel.numComponents topl "/user/UseAND2"
+
+testGetComponentsWithName modname signame exp = do
+  Right topl <- Decode.decodeTopLevel $ "./test-data/" ++ modname ++ ".json"
+  printJ $ do let modname' =  "/user/" ++ modname
+              cs <- TopLevel.getComponentsWithName topl modname' signame
+              return $ if length cs == exp then "PASS" else "FAIL"
+
+testGetComponentsWithName1 = do
+  testGetComponentsWithName "RepAnd2" "in2" 1
+  testGetComponentsWithName "RepAnd2" "in1" 1
+  testGetComponentsWithName "RepAnd2" "out1" 1
+  testGetComponentsWithName "RepAnd2" "farfennugen" 0
+  testGetComponentsWithName "Jumper1" "A" 1
+  testGetComponentsWithName "Jumper1" "vout" 1
 
 testTopLevelComponents2 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
@@ -111,10 +125,6 @@ testSigConnectedToSubModuleP2 = do
     Outputs outs <- TopLevel.getOutputs topl modname
     v <- mapM (TopLevel.sigConnectedToSubModuleP topl modname) outs
     if v == [True] then return "PASS" else return "FAIL"
-    
-
-
-
 
 testLoneJumper1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/LoneJumper1.json"

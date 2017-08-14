@@ -16,9 +16,14 @@ sig part =
     TermC (Terminal _ s) -> Just s    
     x -> error $ "Parse.sig: Not implemented for: " ++ show x
 
+
+containsIdentifier :: Part -> String -> J Bool
+containsIdentifier part ident = case sig part of
+                                  Just s -> liftM (== ident) $ Sig.getName s
+                                  Nothing -> return False
+
 hasSigName :: Part -> Bool
 hasSigName = isJust . sig 
-
 
 isJumper (JumperC _) = True
 isJumper _ = False

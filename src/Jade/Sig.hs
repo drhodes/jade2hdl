@@ -6,6 +6,7 @@ import Text.Parsec
 import Jade.Types
 import qualified Numeric as N
 import Text.Format
+import Control.Monad
 
 {-
 signal names need to be parsed.
@@ -135,6 +136,11 @@ getName sig = case sig of
                 x ->
                   die $ "Sig.name doesn't support: " ++ show x
 
+
+hasIdent :: Sig -> String -> J Bool
+hasIdent sig ident = "Sig.hasIdent" <? do
+  n <- getName sig
+  return $ ident == n
 
 explode :: Sig -> J [Sig]
 explode sig = "Sig.explode" <?
