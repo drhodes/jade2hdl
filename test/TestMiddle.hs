@@ -54,8 +54,12 @@ checkConnectOneOutput modname outsig = do
         return False        
   testSkeleton modname func
 
-testConnectOutputs = do
-  checkConnectOneOutput "RepAnd2" (SigRange "out1" 1 0)
+checkConnectOutputs = do
+  --checkConnectOneOutput "RepAnd2" (SigRange "out1" 1 0)
+  checkConnectOneOutput "BuiltInAnd4Messy" (SigSimple "vout") 
+
+
+
 
 
 testAll = do

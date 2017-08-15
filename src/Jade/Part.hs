@@ -19,7 +19,9 @@ sig part =
 
 containsIdentifier :: Part -> String -> J Bool
 containsIdentifier part ident = case sig part of
-                                  Just s -> liftM (== ident) $ Sig.getName s
+                                  Just s -> do name <- Sig.getName s
+                                               nb $ show ("YO", name)
+                                               liftM (== ident) $ Sig.getName s
                                   Nothing -> return False
 
 hasSigName :: Part -> Bool

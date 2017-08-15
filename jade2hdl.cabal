@@ -34,6 +34,7 @@ library
                      , Jade.Util
                      , Jade.Icon
                      , Jade.Signal
+                     , Jade.Middle.Types
                      , TestModule                     
   build-depends:       QuickCheck >= 2.9.2,
                        aeson >= 1.0.2.1,

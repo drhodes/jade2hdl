@@ -56,7 +56,7 @@ testTermDriverAnd23 = do
 
 testTermDriverAnd23_Wire = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-xb  printJ $ do let modname =  "/user/UseAND2_3"
+  printJ $ do let modname =  "/user/UseAND2_3"
               subs <- TopLevel.getSubModules topl modname
               let submodule@(SubModule subname subloc) = subs !! 0
               inputTerms <- TopLevel.getInputTerminals topl submodule
@@ -73,15 +73,20 @@ testGetComponentsWithName modname signame exp = do
   Right topl <- Decode.decodeTopLevel $ "./test-data/" ++ modname ++ ".json"
   printJ $ do let modname' =  "/user/" ++ modname
               cs <- TopLevel.getComponentsWithName topl modname' signame
-              return $ if length cs == exp then "PASS" else "FAIL"
+              return $ if length cs == exp
+                       then "PASS"
+                       else "FAIL" ++ (show ("expected", exp, "got", length cs))
 
-testGetComponentsWithName1 = do
+testGetComponentsWithNameAll = do
   testGetComponentsWithName "RepAnd2" "in2" 1
   testGetComponentsWithName "RepAnd2" "in1" 1
   testGetComponentsWithName "RepAnd2" "out1" 1
   testGetComponentsWithName "RepAnd2" "farfennugen" 0
   testGetComponentsWithName "Jumper1" "A" 1
   testGetComponentsWithName "Jumper1" "vout" 1
+  testGetComponentsWithName "BuiltInAnd4Messy" "vout" 1
+
+
 
 testTopLevelComponents2 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
@@ -194,6 +199,7 @@ testAll = do
   testNumComponents "Wires5" 1
   testNumComponents "Wires6" 1
   testNumComponents "Wire1" 1
+  testNumComponents "RepAnd2" 3
 
   testTermDriverAnd23 
   testTermDriverAnd23_Wire 
@@ -222,10 +228,10 @@ testAll = do
   testReplicationDepth "RepAnd3" 4
   testReplicationDepth "RepAnd4" 4
 
+  testGetComponentsWithNameAll
   
   -- failing
-  --repand2 = testNumComponents "RepAnd2" 6
-
+  
 testReplicationDepth :: String -> Integer -> IO ()
 testReplicationDepth modname expDepth = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])

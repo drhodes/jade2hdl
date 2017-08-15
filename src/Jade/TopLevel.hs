@@ -116,8 +116,6 @@ components topl modname = "TopLevel.components" <? do
   (Module (Just schem@(Schematic parts)) _ _) <- getModule topl modname
   terms <- sequence [terminals topl submod | submod <- Schem.getSubModules schem]
   
-  --list parts
-  --list terms
   nb "check to see if ports are directly on terminals."
   
   let wires = [w | WireC w <- parts]
@@ -128,13 +126,9 @@ components topl modname = "TopLevel.components" <? do
   ssnw <- connectWiresWithSameSigName parts 
   jumperWires <- mapM makeJumperWire jumpers
   portWires <- mapM makePortWire ports
-
-  --list portWires
   
   let wireEdges = map Wire.toEdge (wires ++ jumperWires ++ ssnw ++ portWires)
   edges <- processEdges (wires ++ jumperWires ++ ssnw ++ portWires) (termcs) -- ++ ports)  
-
-  --list edges
   
   let comps = UF.components $ edges ++ wireEdges
   return comps
@@ -311,7 +305,7 @@ replicationDepth topl modname submod  = "TopLevel.replicationDepth" <? do
   
 getComponentsWithName :: TopLevel -> String -> String -> J [GComp]
 getComponentsWithName topl modname signame = "TopLevel.getComponentsWithName" <? do
-  comps <- components topl modname
+  comps <- components topl modname  
   filterM (flip GComp.containsSigIdent signame) comps
   
 
