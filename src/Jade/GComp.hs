@@ -21,7 +21,12 @@ hasTerm (GComp nodes) term1 = or [term1 == term2 | Node _ (TermC term2) <- nodes
 getSigs :: GComp -> [Sig]
 getSigs (GComp nodes) =
   let parts = map nodePart nodes
-  in  [s | (Just s) <- map Part.sig parts]
+  in  DL.nub [s | (Just s) <- map Part.sig parts]
+
+
+getQuotedSigs gcomp = [ s | s@(SigQuote _ _) <- getSigs gcomp]
+
+
 
 getSigsWithIdent :: GComp -> String -> J [Sig]
 getSigsWithIdent gcomp ident = do
@@ -53,3 +58,8 @@ containsSigIdent gcomp sigIdent = "GComp.containsSigIdent" <? do
   nb $ show ("HEY", parts gcomp)
   or `liftM` mapM (flip Part.containsIdentifier sigIdent) (parts (removeTerms gcomp))
   
+
+explode gcomp =
+  let compName
+      compWidth
+  in = map (SigIndex compName) $ reverse [0 .. compWidth - 1]

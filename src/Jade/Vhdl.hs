@@ -164,11 +164,9 @@ mkModule topl modname = do
   schem <- case moduleSchem m of
              Just x -> return x
              Nothing -> die $ "No schematic found in module: " ++ modname
-  
+
   -- collect all terminals from submodule in the schematic
   subs <- TopLevel.getSubModules topl modname
-  terms <- mapM (TopLevel.getInputTerminals topl) subs
-  drivers <- mapM (TopLevel.getInputTermDriver topl modname) (concat terms)
 
   comps <- TopLevel.components topl modname
   instances <- mapM (mkSubModuleInstance topl modname) subs
@@ -183,12 +181,12 @@ mkModule topl modname = do
 
   portIns <- mapM (renderPort "in") ins
   portOuts <- mapM (renderPort "out") outs
-  
   let ports = T.pack $ DL.intercalate ";\n" (portIns ++ portOuts)
 
   nodeDecls <- mkNodeDecls topl modname
   outputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectOutput topl modname) outs
   inputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectInput topl modname) ins
+  --constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstants topl modname) ins
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt

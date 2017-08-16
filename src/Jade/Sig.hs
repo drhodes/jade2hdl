@@ -133,6 +133,7 @@ getName sig = case sig of
                 SigRange name from to ->
                   return name
                   -- return $ format "{0}({1} downto {2})" [name, show from, show to]
+                s@(SigQuote val width) -> return $ format "SigQuote_{0}_{1}" [show val, show width]
                 x ->
                   die $ "Sig.name doesn't support: " ++ show x
 

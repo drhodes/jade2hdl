@@ -109,6 +109,22 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
   liftM concat $ mapM getSlices comps
 
 
+-- connectConstantComp topl modname comp = "connectConstantComp" <? do
+--   let quotedSigs = GComp.getQuotedSigs comp
+--   case quotedSigs of
+--     [x] -> do nb "found a quoted sig, need to convert it to binary and carve it into \
+--                  \an integral divisor of the width of comp"
+--               compWidth <- liftM maximum $ GComp.width comp -- again, this should be refactored.
+--               case compWidth of
+--                 Nothing -> die $ format "Couldn't determine the width of component: {0}" [compName]
+--                 Just compWidth -> do
+--                   nb "The targets are the comp replicated"
+--                   let tgts = map (SigIndex compName) $
+                        
+    
+--     [] -> return []
+    
+
 
 
 

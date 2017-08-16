@@ -92,7 +92,6 @@ findWireWithEndPoint parts p = "findWireWithEndPoint" <? do
     then die $ "Couldn't find wire with end point: " ++ show p
     else return $ head matches
 
-
 makeJumperWire :: Jumper -> J Wire
 makeJumperWire jumper = "makeJumperEdge" <? do
   nb "find the endpoints of the jumper"
@@ -228,10 +227,11 @@ getInputTermDriver topl modname term =
         [] -> "looking in component attached to terminal" <? do
           comp <- getComponentWithTerminal topl modname term
           nb "Does this component have a .input signal?"
-          nb "TODO: check the component for constant driving signals i.e. QuotedSig 0'32"
+          let quotedSigs = GComp.getQuotedSigs comp
+          nb $ "Found quoted signal: " ++ show quotedSigs
           nb $ "Checking input signals: " ++ show inputSigs
           let drivers = filter (GComp.hasSig comp) inputSigs
-          case drivers of
+          case drivers ++ quotedSigs of
             [sig] -> do nb $ "found sig: " ++ show sig
                         return sig
             [] -> do die $ "Couldn't find driving signal in a test script input, \
