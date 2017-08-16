@@ -23,7 +23,8 @@ import Jade.Types
 import Data.FileEmbed
 import qualified Data.String.Class as DSC
 import Data.Text.Encoding
-
+import qualified Text.Read as TR
+import qualified Data.Maybe as M
 {-
 A JADE exported module is encoded as JSON.
 
@@ -57,13 +58,19 @@ instance FromJSON Direction where
 instance FromJSON Signal where
   parseJSON (Object o) = do
     sigString <- o .:? "signal"
-    w <-  o .:? "width" -- this could fail obstrusively.
+    w <- (o .:? "width")  -- ?? "ASDFASDF" -- this could fail obstrusively.
     dir <-  o .:? "direction"
 
+    let width = case w of
+                  Nothing -> Just 1
+                  Just str -> TR.readMaybe str
+      
+    when (M.isNothing width) (fail "Couldn't read width in Decode.Signal")
+
     case sigString of
-      Nothing -> return $ Signal Nothing w dir
+      Nothing -> return $ Signal Nothing width dir
       Just s -> case Sig.parseSig s of
-                  Right sig -> return $ Signal (Just sig) w dir
+                  Right sig -> return $ Signal (Just sig) width dir
                   Left msg -> fail (show msg ++ "\n" ++ s)
 
 instance FromJSON Coord3 where
@@ -76,6 +83,8 @@ instance FromJSON Coord5 where
     [x, y, rot, dx, dy] <- parseJSON jsn
     return $ Coord5 x y (toEnum (fromInteger rot)) dx dy
 
+(??) p s = modifyFailure ((" " ++ s ++ " ") ++ ) p
+
 instance FromJSON Wire where
   parseJSON (Array v) =
     if V.length v == 2
@@ -83,8 +92,8 @@ instance FromJSON Wire where
       c5 <- parseJSON $ v V.! 1
       return $ Wire c5 Nothing -- no signal 
     else do
-      c5 <- parseJSON $ v V.! 1
-      sig <- parseJSON $ v V.! 2
+      c5 <- (parseJSON $ v V.! 1)
+      sig <- (parseJSON $ v V.! 2)
       return $ Wire c5 (Just sig)
 
 -- [ "line", [ 40, 8, 0, -4, 0 ] ]
@@ -138,8 +147,6 @@ instance FromJSON Txt where
         font <- o .:? "font"
         return $ Txt c3 txt font
       otherwise -> fail "Decode.FromJSON Txt got unexpected array"
-
-
 
 -- [ "terminal", [ 16, 0, 4 ], { "name": "out" } ]
 instance FromJSON Terminal where

@@ -228,13 +228,14 @@ getInputTermDriver topl modname term =
         [] -> "looking in component attached to terminal" <? do
           comp <- getComponentWithTerminal topl modname term
           nb "Does this component have a .input signal?"
+          nb "TODO: check the component for constant driving signals i.e. QuotedSig 0'32"
           nb $ "Checking input signals: " ++ show inputSigs
           let drivers = filter (GComp.hasSig comp) inputSigs
           case drivers of
             [sig] -> do nb $ "found sig: " ++ show sig
                         return sig
-            [] -> die $ "Couldn't find driving signal in a test script input, \
-                        \sub module output or in shared component: " ++ show comp
+            [] -> do die $ "Couldn't find driving signal in a test script input, \
+                           \sub module output or in shared component: " ++ show comp
             _ -> impossible $ "More than one driver found in terminal component: " ++ show term
         xs -> impossible $ "Many submodules output to this terminal" ++ show xs
       

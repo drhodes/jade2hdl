@@ -77,6 +77,20 @@ testTerminal2 = do
       expected = Right (IconTerm (Terminal (Coord3 {c3x = 16, c3y = 0, c3r = FlipX}) (SigSimple "out")))
   dotest "testTerminal2" tstring expected
 
+
+testWireConstant1 :: IO (Either String Wire)
+testWireConstant1 = do
+  let tstring = "[\"wire\",[0,0,0,-8,0],{\"signal\":\"1'1\",\"width\":\"1\"}]"
+      jsig = Just $ SigQuote 1 1
+      jwidth = Just 1
+      jdir = Nothing
+      expected = Right (Wire (Coord5 0 0 Rot0 (-8) 0) (Just (Signal jsig jwidth jdir)))
+  dotest "testWireConstant1" tstring expected
+
+
+
+
+
 testAll = do
   putStrLn "TestDecode.testAll"
   testLine1
