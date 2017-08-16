@@ -87,10 +87,6 @@ testWireConstant1 = do
       expected = Right (Wire (Coord5 0 0 Rot0 (-8) 0) (Just (Signal jsig jwidth jdir)))
   dotest "testWireConstant1" tstring expected
 
-
-
-
-
 testAll = do
   putStrLn "TestDecode.testAll"
   testLine1
