@@ -102,20 +102,35 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
   liftM concat $ mapM getSlices comps
 
 
--- connectConstantComp topl modname comp = "connectConstantComp" <? do
---   let quotedSigs = GComp.getQuotedSigs comp
---   case quotedSigs of
---     [x] -> do nb "found a quoted sig, need to convert it to binary and carve it into \
---                  \an integral divisor of the width of comp"
---               compWidth <- liftM maximum $ GComp.width comp -- again, this should be refactored.
---               case compWidth of
---                 Nothing -> die $ format "Couldn't determine the width of component: {0}" [compName]
---                 Just compWidth -> do
---                   nb "The targets are the comp replicated"
---                   let tgts = map (SigIndex compName) $
-                        
+
+  
+genbits n | n == 0 = []
+          | n `mod` 2 == 0 = 0 : (genbits next)
+          | otherwise = 1 : (genbits next)
+  where next = n `div` 2
+
+
+connectConstantComp topl modname comp = "connectConstantComp" <? do
+  let quotedSigs = GComp.getQuotedSigs comp
+  compWidth <- GComp.width comp
+  -- TODO investigate moving the "removeTerms" function to GComp
+  compName <- GComp.name (GComp.removeTerms comp) 
+  case quotedSigs of
+    [SigQuote val numBits] -> do
+      when (compWidth /= numBits) $ do
+        let txt = "width mismatch in signals component width: {0} and constant width: {1}"
+        die $ format txt [show compWidth, show numBits]
+
+      -- this is a twos complement representation.
+      let bits = reverse $ take (fromInteger numBits) $ (genbits val) ++ repeat 0
+          
+      nb "The targets are the comp replicated"
+      let tgts = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
+      let srcs = map (SigSimple . (\x -> "'" ++ show x ++ "'")) bits 
+
+      return $ zipWith (TermAssoc Out) srcs tgts
     
---     [] -> return []
+    [] -> return []
     
 
 

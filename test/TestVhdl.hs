@@ -83,7 +83,9 @@ testAll = do
               , "And2Ports2"
               , "And2Ports3"
               , "And2Ports4"
+              , "Constant1"
               ]
+    
   --spawn "AndStuff6" -- optimize this, eventually.
   spawnBuiltIn
   spawnBuiltInAnd4Messy

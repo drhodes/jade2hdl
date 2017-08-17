@@ -186,7 +186,7 @@ mkModule topl modname = do
   nodeDecls <- mkNodeDecls topl modname
   outputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectOutput topl modname) outs
   inputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectInput topl modname) ins
-  --constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstants topl modname) ins
+  constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant topl modname) comps
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt
@@ -195,6 +195,7 @@ mkModule topl modname = do
                             , ("node-declarations", toMustache nodeDecls)
                             , ("submodule-entity-instances", toMustache  (T.intercalate  (T.pack "\n") instances))
                             , ("maybe-wire-input", toMustache inputWires)
+                            , ("maybe-wire-constants", toMustache constantWires)
                             , ("maybe-wire-output", toMustache outputWires)
                             ]
   return $ substitute temp mapping
@@ -206,6 +207,9 @@ mkSigName :: Sig -> J T.Text
 mkSigName sig = do
   case sig of
     SigIndex name idx -> return $ T.pack $ format "{0}({1})" [name, show idx]
+    SigSimple name -> do
+      nb $ "mkSigName get a sig: " ++ show sig
+      return $ T.pack name
     x -> unimplemented $ "Vhdl.mkSigName: " ++ show x
 
 mkTermAssoc :: MT.TermAssoc -> J T.Text
@@ -303,6 +307,13 @@ connectOutput topl modname outSig = "Jade.Vhdl.connectOutput" <? do
 connectInput :: TopLevel -> String -> Sig -> J T.Text
 connectInput topl modname inSig = "Jade.Vhdl.connectInput" <? do
   inTermMap <- MT.connectOneInput topl modname inSig
+  txts <- mapM mkTermAssign inTermMap
+  return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
+
+
+connectConstant :: TopLevel -> String -> GComp -> J T.Text
+connectConstant topl modname comp = "Jade.Vhdl.connectConstant" <? do
+  inTermMap <- MT.connectConstantComp topl modname comp
   txts <- mapM mkTermAssign inTermMap
   return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
 
