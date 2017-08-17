@@ -38,9 +38,11 @@ getWires (GComp nodes) = [w | (Node _ (WireC w)) <- nodes]
 
 removeTerms (GComp nodes) = GComp [n | n@(Node _ part) <- nodes, not $ Part.isTerm part]
 
-width (GComp nodes) = "GComp.width" <? do
-  ws <- sequence [Part.width p | (Node _ p) <- nodes]
-  return $ DL.nub ws
+width gcomp = "GComp.width" <? do
+  let sigs = getSigs gcomp
+  if length sigs == 0
+    then return 1
+    else return $ maximum $ map Sig.width sigs
 
 parts (GComp nodes) = map nodePart nodes 
 

@@ -53,23 +53,20 @@ connectOneOutput topl modname outSig = "connectOneOutput" <? do
   -- slice of which components to take and stack them up
   let getSlices comp = "getSlice" <? do
         compName <- GComp.name (GComp.removeTerms comp)
-        compWidth <- liftM maximum $ GComp.width comp        
+        compWidth <- GComp.width comp        
         -- find outSig in comp.
         matchingSigs <- GComp.getSigsWithIdent comp outSigName
         -- for each sig create a termmap, use the
         singles <- mapM Sig.explode matchingSigs
 
-        case compWidth of
-          Nothing -> die $ format "Couldn't determine the width of component: {0}" [compName]
-          Just compWidth -> do
-            let tgts = reverse $ DL.sort $ concat singles
-                srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
+        let tgts = reverse $ DL.sort $ concat singles
+            srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
 
-            when (length tgts /= length srcs) $ do
-              nb "The lengths of the targets and sources are not the same"
-              bail
+        when (length tgts /= length srcs) $ do
+          nb "The lengths of the targets and sources are not the same"
+          bail
             
-            return $ zipWith (TermAssoc Out) srcs tgts
+        return $ zipWith (TermAssoc Out) srcs tgts
         
   liftM concat $ mapM getSlices comps
 
@@ -88,24 +85,20 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
   -- slice of which components to take and stack them up
   let getSlices comp = "getSlice" <? do
         compName <- GComp.name (GComp.removeTerms comp)
-        compWidth <- liftM maximum $ GComp.width comp        
+        compWidth <- GComp.width comp        
         -- find inSig in comp.
         matchingSigs <- GComp.getSigsWithIdent comp inSigName
         -- for each sig create a termmap, use the
         singles <- mapM Sig.explode matchingSigs
 
-        case compWidth of
-          Nothing -> die $ format "Couldn't determine the width of component: {0}" [compName]
-          Just compWidth -> do
-            let tgts = reverse $ DL.sort $ concat singles
-                srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
+        let tgts = reverse $ DL.sort $ concat singles
+            srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
 
-            when (length tgts /= length srcs) $ do
-              nb "The lengths of the targets and sources are not the same"
-              bail
+        when (length tgts /= length srcs) $ do
+          nb "The lengths of the targets and sources are not the same"
+          bail
             
-            return $ zipWith (TermAssoc In) srcs tgts
-        
+        return $ zipWith (TermAssoc In) srcs tgts
   liftM concat $ mapM getSlices comps
 
 
@@ -141,8 +134,8 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
                                                                        , show numReplications ]
   termSigs <- Sig.explode sig
   
-  case (compWidth, termWidth) of
-    ([Just compWidth], Just termWidth) ->
+  case termWidth of
+    Just termWidth ->
       let totalWidth = fromInteger $ termWidth * numReplications
       in if compWidth == totalWidth
             -- the component has wirewidth equal to the full
@@ -174,9 +167,8 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
                 False -> do
                   nb "case compWidth > totalWidth"
                   impossible "This can't happen if the JADE modules tests pass in JADE"                  
-    (_, Nothing) -> die $ "Couldn't determine width of terminal: " ++ show term
-    (x, y) -> do nb $ "got: " ++ show (x, y)
-                 die $ "Couldn't determine width of componenent: " ++ show comp
+    y -> do nb $ "got: " ++ show ( y)
+            die $ "Couldn't determine width of componenent: " ++ show comp
 
 oneOfEach xs =  
   if 0 `elem` (map length xs)

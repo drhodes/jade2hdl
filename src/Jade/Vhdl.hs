@@ -279,11 +279,9 @@ mkNodeDecls topl modname =
 
   let f comp = do        
         n <- GComp.name $ GComp.removeTerms comp
-        w <- liftM maximum $ GComp.width comp
+        w <- GComp.width comp
         let temp = "signal {0} : std_logic_vector({1} downto 0);"
-        case w of
-          Just w -> return $ format temp [n, show (w - 1)] -- one less because of zero indexing.
-          Nothing -> die "Couldn't determine width of this component"
+        return $ format temp [n, show (w - 1)] -- one less because of zero indexing.
       
   if null keepers
     then return "-- no node decls"

@@ -225,13 +225,9 @@ testAll = do
   testReplicationDepth "And2Ports4" 1
 
   testGetComponentsWithNameAll
-  
-  -- failing
-
-failing = do  
   testReplicationDepth "RepAnd2" 2
-  -- testReplicationDepth "RepAnd3" 4
-  -- testReplicationDepth "RepAnd4" 4
+  testReplicationDepth "RepAnd3" 4
+  testReplicationDepth "RepAnd4" 4
 
   
 testReplicationDepth :: String -> Integer -> IO ()

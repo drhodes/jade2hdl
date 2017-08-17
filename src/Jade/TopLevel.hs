@@ -292,12 +292,14 @@ replicationDepth topl modname submod  = "TopLevel.replicationDepth" <? do
         termWidth <- Part.width (TermC t)
         nb "remove terms from component and guess its width"
         cw <- GComp.width (GComp.removeTerms comp)
+        nb $ "The comp sigs are: {0}" ++ show (GComp.getSigs comp)
         case (termWidth, cw) of
-          (Just tw, [Just cw]) -> do
+          (Just tw, cw) -> do
             nb "found guesses for terminal width and component width"
+            nb $ show (tw, cw)
             return $ cw `div` tw
-          (_, []) -> do
-            die $ "component width couldn't be determined"
+          -- (_, _) -> do
+          --   die $ "component width couldn't be determined"
           (_, _) -> return 1 -- die $ "Couldn't find guess for terminal width nor component width."
 
   -- if the width of a component is undeclared, this may mean that
