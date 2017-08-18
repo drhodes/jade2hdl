@@ -39,15 +39,18 @@ spawnOneTest jadefile modname = do
   Right topl <- Decode.decodeTopLevel jadefile
   errlog <- runJIO $ do
     nb $ "spawnOneTest: " ++ modname
-    moduleCode <- Vhdl.mkModule topl modname
-    testCode <- Vhdl.mkTestBench topl modname 
+    --moduleCode <- Vhdl.mkModule topl modname
+    moduleCode <- Vhdl.mkAllMods topl 
+    testCode <- Vhdl.mkTestBench topl modname
+    mods <- Vhdl.mkAllMods topl
     return $ do
+      --print $ map fst mods
       TIO.writeFile outfile (T.concat [prelude, moduleCode, testCode])
 
   let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }
   let cmd1 = sh "ghdl -a -g --std=08 *.vhdl"
       cmd2 = sh (format "ghdl -r --std=08 {0} --vcd={0}.vcd" [tbname])
-              
+  
   (ecode, stdout, stderr) <- readCreateProcessWithExitCode cmd1 ""
   case ecode of
     ExitSuccess -> do 
@@ -70,10 +73,10 @@ spawn s = spawnOneTest ("./test-data/" ++ s ++ ".json") ("/user/" ++ s)
 
 testAll = do  
   mapM_ spawn [ "Jumper1"
-              --, "And41"     -- these will require recursive descent into
-              --, "AndStuff4" -- modules to 
-              --, "AndStuff5"
-              --, "Jumper41"
+              , "And41"     
+              , "AndStuff4" 
+              , "AndStuff5"
+              , "Jumper41"
               , "Jumper1"
               , "Jumper1Rot90"
               , "Jumper3"

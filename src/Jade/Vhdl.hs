@@ -200,6 +200,12 @@ mkModule topl modname = do
                             ]
   return $ substitute temp mapping
 
+
+mkAllMods topl = "Vhdl.mkAllMods" <? do
+  let  userModNames = [name | (name, _) <- TopLevel.modules topl, name `startsWith` "/user"]
+  T.concat `liftM` mapM (mkModule topl) userModNames
+  
+
 ------------------------------------------------------------------
 comma = T.pack ", \n"
 
