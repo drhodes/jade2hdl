@@ -26,9 +26,9 @@ import Control.Exception.Base as CEB
 import Control.Concurrent as CC
        
 spawnOneTest jadefile modname = do
-  --putStrLn $ "Vhdl.Testing: " ++ modname
-  
+  --putStrLn $ "Vhdl.Testing: " ++ modname  
   -- create a test directory
+  
   let autoTestPath = format "test-data/auto-vhdl/{0}/" [hashid modname]
       tbname = Module.testBenchName modname
       prelude = decodeUtf8 $(embedFile "app-data/vhdl/prelude.vhdl")
@@ -91,6 +91,7 @@ testAll = withTest "TestVhdl" $ do
               , "RepAnd3"
               , "RepAnd4"
               , "Buffer1"
+              , "Buffer2"
               ]
     
   --spawn "AndStuff6" -- optimize this, eventually.
