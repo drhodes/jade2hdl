@@ -189,7 +189,7 @@ data Part = PortC Port
           | WireC Wire
           | JumperC Jumper
           | TermC Terminal
-          | Nop
+          | UnusedPart
           deriving (Generic, Show, Eq, Hashable, Ord)
 
 

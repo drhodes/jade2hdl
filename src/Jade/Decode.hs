@@ -25,6 +25,8 @@ import qualified Data.String.Class as DSC
 import Data.Text.Encoding
 import qualified Text.Read as TR
 import qualified Data.Maybe as M
+import Jade.Util
+
 {-
 A JADE exported module is encoded as JSON.
 
@@ -212,13 +214,16 @@ instance FromJSON Part where
       "wire" ->
         do w <- parseJSON v
            return $ WireC w
-      "port" -> PortC <$> parseJSON v
+      "port" -> do p <- parseJSON v
+                   return $ PortC p
       "jumper" ->
         do p <- parseJSON v
            return $ JumperC p
-      _ -> -- this is probably not safe.
-        do sub <- parseJSON v
-           return $ SubModuleC sub
+      txt -> if txt `startsWith` "text"
+             then return UnusedPart
+             else do sub <- parseJSON v
+                     return $ SubModuleC sub
+
 
 instance FromJSON Schematic where
   parseJSON (Array v) = "Decode.Schematic.Array" <?? do

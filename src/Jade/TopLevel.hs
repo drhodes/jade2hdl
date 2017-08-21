@@ -34,6 +34,7 @@ getModule (TopLevel m) name = "TopLevel.getModule" <? do
     Just mod -> return mod
     Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
 
+
 -- |Transform a located terminal to a degenerate edge. A located
 -- terminal is one that has been placed in a schematic, with absolute coordinate.
 termToEdge t@(Terminal (Coord3 x y _) _) =  
@@ -159,6 +160,7 @@ componentWithTerminal topl modname term@(Terminal c3@(Coord3 x y _) _) =
 
 terminals :: TopLevel -> SubModule -> J [Terminal]
 terminals topl (SubModule modname offset) = "TopLevel.terminals" <? do
+  nb $ show ("TopLevel.terminals checks submodule: " ++ modname)
   mod <- getModule topl modname
   Module.terminals mod offset
 
