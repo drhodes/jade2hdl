@@ -86,6 +86,8 @@ testAll = do
               , "And2Ports4"
               , "Constant1"
               , "RepAnd2"
+              , "RepAnd3"
+              , "RepAnd4"
               ]
     
   --spawn "AndStuff6" -- optimize this, eventually.
