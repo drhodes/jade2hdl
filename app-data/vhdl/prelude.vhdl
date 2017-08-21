@@ -30,6 +30,21 @@ begin
   vout <= a and b and c and d;
 end architecture behavioral ;
 
+-- /gates/mux2 ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_mux2 is
+  port (D0 : in std_logic_vector(0 downto 0);
+        D1 : in std_logic_vector(0 downto 0);
+        S : in std_logic_vector(0 downto 0);
+        Y : out std_logic_vector(0 downto 0)) ;
+end entity mod_gates_mux2 ;
+architecture behavioral of mod_gates_mux2 is
+begin
+  Y <= D1 when (S = "1") else D0;
+end architecture behavioral ;
+
 -- /gates/xor2 ------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;

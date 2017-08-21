@@ -94,6 +94,7 @@ testAll = withTest "TestVhdl" $ do
               , "WireConnectMid1"
               , "WireConnectMid2"
               , "CLA1_notext"
+              , "Mux2to1_1"
               ]
     
   --spawn "AndStuff6" -- optimize this, eventually.
