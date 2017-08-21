@@ -9,6 +9,7 @@ import Data.Aeson
 import Control.Monad
 import Test.QuickCheck.Arbitrary
 import TestUtil
+import Text.Format
 
 testWire1 :: Either String Wire
 testWire1 = eitherDecode "[\"wire\", [136, 64, 1, 0, 0], {\"signal\": \"wd\"}]" 
@@ -86,6 +87,18 @@ testWireConstant1 = do
       jdir = Nothing
       expected = Right (Wire (Coord5 0 0 Rot0 (-8) 0) (Just (Signal jsig jwidth jdir)))
   dotest "testWireConstant1" tstring expected
+
+testSkeleton :: String -> (TopLevel -> J Bool) -> IO ()
+testSkeleton modname func = do
+  Right topl <- decodeTopLevel (format "./test-data/{0}.json" [modname])
+  let f = func topl
+  case runJ f of
+    Right True -> putStr "."
+    Right False -> do putStrLn $ runLog f
+    Left msg -> do putStrLn $ msg
+                   putStrLn $ runLog f
+
+
 
 testAll = withTest "TestDecode" $ do
   testLine1
