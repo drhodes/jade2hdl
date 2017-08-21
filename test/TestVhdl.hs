@@ -92,6 +92,9 @@ testAll = withTest "TestVhdl" $ do
               , "RepAnd4"
               , "Buffer1"
               , "Buffer2"
+              , "WireConnectMid1"
+              , "WireConnectMid2"
+              , "CLA1_notext"
               ]
     
   --spawn "AndStuff6" -- optimize this, eventually.

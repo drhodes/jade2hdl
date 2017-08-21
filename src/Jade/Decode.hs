@@ -49,14 +49,14 @@ the tests as HDL tests.
 -}
 
 instance FromJSON Direction where
-  parseJSON (String txt) =
+  parseJSON (String txt) = "Decode.Direction.String" <?? do
     return $ case txt of
                "in" -> In
                "out" -> Out
                "inout" -> InOut
 
 instance FromJSON Signal where
-  parseJSON (Object o) = do
+  parseJSON (Object o) = "Decode.Signal.Object" <?? do
     sigString <- o .:? "signal"
     w <- (o .:? "width")  -- ?? "ASDFASDF" -- this could fail obstrusively.
     dir <-  o .:? "direction"
@@ -84,9 +84,10 @@ instance FromJSON Coord5 where
     return $ Coord5 x y (toEnum (fromInteger rot)) dx dy
 
 (??) p s = modifyFailure ((" " ++ s ++ " ") ++ ) p
+(<??) s p = p ?? ("\n" ++ s)
 
 instance FromJSON Wire where
-  parseJSON (Array v) =
+  parseJSON (Array v) = "Decode.Wire" <?? do
     if V.length v == 2
     then do
       c5 <- parseJSON $ v V.! 1
@@ -98,7 +99,7 @@ instance FromJSON Wire where
 
 -- [ "line", [ 40, 8, 0, -4, 0 ] ]
 instance FromJSON Line where
-  parseJSON (Array v) =
+  parseJSON (Array v) = "Decode.Line.Array" <??
     if V.length v == 2
     then do
       lineLabel <- parseJSON $ v V.! 0
@@ -108,7 +109,7 @@ instance FromJSON Line where
     else fail "Not a line"
 
 instance FromJSON Box where
-  parseJSON (Array v) =
+  parseJSON (Array v) = "Decode.Box.Array" <??
     if V.length v == 2
     then do
       boxLabel <- parseJSON $ v V.! 0
@@ -119,7 +120,7 @@ instance FromJSON Box where
 
 instance FromJSON Circle where
   -- [ "circle", [ x, y, r, filled ] ]
-  parseJSON (Array v) =
+  parseJSON (Array v) = "Decode.Circle.Array" <?? do
     if V.length v == 2
     then do 
       lbl <- parseJSON (v V.! 0) :: (Parser String)
@@ -138,7 +139,7 @@ instance FromJSON Circle where
 
 --"text", [ 42, -5, 0 ], { "text": "nd", "font": "4pt sans-serif" } ],
 instance FromJSON Txt where
-  parseJSON (Array v) = do
+  parseJSON (Array v) = "Decode.Txt.Array" <?? do
     case (v V.!? 1, v V.!? 2) of
       (Just v1, Just v2) -> do
         c3 <- parseJSON v1
@@ -150,7 +151,7 @@ instance FromJSON Txt where
 
 -- [ "terminal", [ 16, 0, 4 ], { "name": "out" } ]
 instance FromJSON Terminal where
-  parseJSON (Array v) = do
+  parseJSON (Array v) = "Decode.Terminal.Array" <?? do
     case (v V.!? 0, v V.!? 1, v V.!? 2) of
       (Just v0, Just v1, Nothing) -> fail $ "Terminal is missing a name: " ++ (show v)
       (Just v0, Just v1, Just v2) -> do 
@@ -168,7 +169,7 @@ instance FromJSON Terminal where
       otherwise -> fail $ "Decode.FromJSON Terminal got unexpected array" ++ (show v)
 
 instance FromJSON IconPart where
-  parseJSON arr@(Array v) = do
+  parseJSON arr@(Array v) = "Decode.IconPart.Array" <?? do
     kind <- parseJSON $ v V.! 0
     
     case (kind :: String) of
@@ -182,10 +183,11 @@ instance FromJSON IconPart where
       _ -> fail $ "Unknown IconPart: " ++ kind
       
 instance FromJSON Icon where
-  parseJSON (Array v) = Icon <$> mapM parseJSON (V.toList v)
+  parseJSON (Array v) = "Decode.Icon" <?? do
+    Icon <$> mapM parseJSON (V.toList v)
         
 instance FromJSON Port where
-  parseJSON (Array v) = do
+  parseJSON (Array v) = "Decode.Port" <?? do
     c3 <- parseJSON $ v V.! 1
     if V.length v == 3
       then do sig <- parseJSON $ v V.! 2
@@ -193,18 +195,18 @@ instance FromJSON Port where
       else return $ Port c3 Nothing
 
 instance FromJSON SubModule where
-  parseJSON (Array v) = do
+  parseJSON (Array v) = "Decode.SubModule" <?? do
     name <- parseJSON $ v V.! 0
     sub <- parseJSON $ v V.! 1
     return $ SubModule name sub
 
 instance FromJSON Jumper where
-  parseJSON (Array v) = do
+  parseJSON (Array v) = "Decode.Jumper" <?? do
     c3 <- parseJSON $ v V.! 1
     return $ Jumper c3 
 
 instance FromJSON Part where
-  parseJSON v@(Array arr) = do
+  parseJSON v@(Array arr) = "Decode.Part" <?? do
     ctype <- parseJSON $ arr V.! 0 :: Parser String
     case ctype of
       "wire" ->
@@ -219,12 +221,12 @@ instance FromJSON Part where
            return $ SubModuleC sub
 
 instance FromJSON Schematic where
-  parseJSON (Array v) = do
+  parseJSON (Array v) = "Decode.Schematic.Array" <?? do
     cs <- mapM parseJSON v
     return $ Schematic (V.toList cs)
 
 instance FromJSON Module where
-  parseJSON (Object o) = do
+  parseJSON (Object o) = "Decode.Module.Object" <?? do
     schem <- o .:? "schematic"
     icon <- o .:? "icon"
     t <- o .:? "test" -- todo make this safer.
@@ -238,12 +240,12 @@ instance FromJSON Module where
       Nothing -> return $ Module schem Nothing icon
 
 instance FromJSON TopLevel where
-  parseJSON (Array arr) = do
+  parseJSON (Array arr) = "Decode.TopLevel:Array" <?? do
     when (V.length arr < 2) (fail $ "Decode.TopLevel.parseJson fails because array not long enough: " ++ show arr)
     mods <- parseJSON $ arr V.! 1
     return $ TopLevel mods
 
-  parseJSON (Object o) = do
+  parseJSON (Object o) = "Decode.TopLevel:Object" <?? do
     fail $ show o
 
 builtInTxt = decodeUtf8 $(embedFile "app-data/gates.json")

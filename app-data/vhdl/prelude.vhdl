@@ -30,6 +30,20 @@ begin
   vout <= a and b and c and d;
 end architecture behavioral ;
 
+-- /gates/xor2 ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_xor2 is
+  port (a : in std_logic_vector(0 downto 0);
+        b : in std_logic_vector(0 downto 0);
+        vout : out std_logic_vector(0 downto 0)) ;
+end entity mod_gates_xor2 ;
+architecture behavioral of mod_gates_xor2 is
+begin
+  vout <= a xor b;
+end architecture behavioral ;
+
 -- /gates/and2 ------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
@@ -56,7 +70,6 @@ architecture behavioral of mod_gates_buffer is
 begin
   vout <= a;
 end architecture behavioral ;
-
 
 -- /gates/or2 ------------------------------------------------------------------
 library ieee;

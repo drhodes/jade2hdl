@@ -4,7 +4,7 @@ module Jade.Util where
 
 import Text.Format
 import Data.List as DL
-
+import Data.Char as Char
 class (Show a) => Fmt a where
   fmt :: String -> a -> String
 
@@ -39,3 +39,6 @@ chunk n [] = []
 chunk n xs = take (fromIntegral n) xs : chunk (fromIntegral n) (drop (fromIntegral n) xs)
 
 
+strip x = let x1 = dropWhile Char.isSpace x
+              x2 = dropWhile Char.isSpace (reverse x1)
+          in reverse x2

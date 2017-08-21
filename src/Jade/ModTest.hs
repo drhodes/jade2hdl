@@ -7,6 +7,7 @@ import Jade.Types
 import qualified Numeric as N
 import qualified Jade.Sig as Sig
 import Control.Monad
+import Jade.Util
 
 ident :: Parser String
 ident = do start <- letter <|> char '_'
@@ -251,16 +252,17 @@ acreteOutputs filename mt lineNum line =
     Left msg -> mt
     Right p -> mt { modOutputs = Just p }
 
-acreteTry [] filename mt lineNum line = Left $ "Couldn't match this line: " ++ line
+acreteTry [] filename mt lineNum line = Left $ "Couldn't match this line: " ++ show (line, lineNum)
 acreteTry (f:fs) filename mt lineNum line =
   let mt' = f filename mt lineNum line
   in if mt' == mt
   then acreteTry fs filename mt lineNum line
   else Right mt'
     
-acreteOne filename mt lineNum "" = Right mt 
-acreteOne filename mt lineNum line = 
-  let fs = [ acreteTestLine
+--acreteOne filename mt lineNum "" = Right mt 
+acreteOne filename mt lineNum line =
+  let line' = strip line
+      fs = [ acreteTestLine
            , acreteCycleLine
            , acreteMode
            , acretePower
@@ -270,7 +272,9 @@ acreteOne filename mt lineNum line =
            , acretePlotDef
            , acretePlot
            ]
-  in acreteTry fs filename mt lineNum line
+  in if null line'
+     then Right mt
+     else acreteTry fs filename mt lineNum line'
 
 acreteAll _ mt [] = Right mt
 acreteAll filename mt ((lineNum,line):rest) =
