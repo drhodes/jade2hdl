@@ -39,12 +39,10 @@ spawnOneTest jadefile modname = do
   Right topl <- Decode.decodeTopLevel jadefile
   errlog <- runJIO $ do
     nb $ "spawnOneTest: " ++ modname
-    --moduleCode <- Vhdl.mkModule topl modname
     moduleCode <- Vhdl.mkAllMods topl 
     testCode <- Vhdl.mkTestBench topl modname
     mods <- Vhdl.mkAllMods topl
     return $ do
-      --print $ map fst mods
       TIO.writeFile outfile (T.concat [prelude, moduleCode, testCode])
 
   let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }

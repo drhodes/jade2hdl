@@ -49,7 +49,7 @@ dotest testname teststring expected = do
   let result = eitherDecode teststring
   
   if (result == expected)
-    then return () --putStrLn $ "PASS: " ++ testname
+    then putStr "." --return () --putStrLn $ "PASS: " ++ testname
     else mapM_ putStrLn [ "------------------------------------------------------------------"
                         , "FAIL:     " ++ testname
                         , "Expected: " ++ (show expected)
@@ -64,7 +64,7 @@ doRightTestWith testname f = do
                                , "FAIL:     " ++ testname
                                , msg
                                ]
-    Right _ -> putStrLn $ "PASS: " ++ testname
+    Right _ -> putStr "." --putStrLn $ "PASS: " ++ testname
   
 testTerminal1 = do
   let tstring = "[ \"terminal\", [ 16, 0, 4 ], { \"name\": \"out\" } ]"
@@ -93,7 +93,8 @@ testAll = do
   testTerminal2
 
   let f x y = doRightTestWith x (return y)
-
+  putStrLn ""
+  
   f "testWire1" testWire1
   f "testSignal1" testSignal1 
   f "testWireRange" testWireRange 
@@ -103,3 +104,4 @@ testAll = do
   f "testComp1" testComp1 
   f "testSub1" testSub1 
   f "testSchem1 " testSchem1 
+  putStrLn ""
