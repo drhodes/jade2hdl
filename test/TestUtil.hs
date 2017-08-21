@@ -13,3 +13,6 @@ withTest name f = do
   putStr $ take 20 $ format "{0}                              " [name]
   f
   putStrLn ""
+
+
+pass = putStr "."

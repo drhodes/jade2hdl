@@ -18,6 +18,7 @@ import Control.Monad
 import Data.FileEmbed
 import Data.Text.Encoding 
 import Jade.Types
+import TestUtil
 
 import System.Process 
 import System.Exit      
@@ -89,6 +90,7 @@ testAll = withTest "TestVhdl" $ do
               , "RepAnd2"
               , "RepAnd3"
               , "RepAnd4"
+              , "Buffer1"
               ]
     
   --spawn "AndStuff6" -- optimize this, eventually.

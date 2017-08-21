@@ -44,6 +44,20 @@ begin
   vout <= a and b;
 end architecture behavioral ;
 
+-- /gates/buffer ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_buffer is
+  port (a : in std_logic_vector(0 downto 0);
+        vout : out std_logic_vector(0 downto 0)) ;
+end entity mod_gates_buffer ;
+architecture behavioral of mod_gates_buffer is
+begin
+  vout <= a;
+end architecture behavioral ;
+
+
 -- /gates/or2 ------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;

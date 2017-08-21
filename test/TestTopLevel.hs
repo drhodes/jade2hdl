@@ -11,9 +11,6 @@ import Text.Format
 import TestUtil
 import Control.Monad
 
-pass = putStr "."
-
-{- In a world with subcomponents, wires of width one and simple signals -}
 buildUserAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
   printJ $ do let modname =  "/user/UseAND2_3"

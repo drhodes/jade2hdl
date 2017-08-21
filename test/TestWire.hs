@@ -28,7 +28,7 @@ testWireEnds modname expectedEnds = do
               else return ()
 
   case runJ result of
-    Right _ -> putStrLn "."
+    Right _ -> pass
     Left msg -> do putStrLn $ runLog result
                    fail msg
 
