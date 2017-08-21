@@ -8,3 +8,8 @@ expected :: Show a => a -> a -> J ()
 expected exp got = do
   nb $ "Expected : " ++ show exp
   nb $ "Got      : " ++ show got
+
+withTest name f = do
+  putStr $ take 20 $ format "{0}                              " [name]
+  f
+  putStrLn ""

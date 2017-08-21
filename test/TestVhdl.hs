@@ -25,7 +25,7 @@ import Control.Exception.Base as CEB
 import Control.Concurrent as CC
        
 spawnOneTest jadefile modname = do
-  putStrLn $ "Vhdl.Testing: " ++ modname
+  --putStrLn $ "Vhdl.Testing: " ++ modname
   
   -- create a test directory
   let autoTestPath = format "test-data/auto-vhdl/{0}/" [hashid modname]
@@ -54,7 +54,7 @@ spawnOneTest jadefile modname = do
     ExitSuccess -> do 
       (ecode', stdout', stderr') <- readCreateProcessWithExitCode cmd2 ""
       case ecode' of
-        ExitSuccess -> return () --ecode' --putStrLn modname
+        ExitSuccess -> putStr "." --return () --ecode' --putStrLn modname
         ExitFailure err' -> do
           putStrLn errlog
           print err'
@@ -69,7 +69,8 @@ spawnOneTest jadefile modname = do
 
 spawn s = spawnOneTest ("./test-data/" ++ s ++ ".json") ("/user/" ++ s)
 
-testAll = do  
+
+testAll = withTest "TestVhdl" $ do
   mapM_ spawn [ "Jumper1"
               , "And41"     
               , "AndStuff4" 

@@ -16,7 +16,7 @@ testSkeleton modname func = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   let f = func topl
   case runJ f of
-    Right True -> putStrLn $ modname ++ ": PASS"
+    Right True -> putStr "."
     Right False -> do putStrLn $ runLog f
     Left msg -> do putStrLn $ msg
                    putStrLn $ runLog f
@@ -34,7 +34,6 @@ testReplicationDepth modname expDepth = do
           else do expected expDepth d
                   return False
   testSkeleton modname func 
-
 
 checkSubModuleInstances :: String -> IO ()
 checkSubModuleInstances modname = do
@@ -58,13 +57,7 @@ checkConnectOutputs = do
   --checkConnectOneOutput "RepAnd2" (SigRange "out1" 1 0)
   checkConnectOneOutput "BuiltInAnd4Messy" (SigSimple "vout") 
 
-
-
-
-
-testAll = do
-
-  
+testAll = testWith "TestMiddle" $ do
   --------------------------------------------
   testReplicationDepth "And2Ports" 1 
   testReplicationDepth "And2Ports2" 1

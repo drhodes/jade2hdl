@@ -23,10 +23,7 @@ getSigs (GComp nodes) =
   let parts = map nodePart nodes
   in  DL.nub [s | (Just s) <- map Part.sig parts]
 
-
 getQuotedSigs gcomp = [ s | s@(SigQuote _ _) <- getSigs gcomp]
-
-
 
 getSigsWithIdent :: GComp -> String -> J [Sig]
 getSigsWithIdent gcomp ident = do
@@ -44,11 +41,12 @@ width gcomp = "GComp.width" <? do
     then return 1
     else return $ maximum $ map Sig.width sigs
 
-parts (GComp nodes) = map nodePart nodes 
+parts gcomp = let (GComp nodes) = removeTerms gcomp
+              in map nodePart nodes 
 
 name :: GComp -> J String
 name comp = "UnionFind.nameComp" <? do
-  let signals1 = [signal | WireC (Wire _ (Just signal)) <- parts (removeTerms comp)]
+  let signals1 = [signal | WireC (Wire _ (Just signal)) <- parts comp]
       genNameLen = 10
   Just names <- liftM sequence $ liftM (filter isJust) $ mapM Signal.getName signals1
   
@@ -56,11 +54,5 @@ name comp = "UnionFind.nameComp" <? do
 
 containsSigIdent :: GComp -> String -> J Bool
 containsSigIdent gcomp sigIdent = "GComp.containsSigIdent" <? do
-  -- does this component contain sig with name sigName?
-  nb $ show ("HEY", parts gcomp)
+  -- does this component contain a sig with name sigName?
   or `liftM` mapM (flip Part.containsIdentifier sigIdent) (parts (removeTerms gcomp))
-
--- explode gcomp =
---   let compName
---       compWidth
---   in = map (SigIndex compName) $ reverse [0 .. compWidth - 1]

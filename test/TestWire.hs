@@ -8,11 +8,7 @@ import qualified Jade.GComp as GComp
 import qualified Jade.Wire as Wire
 import Text.Format
 import Control.Monad
-
-
-expected :: Show a => a -> a -> J ()
-expected exp got = die $ format "Expected {0}, Got: {1}" [show exp, show got]
-
+import TestUtil
 
 testWireEnds modname expectedEnds = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
@@ -32,10 +28,10 @@ testWireEnds modname expectedEnds = do
               else return ()
 
   case runJ result of
-    Right _ -> print "PASS"
+    Right _ -> putStrLn "."
     Left msg -> do putStrLn $ runLog result
                    fail msg
 
-testAll = do
+testAll = withTest "TestWire" $ do
   testWireEnds "TestWire1" ((0, 0), (24,-8))
   testWireEnds "TestWire2" ((16, 8), (8, -16))

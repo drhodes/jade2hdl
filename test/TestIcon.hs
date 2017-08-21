@@ -13,7 +13,6 @@ import Text.Format
 import TestUtil
 import Control.Monad
 
-
 withTopLevelTest modname f = 
   liftM f $ Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
 
@@ -29,7 +28,7 @@ testIcon tname libname modname f = do
           Just icon -> f icon
               
   case runJ func of
-    Right x -> do putStrLn "Pass"
+    Right x -> do putStr "."
                   return x
     Left msg -> do putStrLn msg
                    putStrLn $ runLog func
@@ -65,7 +64,7 @@ testBuiltInBoundingBox modname (BB x1 y1 x2 y2) = do
 
 
 
-testAll = do
+testAll = withTest "TestIcon" $ do
   -- passing
   testBoundingBox "IconBoundingBox8" $ BB 8 0 16 16
   testBoundingBox "IconBoundingBox7" $ BB 0 0 24 16

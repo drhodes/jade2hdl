@@ -58,6 +58,10 @@ printJ x = case runJ x of
              Left msg -> putStrLn msg
              Right val -> putStrLn $ show val
 
+putStrJ x = case runJ x of
+              Left msg -> putStrLn msg
+              Right val -> putStr val
+
 runJIO :: J (IO a) -> IO String
 runJIO x =
   case runX x of

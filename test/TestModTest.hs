@@ -12,7 +12,7 @@ verify f testname = do
     Left msg ->
       print $ "Fail: " ++ msg
     _ ->
-      print $ "Pass: " ++ testname
+      putStr "."
 
 testLineSignals1 :: IO (Either a ())
 testLineSignals1 = do

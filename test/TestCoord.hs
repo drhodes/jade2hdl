@@ -26,6 +26,7 @@ l4 = Coord5 16 16 Rot90 0 (-32)
 -- coord11 = print $ Coord.transform3 c11 c11
 -- coordR90 = print $ Coord.transform3 c11 r90
 
+-- TODO: consider adding this test to TestAll module
 testAll = do
   print $ Coord.coord5ends l1
   print $ Coord.coord5ends l2

@@ -7,6 +7,7 @@ import qualified TestIcon as TI
 import qualified TestTopLevel as TTL
   
 main = do
+  putStrLn "Starting test"
   TD.testAll
   TI.testAll  
   TM.testAll
