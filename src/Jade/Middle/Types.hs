@@ -56,6 +56,7 @@ connectOneOutput topl modname outSig = "connectOneOutput" <? do
         compWidth <- GComp.width comp        
         -- find outSig in comp.
         matchingSigs <- GComp.getSigsWithIdent comp outSigName
+        
         -- for each sig create a termmap, use the
         singles <- mapM Sig.explode matchingSigs
 
@@ -64,6 +65,8 @@ connectOneOutput topl modname outSig = "connectOneOutput" <? do
 
         when (length tgts /= length srcs) $ do
           nb "The lengths of the targets and sources are not the same"
+          nb "SRCS" >> list srcs
+          nb "TGTS" >> list tgts
           bail
             
         return $ zipWith (TermAssoc Out) srcs tgts

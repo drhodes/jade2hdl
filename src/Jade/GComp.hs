@@ -32,7 +32,7 @@ getSigsWithIdent :: GComp -> String -> J [Sig]
 getSigsWithIdent gcomp ident = do
   -- find the signals in gcomp that shares the ident. There might be
   -- more than one!
-  liftM DL.nub $ filterM (flip Sig.hasIdent ident) (getSigs gcomp)
+  liftM DL.nub $ filterM (flip Sig.hasIdent ident) (getSigs (removeTerms gcomp))
 
 getWires (GComp nodes) = [w | (Node _ (WireC w)) <- nodes]
 
