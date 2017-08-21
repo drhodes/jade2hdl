@@ -52,7 +52,7 @@ connectOneOutput topl modname outSig = "connectOneOutput" <? do
   -- from the components that have the name from sig, figure out which
   -- slice of which components to take and stack them up
   let getSlices comp = "getSlice" <? do
-        compName <- GComp.name (GComp.removeTerms comp)
+        compName <- GComp.name comp
         compWidth <- GComp.width comp        
         -- find outSig in comp.
         matchingSigs <- GComp.getSigsWithIdent comp outSigName
@@ -84,7 +84,7 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
   -- from the components that have the name from sig, figure in which
   -- slice of which components to take and stack them up
   let getSlices comp = "getSlice" <? do
-        compName <- GComp.name (GComp.removeTerms comp)
+        compName <- GComp.name comp
         compWidth <- GComp.width comp        
         -- find inSig in comp.
         matchingSigs <- GComp.getSigsWithIdent comp inSigName
@@ -114,7 +114,7 @@ connectConstantComp topl modname comp = "connectConstantComp" <? do
   let quotedSigs = GComp.getQuotedSigs comp
   compWidth <- GComp.width comp
   -- TODO investigate moving the "removeTerms" function to GComp
-  compName <- GComp.name (GComp.removeTerms comp) 
+  compName <- GComp.name comp
   case quotedSigs of
     [SigQuote val numBits] -> do
       when (compWidth /= numBits) $ do

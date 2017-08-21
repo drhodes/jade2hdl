@@ -283,12 +283,12 @@ mkNodeDecls topl modname =
   ignore <- mapM Sig.getName (ins ++ outs)
   
   comps <- TopLevel.components topl modname
-  compNames <- mapM (GComp.name . GComp.removeTerms) comps
+  compNames <- mapM GComp.name comps
   
   let keepers = [comp | (n, comp) <- zip compNames comps, n `notElem` ignore]
 
   let f comp = do        
-        n <- GComp.name $ GComp.removeTerms comp
+        n <- GComp.name comp
         w <- GComp.width comp
         let temp = "signal {0} : std_logic_vector({1} downto 0);"
         return $ format temp [n, show (w - 1)] -- one less because of zero indexing.
