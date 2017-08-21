@@ -252,17 +252,20 @@ mkPortMap ins outs = "Vhdl.mkPortMap" <? do
                     , T.intercalate comma portOuts ]
     
 ------------------------------------------------------------------
+replicatedLabel subModName loc zIdx = 
+  format "{0}_{1}_{2}" [ Module.mangleModName subModName
+                       , take 5 $ hashid loc
+                       , show zIdx ]
+
 mkSubModuleInstance :: TopLevel -> String -> SubModule -> J T.Text
 mkSubModuleInstance topl modname submod@(SubModule name loc) = do
   nb "Jade.Vhdl.mkSubModuleInstance"
   subModuleReps <- MT.subModuleInstances topl modname submod
+  let repDepth = length subModuleReps
 
   let mkOneInstance submodrep@(MT.SubModuleRep ins outs _ zIdx) = do
         portmap <- mkPortMap ins outs
-        let label = format "{0}_{1}_{2}" [ Module.mangleModName name
-                                         , take 5 $ hashid loc
-                                         , show zIdx ]
-        
+        let label = replicatedLabel name loc zIdx
         -- u1 : entity work.AND2 port map (in1 => a, in2 => b, out1 => w1);
         let txt = "{{label}} : entity work.{{submod-name}} port map ({{{port-map}}});"
             Right template = compileTemplate "mkSubModuleInstance" (T.pack txt)
@@ -312,6 +315,7 @@ connectOutput topl modname outSig = "Jade.Vhdl.connectOutput" <? do
 -- then there is no structural output to that output.
 connectInput :: TopLevel -> String -> Sig -> J T.Text
 connectInput topl modname inSig = "Jade.Vhdl.connectInput" <? do
+  
   inTermMap <- MT.connectOneInput topl modname inSig
   txts <- mapM mkTermAssign inTermMap
   return $ T.concat [T.append t (T.pack ";\n") | t <- txts]

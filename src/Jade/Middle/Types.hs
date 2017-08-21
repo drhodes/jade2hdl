@@ -70,8 +70,6 @@ connectOneOutput topl modname outSig = "connectOneOutput" <? do
         
   liftM concat $ mapM getSlices comps
 
-
-
 connectOneInput topl modname inSig = "connectOneInput" <? do
   -- find the components with the name from sig.
   inSigName <- Sig.getName inSig
@@ -90,14 +88,14 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
         matchingSigs <- GComp.getSigsWithIdent comp inSigName
         -- for each sig create a termmap, use the
         singles <- mapM Sig.explode matchingSigs
-
+        nb $ show ("singles", singles)
         let tgts = reverse $ DL.sort $ concat singles
             srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
 
         when (length tgts /= length srcs) $ do
           nb "The lengths of the targets and sources are not the same"
           bail
-            
+        nb $ show ("Termmap", zipWith (TermAssoc In) srcs tgts)
         return $ zipWith (TermAssoc In) srcs tgts
   liftM concat $ mapM getSlices comps
 
@@ -173,8 +171,12 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
                   -- signal will have to be replicated to match the
                   -- width of the replicated submodules.
                   let srcs = map (SigIndex compId) (reverse [0 .. compWidth -1])
-                      srcReplication = concat $ repeat srcs
-                      tmap = take (fromIntegral totalWidth) (cycle $ zipWith (TermAssoc In) srcReplication termSigs)
+                      srcReplication = cycle srcs
+                      tmap = take (fromIntegral totalWidth) (cycle $ zipWith (TermAssoc In)
+                                                              (cycle srcs)
+                                                              (cycle termSigs))
+                  nb $ show ("Srcs", take 4 srcReplication)
+                  nb $ show ("tmap", tmap)
                   return $ case dir of
                              In -> tmap
                              Out -> flipTermMap tmap
@@ -218,6 +220,8 @@ subModuleInstances topl modname submod@(SubModule name loc) = do
 
   inputTermMaps <- zipWithM (replicateOneTerminal repd In) inputTerms (map GComp.removeTerms inputComps)
   outputTermMaps <- zipWithM (replicateOneTerminal repd Out) outputTerms (map GComp.removeTerms outputComps)
+
+  nb "inputTermMaps"
 
   mapM_ (\(xs) -> list xs >> nb "----") inputTermMaps
   mapM_ (\(xs) -> list xs >> nb "----") outputTermMaps

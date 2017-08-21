@@ -44,7 +44,7 @@ spawnOneTest jadefile modname = do
     mods <- Vhdl.mkAllMods topl
     return $ do
       TIO.writeFile outfile (T.concat [prelude, moduleCode, testCode])
-
+      
   let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }
   let cmd1 = sh "ghdl -a -g --std=08 *.vhdl"
       cmd2 = sh (format "ghdl -r --std=08 {0} --vcd={0}.vcd" [tbname])
@@ -85,6 +85,7 @@ testAll = do
               , "And2Ports3"
               , "And2Ports4"
               , "Constant1"
+              , "RepAnd2"
               ]
     
   --spawn "AndStuff6" -- optimize this, eventually.
