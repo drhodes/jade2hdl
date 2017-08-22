@@ -14,17 +14,14 @@ verify f testname = do
     _ ->
       putStr "."
 
-testLineSignals1 :: IO (Either a ())
 testLineSignals1 = do
-  topl <- Decode.decodeTopLevel "./test-data/and2.json"
+  topl <- Decode.decodeTopLevel "./test-data/Tristate1.json"
   case topl of
-    (Right topl) -> do
-      let [(_, (Module schem (Just mt) _))] = TopLevel.modules topl
-      let tlines = modTestLines mt
-      let result = ModTest.testLineSignals mt (tlines !! 0)
-      if result == Right [(SigSimple "in1",[H]),(SigSimple "in2",[H]),(SigSimple "out",[H])]
-        then return $ Right ()
-        else fail "result"
-    (Left msg) -> fail msg
+    Right topl -> runJIO $ do
+      Module schem mt _ <- TopLevel.getModule topl "/user/Tristate1"
+      case mt of
+        Just mt -> do let tlines = modTestLines mt
+                      return $ putStrLn $ show tlines
+    Left msg -> fail msg
 
 

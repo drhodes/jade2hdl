@@ -253,8 +253,7 @@ data CycleLine = CycleLine [Action] deriving (Generic, Show, Eq, Hashable, Ord)
 
 data BinVal = L | H | Z deriving (Generic, Show, Eq, Hashable, Ord)
 
-data TestLine = TestLine { testLineAsserts :: [BinVal]                         
-                         , testLineSamples :: [BinVal]
+data TestLine = TestLine { testLineBinVals :: [BinVal]                         
                          , testLineComment :: Maybe String
                          } deriving (Generic, Show, Eq, Hashable, Ord)
 

@@ -14,6 +14,7 @@ import qualified Jade.Module as Module
 import qualified Jade.UnionFindST as UnionFindST
 import qualified Jade.Sig as Sig
 import qualified Jade.GComp as GComp
+import qualified Jade.ModTest as ModTest
 import qualified Jade.Middle.Types as MT
 
 import Control.Monad
@@ -31,12 +32,14 @@ import qualified Data.Text.IO as DT
 
 mkTestLine :: Module -> [Action] -> TestLine -> Integer -> J [String]
 mkTestLine _ [] _ _ = return []
-mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
+mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do  
   let recurse x = liftM (x++) (mkTestLine m actions testline testnum)
 
   let splitAssert [] xs = [xs]
       splitAssert widths xs = let n = fromIntegral $ head widths
                               in (take n xs) : (splitAssert (tail widths) (drop n xs))
+
+  let Just modt = moduleTest m
   
   case act of
     Tran dur ->
@@ -46,28 +49,34 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
         
     Assert _ -> "Assert" <? do
       -- a <= '0'; b <= '0'; c <= '0'; d <= '0';
-      let TestLine asserts _ _ = testline
+      -- let TestLine _ _ = testline
+      asserts <- ModTest.assertBitVals modt testline
       Inputs ins <- Module.getInputs m      
       inputNames <- mapM Sig.getName ins
       let inputWidths = map Sig.width ins
       recurse $ zipWith sigAssert inputNames (splitAssert inputWidths asserts)
 
     Sample _ -> "Samples" <? do
+      expecteds <- ModTest.sampleBitVals modt testline
       Outputs outs <- Module.getOutputs m
-      let TestLine _ expecteds comment = testline
+      let TestLine _ comment = testline
           outputWidths = map Sig.width outs
           exps = splitAssert outputWidths (map binValToChar expecteds)
           c = case comment of
                 Just s -> "// " ++ s
                 Nothing -> ""
+      nb $ show ("expecteds", expecteds)
+      nb $ show ("expected testline", testline)
       os <- mapM Sig.getName outs      
-      let txt = [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
+      txt <- sequence [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
       recurse $ map T.unpack txt
 
 removeQuotes = filter (/= '"') 
 
-testCaseIfBlock :: Integer -> String -> String -> String -> T.Text
-testCaseIfBlock testnum signal expected comment =
+testCaseIfBlock :: Integer -> String -> String -> String -> J T.Text
+testCaseIfBlock testnum signal expected comment = do
+  nb $ show ("expected", expected)
+
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/test-case-if-block.mustache")
       Right temp = compileTemplate "test-case-if-block" txt
       to_string = format "to_string({0})" [signal]
@@ -78,13 +87,17 @@ testCaseIfBlock testnum signal expected comment =
                             , ("signal_to_string", toMustache to_string)
                             , ("comment", toMustache comment)
                             ]
-  in substitute temp mapping
+                
+  return $ substitute temp mapping
 
-binValToStdLogic bv = case bv of { H -> "\"1\"" ; L -> "\"0\"" ; Z -> "\"Z\"" }
-binValToChar bv = case bv of { H -> '1' ; L -> '0' ; Z -> 'Z' }
-quote x = ['"'] ++ x ++ ['"']
-
-
+binValToStdLogic bv = case bv of { H -> quote "1"
+                                 ; L -> quote "0"
+                                 ; Z -> quote "U" }
+                      
+binValToChar bv = case bv of { H -> '1'
+                             ; L -> '0'
+                             ; Z -> 'U' }
+                  
 sigAssert :: String -> [BinVal] -> String
 sigAssert x bv = format "{0} <= {1};" [x, quote $ map binValToChar bv]
 
@@ -104,14 +117,6 @@ mkDUT m modname = "Vhdl.testDUT" <? do
       mn = Module.mangleModName modname
   return $ format template [mn, portmap]
 
-
--- these need to be added 
-    -- wire_dLeX1 <= in1;
-    -- wire_9651R <= in2;
-    -- out1 <= wire_GPXbK;
-
-
-
 mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
@@ -122,11 +127,8 @@ mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
                name <- Sig.getName sig
                let width = Sig.width sig
                    initialVal = quote $ take (fromIntegral width) (repeat '0')
-               return $ format "signal {0}: std_logic_vector({1} downto 0) := {2};" [name
-                                                                                    , show (width - 1)
-                                                                                    , initialVal
-                                                                                    ]
-                 
+                   fmtargs = [name, show (width - 1), initialVal]
+               return $ format "signal {0}: std_logic_vector({1} downto 0) := {2};" fmtargs                 
          in do sigDecls <- mapM f (ins ++ outs)
                return $ DL.intercalate "\n" sigDecls
   

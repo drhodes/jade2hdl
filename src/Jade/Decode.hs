@@ -138,7 +138,6 @@ instance FromJSON Circle where
         _ -> fail "Not a circle"
     else fail "Not a circle"
 
-
 --"text", [ 42, -5, 0 ], { "text": "nd", "font": "4pt sans-serif" } ],
 instance FromJSON Txt where
   parseJSON (Array v) = "Decode.Txt.Array" <?? do
@@ -223,7 +222,6 @@ instance FromJSON Part where
              then return UnusedPart
              else do sub <- parseJSON v
                      return $ SubModuleC sub
-
 
 instance FromJSON Schematic where
   parseJSON (Array v) = "Decode.Schematic.Array" <?? do

@@ -35,6 +35,7 @@ uniq (x:y:rest) = if x == y
                   then uniq (y:rest)
                   else x : (uniq (y:rest))
 
+chunk :: Integral t => t -> [a] -> [[a]]
 chunk n [] = []
 chunk n xs = take (fromIntegral n) xs : chunk (fromIntegral n) (drop (fromIntegral n) xs)
 
@@ -42,3 +43,10 @@ chunk n xs = take (fromIntegral n) xs : chunk (fromIntegral n) (drop (fromIntegr
 strip x = let x1 = dropWhile Char.isSpace x
               x2 = dropWhile Char.isSpace (reverse x1)
           in reverse x2
+
+quote x = ['"'] ++ x ++ ['"']
+
+
+bust :: [Int] -> [a] -> [[a]]
+bust _ [] = []
+bust (chunk:rest) xs = take chunk xs : (bust rest $ drop chunk xs)

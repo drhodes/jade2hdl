@@ -14,6 +14,20 @@
 --     vout <= a and b;
 -- end architecture behavioral ;
 
+-- /gates/mod_gates_tristate ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_tristate is
+  port (A : in std_logic_vector(0 downto 0);
+        E : in std_logic_vector(0 downto 0);
+        vout : out std_logic_vector(0 downto 0));
+end entity mod_gates_tristate ;
+architecture behavioral of mod_gates_tristate is
+begin
+  vout <= A when (E = "1") else "U";
+end architecture behavioral ;
+
 -- /gates/and4 ------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;

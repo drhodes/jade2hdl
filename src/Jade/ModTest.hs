@@ -159,27 +159,20 @@ cycleLine = do
   string ".cycle"
   clines <- many1 (hspaces >> action)
   return $ CycleLine clines
-
-binNum :: Parser BinVal
-binNum = choice $ map try [ char '1' >> return H
-                          , char '0' >> return L ]
-
-binLetter :: Parser BinVal
-binLetter = choice $ map try [ char 'H' >> return H
-                             , char 'L' >> return L
-                             , char '-' >> return Z ]
             
-lineAsserts :: Parser [BinVal]
-lineAsserts = many1 $ do b <- binNum
-                         hspaces
-                         return b
+binVal :: Parser BinVal
+binVal = choice $ map try [ char '1' >> return H
+                          , char '0' >> return L
+                          , char '-' >> return Z
+                          , char 'H' >> return H
+                          , char 'L' >> return L
+                          ]
 
 hspaces :: Parser ()
 hspaces = do many $ oneOf " \t"
              return ()
 
-lineSamples :: Parser [BinVal]
-lineSamples = many $ do b <- binLetter
+lineBinVals = many $ do b <- binVal
                         hspaces
                         return b
 
@@ -190,10 +183,9 @@ comment = do string "//"
 
 testLine :: Parser TestLine
 testLine = do
-  las <- lineAsserts
-  lss <- lineSamples
+  bvs <- lineBinVals
   c <- optionMaybe comment
-  return $ TestLine las lss c
+  return $ TestLine bvs c
 
 defaultModTest = let
   n = Nothing
@@ -262,8 +254,7 @@ acreteTry (f:fs) filename mt lineNum line =
 --acreteOne filename mt lineNum "" = Right mt 
 acreteOne filename mt lineNum line =
   let line' = strip line
-      fs = [ acreteTestLine
-           , acreteCycleLine
+      fs = [ acreteCycleLine
            , acreteMode
            , acretePower
            , acreteThresholds
@@ -271,6 +262,7 @@ acreteOne filename mt lineNum line =
            , acreteOutputs
            , acretePlotDef
            , acretePlot
+           , acreteTestLine
            ]
   in if null line'
      then Right mt
@@ -294,15 +286,25 @@ parseModTestString s =
       linePairs = zip [1..] xs
   in acreteAll "change-me" defaultModTest linePairs
 
-bust _ [] = []
-bust (chunk:rest) xs = take chunk xs : (bust rest $ drop chunk xs)
+assertBitVals modt (TestLine bvs _) = do
+  let Just (Inputs inSigs) = modInputs modt
+      inWidths = map Sig.width inSigs
+      totalInWidth = sum inWidths
+  return $ take (fromIntegral totalInWidth) bvs
 
+sampleBitVals modt testline@(TestLine bvs _) = do
+  assertBvs <- assertBitVals modt testline
+  return $ drop (length assertBvs) bvs
+
+  
 testLineSignals :: ModTest -> TestLine -> Either String [(Sig, [BinVal])]
-testLineSignals modt (TestLine asserts samples _) = do
+testLineSignals modt testline@(TestLine bvs _) = do
   let Just (Inputs inSigs) = modInputs modt
       Just (Outputs outSigs) = modOutputs modt
       inWidths = map Sig.width inSigs
       outWidths = map Sig.width outSigs
+  asserts <- assertBitVals modt testline
+  samples <- sampleBitVals modt testline
 
   -- improve these error messages
   when (sum inWidths /= (fromIntegral $ length asserts)) $ 

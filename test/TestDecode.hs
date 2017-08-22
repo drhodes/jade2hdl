@@ -98,8 +98,6 @@ testSkeleton modname func = do
     Left msg -> do putStrLn $ msg
                    putStrLn $ runLog f
 
-
-
 testAll = withTest "TestDecode" $ do
   testLine1
   testTerminal1
