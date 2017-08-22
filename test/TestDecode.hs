@@ -14,6 +14,8 @@ import Text.Format
 testWire1 :: Either String Wire
 testWire1 = eitherDecode "[\"wire\", [136, 64, 1, 0, 0], {\"signal\": \"wd\"}]" 
 
+
+
 testSignal1 :: Either String Signal
 testSignal1 = eitherDecode "{\"signal\": \"0'1\"}" 
 
@@ -97,6 +99,10 @@ testSkeleton modname func = do
     Right False -> do putStrLn $ runLog f
     Left msg -> do putStrLn $ msg
                    putStrLn $ runLog f
+
+-- testWirePair1 = expectedEq
+--   (eitherDecode "[\"wire\", [0, 0, 0, 1, 1], {\"signal\": \"A,B\"}]")
+--   (Right (Wire (Coord5 0 0 Rot0 1 1) (Just (Signal (Just $ SigSimple "A") (Just 2) Nothing))))
 
 testAll = withTest "TestDecode" $ do
   testLine1

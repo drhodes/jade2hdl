@@ -40,7 +40,7 @@ data ModOutput = ModOutput TermMap deriving (Show, Eq)
 
 
 --connectOneOutput :: TopLevel -> String -> Sig -> J ModOutput
-connectOneOutput topl modname outSig = "connectOneOutput" <? do
+connectOneOutput topl modname outSig = "Middle.Types.connectOneOutput" <? do
   -- find the components with the name from sig.
   outSigName <- Sig.getName outSig
   comps <- TopLevel.getComponentsWithName topl modname outSigName
@@ -51,7 +51,7 @@ connectOneOutput topl modname outSig = "connectOneOutput" <? do
   
   -- from the components that have the name from sig, figure out which
   -- slice of which components to take and stack them up
-  let getSlices comp = "getSlice" <? do
+  let getSlices comp = "<inner function>/getSlice" <? do
         compName <- GComp.name comp
         compWidth <- GComp.width comp        
         -- find outSig in comp.
@@ -62,7 +62,7 @@ connectOneOutput topl modname outSig = "connectOneOutput" <? do
 
         let tgts = reverse $ DL.sort $ concat singles
             srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
-
+        
         when (length tgts /= length srcs) $ do
           nb "The lengths of the targets and sources are not the same"
           nb "SRCS" >> list srcs
