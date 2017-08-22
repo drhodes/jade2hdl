@@ -250,7 +250,10 @@ acreteTry (f:fs) filename mt lineNum line =
   in if mt' == mt
   then acreteTry fs filename mt lineNum line
   else Right mt'
-    
+
+
+
+       
 --acreteOne filename mt lineNum "" = Right mt 
 acreteOne filename mt lineNum line =
   let line' = strip line

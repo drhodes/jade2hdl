@@ -100,6 +100,9 @@ testAll = withTest "TestVhdl" $ do
   --spawn "AndStuff6" -- optimize this, eventually.
   spawnBuiltIn
   spawnBuiltInAnd4Messy
+
+
+failing = spawn "LeReg1"
   
 spawnBuiltIn = spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
 spawnBuiltInAnd4Messy = spawnOneTest "./test-data/BuiltInAnd4Messy.json" "/user/BuiltInAnd4Messy"

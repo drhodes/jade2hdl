@@ -232,15 +232,14 @@ instance FromJSON Module where
   parseJSON (Object o) = "Decode.Module.Object" <?? do
     schem <- o .:? "schematic"
     icon <- o .:? "icon"
-    t <- o .:? "test" -- todo make this safer.
-    --let (Just [["test", tstring]]) = t
+    t <- o .:? "test"
 
     case t of
       (Just [["test", tstring]]) ->
         case MT.parseModTestString tstring of
-          Right mt -> return $ Module schem (Just mt) icon
+          Right mt -> return $ Module "" schem (Just mt) icon
           Left msg -> fail msg
-      Nothing -> return $ Module schem Nothing icon
+      Nothing -> return $ Module "" schem Nothing icon
 
 instance FromJSON TopLevel where
   parseJSON (Array arr) = "Decode.TopLevel:Array" <?? do

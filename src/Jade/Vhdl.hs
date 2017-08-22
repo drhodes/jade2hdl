@@ -70,8 +70,8 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
       os <- mapM Sig.getName outs      
       txt <- sequence [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
       recurse $ map T.unpack txt
-
-removeQuotes = filter (/= '"') 
+    x -> "Jade.Vhdl" <? unimplemented (show x)
+    --SetSignal (SigSimple "CLK") 1.0    
 
 testCaseIfBlock :: Integer -> String -> String -> String -> J T.Text
 testCaseIfBlock testnum signal expected comment = do
@@ -109,7 +109,7 @@ portAssoc sig = do
 
 --dut : entity work.AND23 port map (a => a, b => b, c => c, d => d, output => result);
 mkDUT m modname = "Vhdl.testDUT" <? do  
-  Inputs ins <- Module.getInputs m
+  Inputs ins <- Module.getInputs m ? (format " in module: {0}" [modname])
   Outputs outs <- Module.getOutputs m
   portAssociates <- mapM portAssoc (ins ++ outs)
   let portmap = DL.intercalate ", \n" portAssociates
@@ -159,9 +159,9 @@ mkCombinationalTest topl modname =
 ------------------------------------------------------------------
 --mkModule :: TopLevel -> String -> J Maybe String)
 
-mkModule topl modname = do
-  nb $ "Jade.Vhdl.mkModule, convert module to VHDL: " ++ modname
-  m <- TopLevel.getModule topl modname
+mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
+  nb $ "Jade.Vhdl.mkModule, convert module to VHDL: " ++ modname  
+  m <- TopLevel.getModule topl modname ? modname
 
   schem <- case moduleSchem m of
              Just x -> return x

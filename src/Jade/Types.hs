@@ -201,7 +201,8 @@ data Schematic = Schematic [Part] deriving (Generic, Show, Eq, Ord)
 instance Hashable Schematic where
   hash (Schematic v) = hash v
 
-data Module = Module { moduleSchem :: Maybe Schematic
+data Module = Module { moduleName :: String
+                     , moduleSchem :: Maybe Schematic
                      , moduleTest :: Maybe ModTest
                      , moduleIcon :: Maybe Icon
                      }

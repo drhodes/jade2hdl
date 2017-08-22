@@ -50,3 +50,6 @@ quote x = ['"'] ++ x ++ ['"']
 bust :: [Int] -> [a] -> [[a]]
 bust _ [] = []
 bust (chunk:rest) xs = take chunk xs : (bust rest $ drop chunk xs)
+
+
+removeQuotes = filter (/= '"') 

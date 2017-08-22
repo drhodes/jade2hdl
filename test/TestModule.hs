@@ -28,7 +28,7 @@ hasTerminalsAt modname locs = do
         sub <- liftM head $ TopLevel.getSubModules topl qualModName
         let (SubModule name c3) = sub        
         nb $ show sub
-        m@(Module _ _ maybeIcon) <- TopLevel.getModule topl name
+        m@(Module _ _ _ maybeIcon) <- TopLevel.getModule topl name
         bb <- case maybeIcon of
           (Just icon) -> do bb <- Icon.boundingBox icon
                             return bb

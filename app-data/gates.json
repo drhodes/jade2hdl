@@ -2203,7 +2203,7 @@
       "test": [
         [
           "test",
-          ""
+          ".group inputs CLK D\n.group outputs Q"
         ]
       ],
       "schematic": [

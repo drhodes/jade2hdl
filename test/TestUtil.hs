@@ -15,4 +15,7 @@ withTest name f = do
   putStrLn ""
 
 
+
+expectedEq x y = unless (x == y) (expected x y)
+
 pass = putStr "."

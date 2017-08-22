@@ -31,9 +31,8 @@ getModule (TopLevel m) name = "TopLevel.getModule" <? do
   -- if name `startsWith` "/gate"
   -- then return $ BuiltInModule name
   case DM.lookup name m of
-    Just mod -> return mod
+    Just mod -> return mod{moduleName = name}
     Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
-
 
 -- |Transform a located terminal to a degenerate edge. A located
 -- terminal is one that has been placed in a schematic, with absolute coordinate.
@@ -43,7 +42,7 @@ termToEdge t@(Terminal (Coord3 x y _) _) =
 
 getSubModules :: TopLevel -> String -> J [SubModule]
 getSubModules topl modname = "TopLevel.getSubModules" <? do
-  (Module schem _ _) <- getModule topl modname
+  (Module _ schem _ _) <- getModule topl modname
   case schem of 
     Just schem -> return $ Schem.getSubModules schem
     Nothing -> die "No schematics found"
@@ -113,7 +112,7 @@ connectWiresWithSameSigName parts = "connectWiresWithSameSigName" <? do
 
 components  :: TopLevel -> String -> J [GComp] 
 components topl modname = "TopLevel.components" <? do
-  (Module (Just schem@(Schematic parts)) _ _) <- getModule topl modname
+  (Module _ (Just schem@(Schematic parts)) _ _) <- getModule topl modname
   terms <- sequence [terminals topl submod | submod <- Schem.getSubModules schem]
   
   nb "check to see if ports are directly on terminals."

@@ -13,7 +13,7 @@ import Jade.Types
 import Jade.Wire
 
 getIcon :: Module -> J Icon
-getIcon (Module _ _ (Just x)) = return x
+getIcon (Module _ _ _ (Just x)) = return x
 getIcon _ = die "No icon found in module"
 
 terminals :: Module -> Coord3 -> J [Terminal]
@@ -28,15 +28,13 @@ terminals mod p@(Coord3 mx my mr) = "Module.testTerms:" <? do
   return $ [rotateTerm t | IconTerm t <- iconParts icon]
 
 boundingBox :: Module -> Coord3 -> J BoundingBox
-boundingBox (Module _ _ icon) offset = "Module.boundingBox" <? do
+boundingBox (Module _ _ _ icon) offset = "Module.boundingBox" <? do
   -- move the bounding box of the icon to the offset coord
   -- rotate the new bounding box points around the center of the bounding box.
   case icon of 
     (Just icon) -> do bb <- Icon.boundingBox icon
                       return $ BoundingBox.transRot bb offset
     Nothing -> die "No icon found in, can't find bounding box."
-  
-
 
 getInputTerminals :: Module -> Coord3 -> J [Terminal]
 getInputTerminals mod offset = "Module.getInputTerminals" <? do
@@ -51,13 +49,13 @@ getOutputTerminals mod offset = "Module.getOutputTerminals" <? do
   return [term | term@(Terminal _ sig1) <- ts, sig2 <- ins, sig1 == sig2]
     
 getInputs :: Module -> J Inputs
-getInputs m = "Module.getIntputs" <? do
+getInputs m = "Module.getInputs" <? do
   case moduleTest m of
     Just mod ->
       case modInputs mod of
         Just outs -> return outs
-        Nothing -> die "Module.getInputs couldn't find inputs"
-    Nothing ->  die "Module.getInputs could not find test script"
+        Nothing -> die $ "Module.getInputs couldn't find inputs in module: " ++ (moduleName m)
+    Nothing ->  die $ "Module.getInputs could not find test script in module: " ++ (moduleName m)
 
 getOutputs :: Module -> J Outputs
 getOutputs m = "Module.getOutputs" <? do
