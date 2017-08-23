@@ -1,4 +1,4 @@
-module Test.TestWire where
+module TestWire where
 
 import Jade.Types
 import qualified Jade.TopLevel as TopLevel
@@ -13,7 +13,7 @@ import TestUtil
 testWireEnds modname expectedEnds = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   let result = "testWireEnds" <? do
-        Module schem _ _ <- TopLevel.getModule topl ("/user/" ++ modname)
+        Module _ schem _ _ <- TopLevel.getModule topl ("/user/" ++ modname)
         case schem of
           Nothing -> die $ "testWireEnds: No schematic found in module " ++ modname
           Just (Schematic parts) -> do
@@ -31,6 +31,7 @@ testWireEnds modname expectedEnds = do
     Right _ -> pass
     Left msg -> do putStrLn $ runLog result
                    fail msg
+
 
 testAll = withTest "TestWire" $ do
   testWireEnds "TestWire1" ((0, 0), (24,-8))

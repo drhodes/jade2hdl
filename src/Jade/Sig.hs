@@ -70,6 +70,8 @@ hex :: Parser Integer
 hex = do string "0"
          n <- TPN.hexadecimal
          return n
+
+hspaces = do many $ oneOf " \t"
            
 bin :: Parser Integer
 bin = do string "0b"
@@ -94,13 +96,24 @@ sigSimple :: Parser Sig
 sigSimple = do s <- symbol
                return $ SigSimple s
 
-sig = choice $ map try [ sigQuote
-                       , sigHash
-                       , sigRange
-                       , sigRangeStep
-                       , sigIndex
-                       , sigSimple
-                       ] 
+
+oneSig = choice $ map try [ sigQuote
+                          , sigHash
+                          , sigRange
+                          , sigRangeStep
+                          , sigIndex
+                          , sigSimple
+                          ] 
+
+sigConcat :: Parser Sig
+sigConcat = do x <- oneSig
+               xs <- many1 $ do hspaces
+                                char ','
+                                hspaces
+                                oneSig
+               return $ SigConcat (x:xs)
+
+sig = choice $ map try [ sigConcat, oneSig ]
 
 parseSig :: String -> Either ParseError Sig
 parseSig s = parse sig "signal" s
@@ -114,7 +127,8 @@ width sig = case sig of
               SigRangeStep _ from to step ->
                 (fromIntegral from) - (fromIntegral to) `div` (fromIntegral step)
               SigQuote _ w -> fromIntegral w
-
+              SigConcat xs -> sum $ map width xs
+              
 hashMangle :: String -> Sig -> J Sig
 hashMangle s sig =
   let f x = s ++ "_" ++ x

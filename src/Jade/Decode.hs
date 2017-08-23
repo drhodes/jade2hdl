@@ -72,7 +72,10 @@ instance FromJSON Signal where
     case sigString of
       Nothing -> return $ Signal Nothing width dir
       Just s -> case Sig.parseSig s of
-                  Right sig -> return $ Signal (Just sig) width dir
+                  Right sig -> do
+                    let w' = case w of Nothing -> Just $ Sig.width sig
+                                       Just str -> TR.readMaybe str
+                    return $ Signal (Just sig) w' dir
                   Left msg -> fail (show msg ++ "\n" ++ s)
 
 instance FromJSON Coord3 where

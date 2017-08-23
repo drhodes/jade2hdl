@@ -37,8 +37,7 @@ hashid :: Hashable a => a -> String
 hashid x =
   let ctx = WH.hashidsSimple "salt"
       in B.unpack $ WH.encode ctx . abs . DH.hash $ x
-
-
+         
 type J = ExceptT String (Writer [String])
 
 
@@ -133,6 +132,7 @@ data Sig = SigSimple String
          | SigRange String Integer Integer
          | SigRangeStep String Integer Integer Integer
          | SigQuote Integer Integer
+         | SigConcat [Sig]
          deriving (Show, Eq, Generic, Hashable, Ord)
 
 data Signal = Signal { signalName :: Maybe Sig

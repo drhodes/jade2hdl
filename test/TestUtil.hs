@@ -16,6 +16,6 @@ withTest name f = do
 
 
 
-expectedEq x y = unless (x == y) (expected x y)
+expectedEq exp got = unless (got == exp) (expected exp got)
 
 pass = putStr "."

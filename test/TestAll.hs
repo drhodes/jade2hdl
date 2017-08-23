@@ -5,6 +5,7 @@ import qualified TestVhdl as TV
 import qualified TestModule as TM
 import qualified TestIcon as TI
 import qualified TestTopLevel as TTL
+import qualified TestWire as TW
   
 main = do
   putStrLn "Starting test"
@@ -13,4 +14,5 @@ main = do
   TM.testAll
   TV.testAll -- "./test-data/AndStuff6.json" "/user/AndStuff6"
   TTL.testAll
+  TW.testAll
   putStrLn "All done."
