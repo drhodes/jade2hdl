@@ -48,11 +48,9 @@ name :: GComp -> J String
 name comp = "UnionFind.nameComp" <? do
   let signals1 = [signal | WireC (Wire _ (Just signal)) <- parts comp]
       genNameLen = 10
-  Just names <- liftM sequence $ liftM (filter isJust) $ mapM Signal.getName signals1
-  
-  return $ take genNameLen $ "wire_" ++ hashid (parts (removeTerms comp))
+  return $ take genNameLen $ "wire_" ++ hashid (parts comp)
 
 containsSigIdent :: GComp -> String -> J Bool
 containsSigIdent gcomp sigIdent = "GComp.containsSigIdent" <? do
   -- does this component contain a sig with name sigName?
-  or `liftM` mapM (flip Part.containsIdentifier sigIdent) (parts (removeTerms gcomp))
+  or `liftM` mapM (flip Part.containsIdentifier sigIdent) (parts gcomp)

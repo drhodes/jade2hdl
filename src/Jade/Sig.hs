@@ -7,7 +7,7 @@ import Jade.Types
 import qualified Numeric as N
 import Text.Format
 import Control.Monad
-
+import Jade.Util
 {-
 signal names need to be parsed.
 
@@ -140,23 +140,22 @@ hashMangle s sig =
     SigRangeStep name x y z -> return $ SigRangeStep (f name) x y z
     x -> die $ "hashMangle doesn't support: " ++ show x
 
-getName :: Sig -> J String
-getName sig = case sig of
-                SigSimple name ->
-                  return name
-                SigRange name from to ->
-                  return name 
-                SigIndex name _ -> return name
-                 -- return $ format "{0}({1} downto {2})" [name, show from, show to]
-                s@(SigQuote val width) -> return $ format "SigQuote_{0}_{1}" [show val, show width]
-                x ->
-                  die $ "Sig.name doesn't support: " ++ show x
+getNames :: Sig -> J [String]
+getNames sig =
+  case sig of
+    SigSimple name -> return [name]
+    SigRange name from to -> return [name] 
+    SigIndex name _ -> return [name]
+    -- return $ format "{0}({1} downto {2})" [name, show from, show to]
+    (SigQuote val width) -> return $ [format "SigQuote_{0}_{1}" [show val, show width]]
+    SigConcat xs -> concatMapM getNames xs
+    x -> die $ "Sig.name doesn't support: " ++ show x
 
 
 hasIdent :: Sig -> String -> J Bool
 hasIdent sig ident = "Sig.hasIdent" <? do
-  n <- getName sig
-  return $ ident == n
+  ns <- getNames sig
+  return $ ident `elem` ns
 
 explode :: Sig -> J [Sig]
 explode sig = "Sig.explode" <?
@@ -169,6 +168,7 @@ explode sig = "Sig.explode" <?
                                                                then [y, y-1 .. x]
                                                                else [x, x-1 .. y]]
     SigRangeStep name x y z -> die "explode doesn't handle SigRangeStep yet"
+    SigConcat xs -> concatMapM explode xs
     x -> die $ "Sig.explode doesn't support: " ++ show x
 
 

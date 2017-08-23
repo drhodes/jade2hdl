@@ -2,6 +2,7 @@
 
 module Jade.Util where
 
+import Control.Monad
 import Text.Format
 import Data.List as DL
 import Data.Char as Char
@@ -53,3 +54,5 @@ bust (chunk:rest) xs = take chunk xs : (bust rest $ drop chunk xs)
 
 
 removeQuotes = filter (/= '"') 
+
+concatMapM f xs = concat `liftM` mapM f xs

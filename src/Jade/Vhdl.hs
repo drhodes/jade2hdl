@@ -52,7 +52,7 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
       -- let TestLine _ _ = testline
       asserts <- ModTest.assertBitVals modt testline
       Inputs ins <- Module.getInputs m      
-      inputNames <- mapM Sig.getName ins
+      inputNames <- concatMapM Sig.getNames ins
       let inputWidths = map Sig.width ins
       recurse $ zipWith sigAssert inputNames (splitAssert inputWidths asserts)
 
@@ -67,7 +67,7 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
                 Nothing -> ""
       nb $ show ("expecteds", expecteds)
       nb $ show ("expected testline", testline)
-      os <- mapM Sig.getName outs      
+      os <- concatMapM Sig.getNames outs      
       txt <- sequence [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
       recurse $ map T.unpack txt
     x -> "Jade.Vhdl" <? unimplemented (show x)
@@ -102,10 +102,11 @@ sigAssert :: String -> [BinVal] -> String
 sigAssert x bv = format "{0} <= {1};" [x, quote $ map binValToChar bv]
 
 portAssoc :: Sig -> J String
+portAssoc (SigConcat _) = die "Vhdl.portAssoc doesn't support SigConcat"
 portAssoc sig = do
-   name <- Sig.getName sig
-   let w = Sig.width sig - 1
-   return $ format "{0}({1} downto 0) => {0}({1} downto 0)" [name,show w]
+  [name] <- Sig.getNames sig
+  let w = Sig.width sig - 1
+  return $ format "{0}({1} downto 0) => {0}({1} downto 0)" [name,show w]
 
 --dut : entity work.AND23 port map (a => a, b => b, c => c, d => d, output => result);
 mkDUT m modname = "Vhdl.testDUT" <? do  
@@ -123,8 +124,9 @@ mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
   
   if null (ins ++ outs)
     then return $ "-- no signal decls"
-    else let f sig = do
-               name <- Sig.getName sig
+    else let f (SigConcat _) = die "mkSignalDecls doesn't support SigConcat"
+             f sig = do
+               [name] <- Sig.getNames sig
                let width = Sig.width sig
                    initialVal = quote $ take (fromIntegral width) (repeat '0')
                    fmtargs = [name, show (width - 1), initialVal]
@@ -176,8 +178,9 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
 
-  let renderPort dir sig = do
-        name <- Sig.getName sig
+  let renderPort dir (SigConcat _) = die "mkModule/renderPort doesn't support SigConcat"
+      renderPort dir sig = do
+        [name] <- Sig.getNames sig
         let w = Sig.width sig
         return $ format "{0}: {1} std_logic_vector({2} downto 0)" [ name, dir, show $ w - 1]
 
@@ -188,6 +191,7 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
   nodeDecls <- mkNodeDecls topl modname
   outputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectOutput topl modname) outs
   inputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectInput topl modname) ins
+  
   constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant topl modname) comps
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
@@ -228,7 +232,6 @@ mkTermAssoc (MT.TermAssoc dir src tgt) = do
   case dir of 
     In -> return $ T.concat [ tgtTxt , T.pack " => " , srcTxt ]
     Out -> return $ T.concat [ srcTxt , T.pack " => " , tgtTxt ]
-
 
 mkTermAssign :: MT.TermAssoc -> J T.Text
 mkTermAssign (MT.TermAssoc dir src tgt) = do
@@ -283,9 +286,10 @@ mkSubModuleInstance topl modname submod@(SubModule name loc) = do
 -- no input names.
 mkNodeDecls topl modname =
   "Jade.Vhdl.mkNodeDecls" <? do
+  nb "These ins and outs aren't going to be SigConcats, ever."
   Inputs ins <- TopLevel.getInputs topl modname
   Outputs outs <- TopLevel.getOutputs topl modname
-  ignore <- mapM Sig.getName (ins ++ outs)
+  ignore <- concatMapM Sig.getNames (ins ++ outs)
   
   comps <- TopLevel.components topl modname
   compNames <- mapM GComp.name comps
@@ -303,7 +307,6 @@ mkNodeDecls topl modname =
     else do sigDecls <- mapM f keepers
             return $ concat $ DL.intersperse "\n" sigDecls
 
-
 -- If output signals are not connected directly to a submodule output,
 -- then there is no structural output to that output.
 connectOutput :: TopLevel -> String -> Sig -> J T.Text
@@ -317,7 +320,6 @@ connectOutput topl modname outSig = "Jade.Vhdl.connectOutput" <? do
 -- then there is no structural output to that output.
 connectInput :: TopLevel -> String -> Sig -> J T.Text
 connectInput topl modname inSig = "Jade.Vhdl.connectInput" <? do
-  
   inTermMap <- MT.connectOneInput topl modname inSig
   txts <- mapM mkTermAssign inTermMap
   return $ T.concat [T.append t (T.pack ";\n") | t <- txts]

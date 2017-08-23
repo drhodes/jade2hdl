@@ -39,11 +39,12 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
 data ModOutput = ModOutput TermMap deriving (Show, Eq)
 
 
+
 --connectOneOutput :: TopLevel -> String -> Sig -> J ModOutput
 connectOneOutput topl modname outSig = "Middle.Types.connectOneOutput" <? do
   -- find the components with the name from sig.
-  outSigName <- Sig.getName outSig
-  comps <- TopLevel.getComponentsWithName topl modname outSigName
+  outSigNames <- Sig.getNames outSig
+  comps <- concatMapM (TopLevel.getComponentsWithName topl modname) outSigNames
   
   -- determine width of outSig, this is absolutely known and defined
   -- in the jade module, this width can be used to deduce the width of other parts.
@@ -55,7 +56,7 @@ connectOneOutput topl modname outSig = "Middle.Types.connectOneOutput" <? do
         compName <- GComp.name comp
         compWidth <- GComp.width comp        
         -- find outSig in comp.
-        matchingSigs <- GComp.getSigsWithIdent comp outSigName
+        matchingSigs <- concatMapM (GComp.getSigsWithIdent comp) outSigNames
         
         -- for each sig create a termmap, use the
         singles <- mapM Sig.explode matchingSigs
@@ -75,8 +76,8 @@ connectOneOutput topl modname outSig = "Middle.Types.connectOneOutput" <? do
 
 connectOneInput topl modname inSig = "connectOneInput" <? do
   -- find the components with the name from sig.
-  inSigName <- Sig.getName inSig
-  comps <- TopLevel.getComponentsWithName topl modname inSigName
+  inSigNames <- Sig.getNames inSig
+  comps <- concat `liftM` mapM (TopLevel.getComponentsWithName topl modname) inSigNames
   
   -- determine width of inSig, this is absolutely known and defined
   -- in the jade module, this width can be used to deduce the width of other parts.
@@ -88,7 +89,7 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
         compName <- GComp.name comp
         compWidth <- GComp.width comp        
         -- find inSig in comp.
-        matchingSigs <- GComp.getSigsWithIdent comp inSigName
+        matchingSigs <- concatMapM (GComp.getSigsWithIdent comp) inSigNames
         -- for each sig create a termmap, use the
         singles <- mapM Sig.explode matchingSigs
         nb $ show ("singles", singles)
