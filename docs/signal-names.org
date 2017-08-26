@@ -1,0 +1,19 @@
+./Jade/Signal.hs:17:getName (Signal (Just sig) _ _) = liftM Just (Sig.getName sig)
+
+OK ./Jade/Part.hs:22:                                  Just s -> do name <- Sig.getName s
+OK ./Jade/Part.hs:24:                                               liftM (== ident) $ Sig.getName s
+OK ./Jade/Middle/Types.hs:45:  outSigName <- Sig.getName outSig
+OK ./Jade/Middle/Types.hs:78:  inSigName <- Sig.getName inSig
+
+
+./Jade/Vhdl.hs:55:      inputNames <- mapM Sig.getName ins
+
+./Jade/Vhdl.hs:70:      os <- mapM Sig.getName outs
+
+./Jade/Vhdl.hs:106:   name <- Sig.getName sig
+
+./Jade/Vhdl.hs:127:               name <- Sig.getName sig
+
+./Jade/Vhdl.hs:180:        name <- Sig.getName sig
+
+./Jade/Vhdl.hs:291:  ignore <- mapM Sig.getName (ins ++ outs)

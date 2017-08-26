@@ -6,13 +6,32 @@ import qualified TestModule as TM
 import qualified TestIcon as TI
 import qualified TestTopLevel as TTL
 import qualified TestWire as TW
-  
+import qualified Jade.Rawr.Types as JRT
+import qualified Control.Parallel.Strategies as CPS
+
+
+
+testem :: (Traversable t, Monad m) => t (m a) -> m (t a)
+testem xs = sequence $ CPS.runEval $ CPS.parTraversable CPS.rpar xs
+
 main = do
+  putStrLn ""
   putStrLn "Starting test"
-  TD.testAll
-  TI.testAll  
-  TM.testAll
-  TV.testAll -- "./test-data/AndStuff6.json" "/user/AndStuff6"
-  TTL.testAll
-  TW.testAll
+  -- JRT.runTree $ JRT.TestTree "TestAll"
+  --   [ TD.testTree
+  --   , TV.testTree
+  --   ]
+  
+  testem [ TD.testAll
+         , TI.testAll
+         , TV.testAll -- "./test-data/AndStuff6.json" "/user/AndStuff6"
+         , TM.testAll
+         , TTL.testAll
+         , TW.testAll
+         ]
   putStrLn "All done."
+  
+    
+
+
+

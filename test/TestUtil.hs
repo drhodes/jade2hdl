@@ -3,6 +3,8 @@ module TestUtil where
 import Jade.Types
 import Text.Format
 import Control.Monad
+import qualified System.IO as SIO
+
 
 expected :: Show a => a -> a -> J ()
 expected exp got = do
@@ -18,4 +20,5 @@ withTest name f = do
 
 expectedEq exp got = unless (got == exp) (expected exp got)
 
-pass = putStr "."
+pass = do putStr "."
+          SIO.hFlush SIO.stdout

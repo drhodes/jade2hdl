@@ -10,6 +10,9 @@ import Control.Monad
 import Test.QuickCheck.Arbitrary
 import TestUtil
 import Text.Format
+import Jade.Rawr.Types
+import qualified System.IO as SIO
+
 
 testWire1 :: Either String Wire
 testWire1 = eitherDecode "[\"wire\", [136, 64, 1, 0, 0], {\"signal\": \"wd\"}]" 
@@ -104,6 +107,7 @@ testWirePair1 =
      (Right (Wire (Coord5 0 0 Rot0 1 1) (Just (Signal (Just $ expSig) (Just 2) Nothing))))
      (eitherDecode "[\"wire\", [0, 0, 0, 1, 1], {\"signal\": \"A,B\"}]")
 
+testAll :: IO ()
 testAll = withTest "TestDecode" $ do
   testLine1
   testTerminal1
@@ -120,3 +124,44 @@ testAll = withTest "TestDecode" $ do
   f "testComp1" testComp1 
   f "testSub1" testSub1 
   f "testSchem1 " testSchem1 
+
+
+doResultTestWith :: t1 -> IO (Either String t) -> IO TestState
+doResultTestWith testname f = do
+  result <- f
+  case result of
+    Left msg -> return $ Fail msg
+    Right _ -> do pass
+                  return $ Pass
+
+rawr = do putStr $ take 1 $ show $ nofact 10000000
+          SIO.hFlush SIO.stdout
+          return Pass
+
+testTree = let f x y = doResultTestWith x (return y)
+               node s t = TestNode (Case s (f s t))
+           in TestTree "Decode" [ node "testWire1" testWire1
+                                , node "testSignal1" testSignal1 
+                                , node "testWireRange" testWireRange 
+                                , TestNode (Case "rawr" rawr)
+                                , TestNode (Case "rawr" rawr)
+                                , TestNode (Case "rawr" rawr)
+                                , TestNode (Case "rawr" rawr)
+                                , TestNode (Case "rawr" rawr)
+                                , TestNode (Case "rawr" rawr)
+                                , TestNode (Case "rawr" rawr)
+                                , TestNode (Case "rawr" rawr)
+                                , TestNode (Case "rawr" rawr)
+                                , TestNode (Case "rawr" rawr)
+                                , node "testWireIndex" testWireIndex
+                                , TestNode (Case "rawr" rawr)
+                                , node "testPort1" testPort1 
+                                , TestNode (Case "rawr" rawr)
+                                , node "testPort2" testPort2 
+                                , TestNode (Case "rawr" rawr)
+                                , node "testComp1" testComp1 
+                                , TestNode (Case "rawr" rawr)
+                                , TestNode (Case "rawr" rawr)
+                                , node "testSub1" testSub1 
+                                , node "testSchem1" testSchem1 
+                                ]

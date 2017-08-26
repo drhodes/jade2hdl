@@ -23,7 +23,8 @@ import TestUtil
 import System.Process 
 import System.Exit      
 import Control.Exception.Base as CEB
-import Control.Concurrent as CC
+import Jade.Rawr.Types
+import qualified System.IO as SIO
        
 spawnOneTest jadefile modname = do
   --putStrLn $ "Vhdl.Testing: " ++ modname  
@@ -55,7 +56,7 @@ spawnOneTest jadefile modname = do
     ExitSuccess -> do 
       (ecode', stdout', stderr') <- readCreateProcessWithExitCode cmd2 ""
       case ecode' of
-        ExitSuccess -> putStr "." --return () --ecode' --putStrLn modname
+        ExitSuccess -> pass --return () --ecode' --putStrLn modname
         ExitFailure err' -> do
           putStrLn errlog
           print err'
@@ -68,7 +69,47 @@ spawnOneTest jadefile modname = do
       print err
       return ecode
 
+spawn :: [Char] -> IO ExitCode
 spawn s = spawnOneTest ("./test-data/" ++ s ++ ".json") ("/user/" ++ s)
+
+spawn2 :: String -> IO TestState
+spawn2 s = do ecode <- spawn s
+              return Pass
+              
+-- rawr = do putStr $ take 1 $ show $ nofact 10000000
+--           SIO.hFlush SIO.stdout
+--           return Pass
+
+testTree = let node s = TestNode (Case s (spawn2 s))
+           in TestTree "TestVhdl" [ node "Jumper1" 
+                                  , node "And41"     
+                                  , node "AndStuff4" 
+                                  , node "AndStuff5"
+                                  , node "Jumper41"
+                                  , node "Jumper1"
+                                  , node "Jumper1Rot90"
+                                  , node "Jumper3"
+                                  , node "AND2"
+                                  , node "AND2Rot90"
+                                  , node "And2Ports"
+                                  , node "And2Ports2"
+                                  , node "And2Ports3"
+                                  , node "And2Ports4"
+                                  , node "Constant1"
+                                  , node "RepAnd2"
+                                  , node "RepAnd3"
+                                  , node "RepAnd4"
+                                  , node "Buffer1"
+                                  , node "Buffer2"
+                                  , node "WireConnectMid1"
+                                  , node "WireConnectMid2"
+                                  , node "CLA1_notext"
+                                  , node "Mux2to1_1"
+                                  , node "Buffer3"
+                                  --, "Buffer4"
+                                  --, "Buffer5"
+                                  ]
+
 
 testAll = withTest "TestVhdl" $ do
   mapM_ spawn [ "Jumper1"
@@ -95,12 +136,14 @@ testAll = withTest "TestVhdl" $ do
               , "WireConnectMid2"
               , "CLA1_notext"
               , "Mux2to1_1"
+              , "Buffer3"
+              --, "Buffer4"
+              --, "Buffer5"
               ]
     
   --spawn "AndStuff6" -- optimize this, eventually.
   spawnBuiltIn
   spawnBuiltInAnd4Messy
-
 
 failing = spawn "LeReg1"
   
@@ -163,3 +206,5 @@ testConnectOutputJumper1 = do
   runJIO $ "testConnectOutputJumper1" <? do
     let modname = "/user/Jumper1"
     liftM print $ Vhdl.connectOutput topl modname (SigSimple "vout")
+
+

@@ -142,7 +142,8 @@ mkTestBench topl modname =
   dut <- mkDUT m modname
   tlines <- Module.testLines m
   CycleLine actions <- Module.cycleLine m 
-  cases <- sequence [mkTestLine m actions testline testnum | (testline, testnum) <- zip tlines [1..]]
+  cases <- sequence [mkTestLine m actions testline testnum |
+                      (testline, testnum) <- zip tlines [1..]]
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-testbench.mustache")
       Right temp = compileTemplate "combinational-testbench.mustache" txt
@@ -153,10 +154,10 @@ mkTestBench topl modname =
                             ]
   return $ substitute temp mapping
 
+
 mkCombinationalTest topl modname =
   ("Jade.Vhdl.mkCombinationalTest: " ++ modname) <? do
   mkTestBench topl modname
-
 
 ------------------------------------------------------------------
 --mkModule :: TopLevel -> String -> J Maybe String)
@@ -190,7 +191,10 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
 
   nodeDecls <- mkNodeDecls topl modname
   outputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectOutput topl modname) outs
+
+  nb $ show ("ins", ins)
   inputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectInput topl modname) ins
+  nb $ show ("inputWires", inputWires)
   
   constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant topl modname) comps
   
@@ -206,11 +210,9 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
                             ]
   return $ substitute temp mapping
 
-
 mkAllMods topl = "Vhdl.mkAllMods" <? do
   let  userModNames = [name | (name, _) <- TopLevel.modules topl, name `startsWith` "/user"]
   T.concat `liftM` mapM (mkModule topl) userModNames
-  
 
 ------------------------------------------------------------------
 comma = T.pack ", \n"
@@ -238,10 +240,10 @@ mkTermAssign (MT.TermAssoc dir src tgt) = do
   -- TermAssoc {taDir = In, taSrc = SigIndex "A" 0, taTgt = SigIndex "in1" 0}
   srcTxt <- mkSigName src
   tgtTxt <- mkSigName tgt
+  let cat x y = return $ T.concat [ x , T.pack " <= " , y ]
   case dir of 
-    Out -> return $ T.concat [ tgtTxt , T.pack " <= " , srcTxt ]
-    In -> return $ T.concat [ srcTxt , T.pack " <= " , tgtTxt ]
-
+    Out -> cat tgtTxt srcTxt
+    In -> cat srcTxt tgtTxt
 
 mkTermMap :: MT.TermMap -> J T.Text
 mkTermMap xs = "Vhdl.mkTermMap" <? do
@@ -252,9 +254,8 @@ mkPortMap :: [MT.TermMap] -> [MT.TermMap] -> J T.Text
 mkPortMap ins outs = "Vhdl.mkPortMap" <? do
   portIns <- mapM mkTermMap ins
   portOuts <- mapM mkTermMap outs
-  return $ T.concat [ T.intercalate comma portIns
-                    , comma
-                    , T.intercalate comma portOuts ]
+  let f= T.intercalate comma
+  return $ T.concat [ f portIns, comma, f portOuts ]
     
 ------------------------------------------------------------------
 replicatedLabel subModName loc zIdx = 
@@ -315,19 +316,17 @@ connectOutput topl modname outSig = "Jade.Vhdl.connectOutput" <? do
   txts <- mapM mkTermAssign outTermMap
   return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
 
-
 -- If output signals are not connected directly to a submodule output,
 -- then there is no structural output to that output.
 connectInput :: TopLevel -> String -> Sig -> J T.Text
 connectInput topl modname inSig = "Jade.Vhdl.connectInput" <? do
+  nb $ show ("connectInput/inSig", inSig)
   inTermMap <- MT.connectOneInput topl modname inSig
   txts <- mapM mkTermAssign inTermMap
   return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
-
 
 connectConstant :: TopLevel -> String -> GComp -> J T.Text
 connectConstant topl modname comp = "Jade.Vhdl.connectConstant" <? do
   inTermMap <- MT.connectConstantComp topl modname comp
   txts <- mapM mkTermAssign inTermMap
   return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
-

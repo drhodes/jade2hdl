@@ -74,9 +74,11 @@ connectOneOutput topl modname outSig = "Middle.Types.connectOneOutput" <? do
         
   liftM concat $ mapM getSlices comps
 
+connectOneInput :: TopLevel -> String -> Sig -> J [TermAssoc]
 connectOneInput topl modname inSig = "connectOneInput" <? do
   -- find the components with the name from sig.
   inSigNames <- Sig.getNames inSig
+  
   comps <- concat `liftM` mapM (TopLevel.getComponentsWithName topl modname) inSigNames
   
   -- determine width of inSig, this is absolutely known and defined
@@ -86,22 +88,41 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
   -- from the components that have the name from sig, figure in which
   -- slice of which components to take and stack them up
   let getSlices comp = "getSlice" <? do
-        compName <- GComp.name comp
-        compWidth <- GComp.width comp        
+        compName  <- GComp.name comp
+        compWidth <- GComp.width comp
+        
+        something <- mapM (GComp.getSigsWithIdent comp) inSigNames
         -- find inSig in comp.
-        matchingSigs <- concatMapM (GComp.getSigsWithIdent comp) inSigNames
+        let matchingSigs = concat something
+        nb $ "MATCHING SIGS"
+        list matchingSigs
         -- for each sig create a termmap, use the
         singles <- mapM Sig.explode matchingSigs
-        nb $ show ("singles", singles)
-        let tgts = reverse $ DL.sort $ concat singles
-            srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
-
+        nb $ "SINGLES"
+        list singles
+        -- let tgts = reverse $ DL.sort $ concat singles
+        --     srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
+        -- let compareByIdx (SigIndex _ i) (SigIndex _ j) = compare j i
+        --     tgts = DL.sortBy (compareByIdx) $ concat singles
+        let tgts = DL.sort $ concat singles
+            srcs = map (SigIndex compName) [0 .. compWidth - 1]
+        nb "SRCS"
+        list srcs
+        nb "TGTS"
+        list tgts
         when (length tgts /= length srcs) $ do
           nb "The lengths of the targets and sources are not the same"
           bail
         nb $ show ("Termmap", zipWith (TermAssoc In) srcs tgts)
+        nb $ show ("INSIG", inSig)
         return $ zipWith (TermAssoc In) srcs tgts
-  liftM concat $ mapM getSlices comps
+  liftM concat $ mapM getSlices (reverse comps)
+
+
+-- dork matchingSig = do
+--   singles <- Sig.explode matchingSigs
+--   list singles
+--   return $ DL.sort $ concat singles
 
 
 
