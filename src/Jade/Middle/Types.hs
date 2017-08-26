@@ -20,6 +20,11 @@ data TermAssoc = TermAssoc { taDir :: Direction
                            , taSrc :: Sig
                            , taTgt :: Sig
                            } deriving (Show, Eq)
+
+data SigAssign = SigAssign { sigAssignSrc :: Sig
+                           , sigAssignTgt :: Sig
+                           } deriving (Show, Eq)
+
 flipDir In = Out
 flipDir Out = In
 
@@ -35,10 +40,7 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
                                  , smrZIndex :: Integer
                                  } deriving (Show, Eq)
 
-
 data ModOutput = ModOutput TermMap deriving (Show, Eq)
-
-
 
 --connectOneOutput :: TopLevel -> String -> Sig -> J ModOutput
 connectOneOutput topl modname outSig = "Middle.Types.connectOneOutput" <? do
@@ -70,17 +72,16 @@ connectOneOutput topl modname outSig = "Middle.Types.connectOneOutput" <? do
           nb "TGTS" >> list tgts
           bail
             
-        return $ zipWith (TermAssoc Out) srcs tgts
-        
+        return $ zipWith SigAssign srcs tgts
   liftM concat $ mapM getSlices comps
 
-connectOneInput :: TopLevel -> String -> Sig -> J [TermAssoc]
+connectOneInput :: TopLevel -> String -> Sig -> J [SigAssign]
 connectOneInput topl modname inSig = "connectOneInput" <? do
   -- find the components with the name from sig.
   inSigNames <- Sig.getNames inSig
+  nb $ show ("inSigNames", inSigNames)
   
-  comps <- concat `liftM` mapM (TopLevel.getComponentsWithName topl modname) inSigNames
-  
+  comps <- concatMapM (TopLevel.getComponentsWithName topl modname) inSigNames
   -- determine width of inSig, this is absolutely known and defined
   -- in the jade module, this width can be used to deduce the width of other parts.
   let inputWidth = Sig.width inSig 
@@ -90,53 +91,38 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
   let getSlices comp = "getSlice" <? do
         compName  <- GComp.name comp
         compWidth <- GComp.width comp
-        
-        something <- mapM (GComp.getSigsWithIdent comp) inSigNames
-        -- find inSig in comp.
-        let matchingSigs = concat something
-        nb $ "MATCHING SIGS"
-        list matchingSigs
-        -- for each sig create a termmap, use the
-        singles <- mapM Sig.explode matchingSigs
-        nb $ "SINGLES"
-        list singles
-        -- let tgts = reverse $ DL.sort $ concat singles
-        --     srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
-        -- let compareByIdx (SigIndex _ i) (SigIndex _ j) = compare j i
-        --     tgts = DL.sortBy (compareByIdx) $ concat singles
-        let tgts = DL.sort $ concat singles
-            srcs = map (SigIndex compName) [0 .. compWidth - 1]
-        nb "SRCS"
-        list srcs
-        nb "TGTS"
-        list tgts
+
+        matchingSigGroups <- mapM (GComp.getSigsWithIdent comp) inSigNames
+        explodeds <- mapM Sig.explode (concat matchingSigGroups)
+        nb $ show ("explodeds", explodeds)
+        let srcs = concat explodeds
+            tgts = reverse $ map (SigIndex compName) [0 .. compWidth - 1]
         when (length tgts /= length srcs) $ do
           nb "The lengths of the targets and sources are not the same"
           bail
-        nb $ show ("Termmap", zipWith (TermAssoc In) srcs tgts)
-        nb $ show ("INSIG", inSig)
-        return $ zipWith (TermAssoc In) srcs tgts
-  liftM concat $ mapM getSlices (reverse comps)
+        return $ zipWith SigAssign srcs tgts
+  concatMapM getSlices comps
 
 
--- dork matchingSig = do
---   singles <- Sig.explode matchingSigs
---   list singles
---   return $ DL.sort $ concat singles
-
-
-
+        
+  --       matchingSigs <- concatMapM (GComp.getSigsWithIdent comp) inSigNames
+  --       singles <- mapM Sig.explode matchingSigs
+  --       let srcs = DL.sort $ concat singles
+  --           tgts = map (SigIndex compName) [0 .. compWidth - 1]
+  --       when (length tgts /= length srcs) $ do
+  --         nb "The lengths of the targets and sources are not the same"
+  --         bail
+  --       return $ zipWith SigAssign srcs tgts
+  -- concatMapM getSlices comps
   
 genbits n | n == 0 = []
           | n `mod` 2 == 0 = 0 : (genbits next)
           | otherwise = 1 : (genbits next)
   where next = n `div` 2
 
-
 connectConstantComp topl modname comp = "connectConstantComp" <? do
   let quotedSigs = GComp.getQuotedSigs comp
   compWidth <- GComp.width comp
-  -- TODO investigate moving the "removeTerms" function to GComp
   compName <- GComp.name comp
   case quotedSigs of
     [SigQuote val numBits] -> do
@@ -151,14 +137,8 @@ connectConstantComp topl modname comp = "connectConstantComp" <? do
       let tgts = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
       let srcs = map (SigSimple . (\x -> "'" ++ show x ++ "'")) bits 
 
-      return $ zipWith (TermAssoc Out) srcs tgts
-    
+      return $ zipWith SigAssign srcs tgts
     [] -> return []
-    
-
-
-
-
 
 ---------------------------------------------------------------------------------------------------
 replicateOneTerminal :: Integer -> Direction -> Terminal -> GComp -> J TermMap
@@ -182,7 +162,7 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
          then do nb "case compWidth == totalWidth"
                  let singles = reverse [0 .. totalWidth - 1]
                      srcs = map (SigIndex compId) singles
-                     tmap = zipWith (TermAssoc In) srcs (concat $ repeat termSigs)
+                     tmap = zipWith (TermAssoc In) srcs (cycle termSigs)
                  return $ case dir of
                             In  -> tmap
                             Out -> flipTermMap tmap
@@ -200,8 +180,6 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
                       tmap = take (fromIntegral totalWidth) (cycle $ zipWith (TermAssoc In)
                                                               (cycle srcs)
                                                               (cycle termSigs))
-                  nb $ show ("Srcs", take 4 srcReplication)
-                  nb $ show ("tmap", tmap)
                   return $ case dir of
                              In -> tmap
                              Out -> flipTermMap tmap
@@ -209,7 +187,7 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
                 False -> do
                   nb "case compWidth > totalWidth"
                   impossible "This can't happen if the JADE modules tests pass in JADE"                  
-    y -> do nb $ "got: " ++ show ( y)
+    y -> do nb $ "got: " ++ show y
             die $ "Couldn't determine width of componenent: " ++ show comp
 
 oneOfEach xs =  
@@ -219,17 +197,13 @@ oneOfEach xs =
 
 buildSubModuleReps :: [[TermMap]] -> [[TermMap]] -> SubModule -> Integer -> J [SubModuleRep]
 buildSubModuleReps inputTermMaps outputTermMaps submod zidx = "buildSubModuleRep" <? do
-  nb $ show $ length inputTermMaps
-  nb $ show $ length outputTermMaps
   if zidx < 0 then return []
     else do let itms = map head inputTermMaps
                 otms = map head outputTermMaps
                 smr = SubModuleRep itms otms submod zidx
-  
             liftM (smr:) (buildSubModuleReps
                            (map tail inputTermMaps)
                            (map tail outputTermMaps) submod (zidx-1))
-
 
 subModuleInstances :: TopLevel -> String -> SubModule -> J [SubModuleRep]
 subModuleInstances topl modname submod@(SubModule name loc) = do
@@ -246,17 +220,8 @@ subModuleInstances topl modname submod@(SubModule name loc) = do
   inputTermMaps <- zipWithM (replicateOneTerminal repd In) inputTerms (map GComp.removeTerms inputComps)
   outputTermMaps <- zipWithM (replicateOneTerminal repd Out) outputTerms (map GComp.removeTerms outputComps)
 
-  nb "inputTermMaps"
-
-  mapM_ (\(xs) -> list xs >> nb "----") inputTermMaps
-  mapM_ (\(xs) -> list xs >> nb "----") outputTermMaps
-  nb $ "REPD: " ++ show repd  
-  nb $ show repd
   let itms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- inputTermMaps] :: [[TermMap]]
       otms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- outputTermMaps] :: [[TermMap]]
 
-  smr <- buildSubModuleReps itms otms submod (repd - 1)
-  list smr
-  nb $ show $ length smr
-  return smr
+  buildSubModuleReps itms otms submod (repd - 1)
   

@@ -143,25 +143,10 @@ testTree = let f x y = doResultTestWith x (return y)
            in TestTree "Decode" [ node "testWire1" testWire1
                                 , node "testSignal1" testSignal1 
                                 , node "testWireRange" testWireRange 
-                                , TestNode (Case "rawr" rawr)
-                                , TestNode (Case "rawr" rawr)
-                                , TestNode (Case "rawr" rawr)
-                                , TestNode (Case "rawr" rawr)
-                                , TestNode (Case "rawr" rawr)
-                                , TestNode (Case "rawr" rawr)
-                                , TestNode (Case "rawr" rawr)
-                                , TestNode (Case "rawr" rawr)
-                                , TestNode (Case "rawr" rawr)
-                                , TestNode (Case "rawr" rawr)
                                 , node "testWireIndex" testWireIndex
-                                , TestNode (Case "rawr" rawr)
                                 , node "testPort1" testPort1 
-                                , TestNode (Case "rawr" rawr)
                                 , node "testPort2" testPort2 
-                                , TestNode (Case "rawr" rawr)
                                 , node "testComp1" testComp1 
-                                , TestNode (Case "rawr" rawr)
-                                , TestNode (Case "rawr" rawr)
                                 , node "testSub1" testSub1 
                                 , node "testSchem1" testSchem1 
                                 ]

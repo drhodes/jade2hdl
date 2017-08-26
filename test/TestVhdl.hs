@@ -58,6 +58,8 @@ spawnOneTest jadefile modname = do
       case ecode' of
         ExitSuccess -> pass --return () --ecode' --putStrLn modname
         ExitFailure err' -> do
+          putStrLn "-----------------------------------------------------------------------------"
+          putStrLn modname
           putStrLn errlog
           print err'
           putStrLn stderr'
@@ -81,69 +83,70 @@ spawn2 s = do ecode <- spawn s
 --           return Pass
 
 testTree = let node s = TestNode (Case s (spawn2 s))
-           in TestTree "TestVhdl" [ node "Jumper1" 
-                                  , node "And41"     
-                                  , node "AndStuff4" 
-                                  , node "AndStuff5"
-                                  , node "Jumper41"
-                                  , node "Jumper1"
-                                  , node "Jumper1Rot90"
-                                  , node "Jumper3"
-                                  , node "AND2"
-                                  , node "AND2Rot90"
-                                  , node "And2Ports"
-                                  , node "And2Ports2"
-                                  , node "And2Ports3"
-                                  , node "And2Ports4"
-                                  , node "Constant1"
-                                  , node "RepAnd2"
-                                  , node "RepAnd3"
-                                  , node "RepAnd4"
-                                  , node "Buffer1"
-                                  , node "Buffer2"
-                                  , node "WireConnectMid1"
-                                  , node "WireConnectMid2"
-                                  , node "CLA1_notext"
-                                  , node "Mux2to1_1"
-                                  , node "Buffer3"
-                                  --, "Buffer4"
-                                  --, "Buffer5"
-                                  ]
+           in TestTree "TestVhdl" $ map node [ "Jumper1" 
+                                             ,  "And41"     
+                                             ,  "AndStuff4" 
+                                             ,  "AndStuff5"
+                                             ,  "Jumper41"
+                                             ,  "Jumper1"
+                                             ,  "Jumper1Rot90"
+                                             ,  "Jumper3"
+                                             ,  "AND2"
+                                             ,  "AND2Rot90"
+                                             ,  "And2Ports"
+                                             ,  "And2Ports2"
+                                             ,  "And2Ports3"
+                                             ,  "And2Ports4"
+                                             ,  "Constant1"
+                                             ,  "RepAnd2"
+                                             ,  "RepAnd3"
+                                             ,  "RepAnd4"
+                                             ,  "Buffer1"
+                                             ,  "Buffer2"
+                                             ,  "WireConnectMid1"
+                                             ,  "WireConnectMid2"
+                                             ,  "CLA1_notext"
+                                             ,  "Mux2to1_1"
+                                             ,  "Buffer3"
+                                             ,  "Buffer6"
+                                             ,  "Buffer4"
+                                             , "Buffer5"
+                                             ]
 
-
-testAll = withTest "TestVhdl" $ do
-  mapM_ spawn [ "Jumper1"
-              , "And41"     
-              , "AndStuff4" 
-              , "AndStuff5"
-              , "Jumper41"
-              , "Jumper1"
-              , "Jumper1Rot90"
-              , "Jumper3"
-              , "AND2"
-              , "AND2Rot90"
-              , "And2Ports"
-              , "And2Ports2"
-              , "And2Ports3"
-              , "And2Ports4"
-              , "Constant1"
-              , "RepAnd2"
-              , "RepAnd3"
-              , "RepAnd4"
-              , "Buffer1"
-              , "Buffer2"
-              , "WireConnectMid1"
-              , "WireConnectMid2"
-              , "CLA1_notext"
-              , "Mux2to1_1"
-              , "Buffer3"
-              --, "Buffer4"
-              --, "Buffer5"
-              ]
+-- testAll = withTest "TestVhdl" $ do
+--   mapM_ spawn [ "Jumper1"
+--               , "And41"     
+--               , "AndStuff4" 
+--               , "AndStuff5"
+--               , "Jumper41"
+--               , "Jumper1"
+--               , "Jumper1Rot90"
+--               , "Jumper3"
+--               , "AND2"
+--               , "AND2Rot90"
+--               , "And2Ports"
+--               , "And2Ports2"
+--               , "And2Ports3"
+--               , "And2Ports4"
+--               , "Constant1"
+--               , "RepAnd2"
+--               , "RepAnd3"
+--               , "RepAnd4"
+--               , "Buffer1"
+--               , "Buffer2"
+--               , "WireConnectMid1"
+--               , "WireConnectMid2"
+--               , "CLA1_notext"
+--               , "Mux2to1_1"
+--               , "Buffer3"
+--               , "Buffer6"
+--               --, "Buffer4"
+--               --, "Buffer5"
+--               ]
     
-  --spawn "AndStuff6" -- optimize this, eventually.
-  spawnBuiltIn
-  spawnBuiltInAnd4Messy
+--   --spawn "AndStuff6" -- optimize this, eventually.
+--   spawnBuiltIn
+--   spawnBuiltInAnd4Messy
 
 failing = spawn "LeReg1"
   

@@ -191,10 +191,7 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
 
   nodeDecls <- mkNodeDecls topl modname
   outputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectOutput topl modname) outs
-
-  nb $ show ("ins", ins)
-  inputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectInput topl modname) ins
-  nb $ show ("inputWires", inputWires)
+  inputWires <- connectAllInputs topl modname ins 
   
   constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant topl modname) comps
   
@@ -235,15 +232,11 @@ mkTermAssoc (MT.TermAssoc dir src tgt) = do
     In -> return $ T.concat [ tgtTxt , T.pack " => " , srcTxt ]
     Out -> return $ T.concat [ srcTxt , T.pack " => " , tgtTxt ]
 
-mkTermAssign :: MT.TermAssoc -> J T.Text
-mkTermAssign (MT.TermAssoc dir src tgt) = do
-  -- TermAssoc {taDir = In, taSrc = SigIndex "A" 0, taTgt = SigIndex "in1" 0}
+mkTermAssign :: MT.SigAssign -> J T.Text
+mkTermAssign (MT.SigAssign src tgt) = do
   srcTxt <- mkSigName src
   tgtTxt <- mkSigName tgt
-  let cat x y = return $ T.concat [ x , T.pack " <= " , y ]
-  case dir of 
-    Out -> cat tgtTxt srcTxt
-    In -> cat srcTxt tgtTxt
+  return $ T.concat [ tgtTxt , T.pack " <= " , srcTxt ]
 
 mkTermMap :: MT.TermMap -> J T.Text
 mkTermMap xs = "Vhdl.mkTermMap" <? do
@@ -312,21 +305,19 @@ mkNodeDecls topl modname =
 -- then there is no structural output to that output.
 connectOutput :: TopLevel -> String -> Sig -> J T.Text
 connectOutput topl modname outSig = "Jade.Vhdl.connectOutput" <? do
-  outTermMap <- MT.connectOneOutput topl modname outSig
-  txts <- mapM mkTermAssign outTermMap
+  assignMap <- MT.connectOneOutput topl modname outSig
+  txts <- mapM mkTermAssign assignMap
   return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
 
--- If output signals are not connected directly to a submodule output,
--- then there is no structural output to that output.
-connectInput :: TopLevel -> String -> Sig -> J T.Text
-connectInput topl modname inSig = "Jade.Vhdl.connectInput" <? do
-  nb $ show ("connectInput/inSig", inSig)
-  inTermMap <- MT.connectOneInput topl modname inSig
-  txts <- mapM mkTermAssign inTermMap
+-- If input signals are not connected directly to a submodule output,
+-- then there is no structural input for that input.
+connectAllInputs topl modname inSigs = "Jade.Vhdl.connectAllInputs" <? do  
+  assignMap <- concatMapM (MT.connectOneInput topl modname) inSigs
+  txts <- mapM mkTermAssign assignMap
   return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
-
+  
 connectConstant :: TopLevel -> String -> GComp -> J T.Text
 connectConstant topl modname comp = "Jade.Vhdl.connectConstant" <? do
-  inTermMap <- MT.connectConstantComp topl modname comp
-  txts <- mapM mkTermAssign inTermMap
+  assignMap <- MT.connectConstantComp topl modname comp
+  txts <- mapM mkTermAssign assignMap
   return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
