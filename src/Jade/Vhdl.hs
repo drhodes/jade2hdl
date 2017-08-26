@@ -70,8 +70,10 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
       os <- concatMapM Sig.getNames outs      
       txt <- sequence [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
       recurse $ map T.unpack txt
+
+    SetSignal sig x -> recurse $ [format "(SetSignal (GOT A {0}))" [show (sig, x)]]
+      
     x -> "Jade.Vhdl" <? unimplemented (show x)
-    --SetSignal (SigSimple "CLK") 1.0    
 
 testCaseIfBlock :: Integer -> String -> String -> String -> J T.Text
 testCaseIfBlock testnum signal expected comment = do
