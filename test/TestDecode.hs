@@ -131,7 +131,7 @@ doResultTestWith testname f = do
   result <- f
   case result of
     Left msg -> return $ Fail msg
-    Right _ -> do pass
+    Right _ -> do passes
                   return $ Pass
 
 rawr = do putStr $ take 1 $ show $ nofact 10000000

@@ -14,6 +14,22 @@
 --     vout <= a and b;
 -- end architecture behavioral ;
 
+
+-- /gates/mod_gates_dreg ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_dreg is
+  port (D : in std_logic_vector(0 downto 0);
+        CLK : in std_logic_vector(0 downto 0);
+        Q : out std_logic_vector(0 downto 0));
+end entity mod_gates_dreg ;
+architecture behavioral of mod_gates_dreg is
+begin
+  -- do register stuff here.
+end architecture behavioral ;
+
+
 -- /gates/mod_gates_tristate ------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;

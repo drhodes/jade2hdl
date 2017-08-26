@@ -10,6 +10,7 @@ import qualified Jade.Wire as Wire
 import Text.Format
 import TestUtil
 import Control.Monad
+import Jade.Rawr.Types 
 
 buildUserAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
@@ -23,7 +24,7 @@ portTest1 = do
     let modname =  "/user/PortTest1"
     cs <- TopLevel.components topl modname
     case length cs of
-      1 -> return "."
+      1 -> return "+"
       x -> die $ "hmm, found: " ++ show x
 
 buildUserAnd24 = do
@@ -39,7 +40,7 @@ bendyWire1 = do
     let modname =  "/user/BendyWire1"
     cs <- TopLevel.components topl modname
     case length cs of
-      1 -> return "."
+      1 -> return "+"
       x -> die $ "hmm, found: " ++ show x
 
 testTermDriverAnd23 = do
@@ -50,7 +51,7 @@ testTermDriverAnd23 = do
                inputTerms <- TopLevel.getInputTerminals topl submodule
                result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
                case result of
-                 [SigSimple "pg7Bj1XGp2OJ9_out",SigSimple "QxrKbYgWM4dLd_out"] -> return "."
+                 [SigSimple "pg7Bj1XGp2OJ9_out",SigSimple "QxrKbYgWM4dLd_out"] -> return "+"
                  x -> die $ "hmm, found: " ++ show x
 
 testTermDriverAnd23_Wire = do
@@ -61,7 +62,7 @@ testTermDriverAnd23_Wire = do
                inputTerms <- TopLevel.getInputTerminals topl submodule
                result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
                case result of
-                 [SigSimple "A",SigSimple "B"] -> return "."
+                 [SigSimple "A",SigSimple "B"] -> return "+"
                  x -> die $ "hmm, found: " ++ show x
 
 testTopLevelComponents1 = do
@@ -73,7 +74,7 @@ testGetComponentsWithName modname signame exp = do
   putStrJ $ do let modname' =  "/user/" ++ modname
                cs <- TopLevel.getComponentsWithName topl modname' signame
                return $ if length cs == exp
-                        then "."
+                        then "+"
                         else "FAIL" ++ (show ("expected", exp, "got", length cs))
 
 testGetComponentsWithNameAll = do
@@ -112,7 +113,7 @@ testTopLevelGetInputs = do
                -- find which signal is driving the input terminal.
                driver <- TopLevel.getInputTermDriver topl modname (terms !! 1)
                if driver == SigSimple "QxrKbYgWM4dLd_out"
-                 then return "."
+                 then return "+"
                  else return "FAIL"
                 
 testSigConnectedToSubModuleP1 = do
@@ -120,7 +121,7 @@ testSigConnectedToSubModuleP1 = do
   putStrJ $ do
     Outputs outs <- TopLevel.getOutputs topl "/user/Jumper1"
     eh <- TopLevel.sigConnectedToSubModuleP topl "/user/Jumper1" (outs !! 0)
-    if eh == False then return "." else return "FAIL"
+    if eh == False then return "+" else return "FAIL"
 
 testSigConnectedToSubModuleP2 = do
   Right topl <- Decode.decodeTopLevel "./test-data/UseAND2_3.json"
@@ -128,13 +129,13 @@ testSigConnectedToSubModuleP2 = do
     let modname =  "/user/UseAND2_3"
     Outputs outs <- TopLevel.getOutputs topl modname
     v <- mapM (TopLevel.sigConnectedToSubModuleP topl modname) outs
-    if v == [True] then return "." else return "FAIL"
+    if v == [True] then return "+" else return "FAIL"
 
 testLoneJumper1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/LoneJumper1.json"
   case runJ $ do TopLevel.components topl "/user/LoneJumper1" of
     Right comps -> if (map GComp.getSigs comps) == [[]]
-                   then pass
+                   then passes
                    else fail "FAIL: unexpected result in testLoneJumper1"
     Left msg -> fail msg
 
@@ -148,7 +149,7 @@ testComponentUseAND2Rot90 = do
   let func = do comps <- TopLevel.components topl ("/user/" ++ modname)
                 return $ map GComp.getSigs comps
   case runJ func of
-    Right x -> pass
+    Right x -> passes
     Left msg -> print msg
 
 
@@ -164,7 +165,7 @@ testNumComponents modname numcomps = do
         
   case runJ func of
     Right (n, comps) -> if n == numcomps
-                        then pass
+                        then passes
                         else do putStrLn $ format "{2}: Expected {0}, got: {1}" [show numcomps, show n, modname]
                                 printLog func
     Left msg -> fail msg
@@ -183,7 +184,7 @@ testComponents modname exp = do
                   return False
   case runJ func of
     Left msg -> print msg
-    Right True -> pass
+    Right True -> passes
     Right False -> putStrLn $ runLog func
 
 testAll = withTest "TestTopLevel" $ do
@@ -244,7 +245,7 @@ testReplicationDepth modname expDepth = do
                   return False
         
   case runJ func of
-    Right True -> pass
+    Right True -> passes
     Right False -> printLog func
     Left msg -> printLog func >> fail msg
 

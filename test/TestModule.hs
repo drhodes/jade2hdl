@@ -13,6 +13,7 @@ import qualified Data.Hashable as H
 import Text.Format
 import Control.Monad
 import TestUtil
+import Jade.Rawr.Types 
 
 withTopLevel :: String -> (TopLevel -> b) -> IO b
 withTopLevel modname f = do
@@ -40,7 +41,7 @@ hasTerminalsAt modname locs = do
         return $ DL.sort locs == DL.sort locs'
   
   case runJ func of
-    Right True -> putStr "."
+    Right True -> passes
     Right False -> do
       putStrLn modname
       putStrLn $ runLog func
@@ -65,7 +66,7 @@ testSubModBoundingBox modname exp = do
           else expected exp bb
           
   case runJ func of
-    Right x -> do putStr "."
+    Right x -> do passes
                   return (Just x)
     Left msg -> do putStrLn msg
                    putStrLn $ runLog func

@@ -71,7 +71,7 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
       txt <- sequence [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
       recurse $ map T.unpack txt
 
-    SetSignal sig x -> recurse $ [format "(SetSignal (GOT A {0}))" [show (sig, x)]]
+    SetSignal (SigSimple name) x -> recurse [format "{0} <= {1};" [name, show x]]
       
     x -> "Jade.Vhdl" <? unimplemented (show x)
 

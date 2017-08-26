@@ -12,6 +12,7 @@ import qualified Data.Hashable as H
 import Text.Format
 import TestUtil
 import Control.Monad
+import Jade.Rawr.Types 
 
 withTopLevelTest modname f = 
   liftM f $ Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
@@ -28,7 +29,7 @@ testIcon tname libname modname f = do
           Just icon -> f icon
               
   case runJ func of
-    Right x -> do putStr "."
+    Right x -> do passes
                   return x
     Left msg -> do putStrLn msg
                    putStrLn $ runLog func

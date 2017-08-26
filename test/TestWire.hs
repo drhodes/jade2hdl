@@ -9,6 +9,7 @@ import qualified Jade.Wire as Wire
 import Text.Format
 import Control.Monad
 import TestUtil
+import Jade.Rawr.Types 
 
 testWireEnds modname expectedEnds = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
@@ -28,7 +29,7 @@ testWireEnds modname expectedEnds = do
               else return ()
 
   case runJ result of
-    Right _ -> pass
+    Right _ -> passes
     Left msg -> do putStrLn $ runLog result
                    fail msg
 

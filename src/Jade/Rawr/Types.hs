@@ -11,6 +11,7 @@
 module Jade.Rawr.Types where
 import Prelude hiding (pow)
 import Control.Monad
+import qualified System.IO as SIO
 
 import qualified Control.Parallel.Strategies as CPS
 
@@ -36,11 +37,28 @@ runTree (TestTree s trees) = do
   putStrLn ""
   return result
   
-runTree (TestNode (Case s f)) = do
-  sequence $ CPS.runEval $ CPS.parList CPS.rseq [f]
+runTree (TestNode c@(Case s f)) = do
+  result <- sequence $ CPS.runEval $ CPS.parList CPS.rseq [f]
+  mapM_ (rawrLog s) result
+  return result
 
 data TestState = Ready
                | Running
                | Pass
                | Fail String               
                deriving (Show, Eq)
+passes = do putStr "·"
+            SIO.hFlush SIO.stdout
+            
+fails = do putStr "X"
+           SIO.hFlush SIO.stdout
+
+
+rawrLog :: String -> TestState -> IO ()
+rawrLog string state =  
+  case state of
+    Pass -> return ()
+    Fail msg -> do let logPath = "./logs/" ++ string ++ ".log"
+                   writeFile logPath msg
+                   --putStrLn $ "writing log: " ++ logPath ++ ", state:  " ++ (show msg)
+  

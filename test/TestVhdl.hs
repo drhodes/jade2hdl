@@ -56,102 +56,52 @@ spawnOneTest jadefile modname = do
     ExitSuccess -> do 
       (ecode', stdout', stderr') <- readCreateProcessWithExitCode cmd2 ""
       case ecode' of
-        ExitSuccess -> pass --return () --ecode' --putStrLn modname
-        ExitFailure err' -> do
-          putStrLn "-----------------------------------------------------------------------------"
-          putStrLn modname
-          putStrLn errlog
-          print err'
-          putStrLn stderr'
-      return ecode'
-    ExitFailure err -> do
-      putStrLn errlog
-      putStrLn modname
-      putStrLn stderr
-      print err
-      return ecode
+        ExitSuccess -> passes >> return Pass
+        ExitFailure err' -> do fails
+                               return $ Fail $ modname ++ errlog ++ (show err') ++ stderr
+    ExitFailure err -> do fails
+                          return $ Fail $ unlines [ format "module: {0}" [modname]
+                                                  , format "ecode:  {0}" [show ecode]
+                                                  , errlog
+                                                  , stderr
+                                                  , show err
+                                                  ]
 
-spawn :: [Char] -> IO ExitCode
 spawn s = spawnOneTest ("./test-data/" ++ s ++ ".json") ("/user/" ++ s)
 
-spawn2 :: String -> IO TestState
-spawn2 s = do ecode <- spawn s
-              return Pass
-              
--- rawr = do putStr $ take 1 $ show $ nofact 10000000
---           SIO.hFlush SIO.stdout
---           return Pass
-
-testTree = let node s = TestNode (Case s (spawn2 s))
+testTree = let node s = TestNode (Case s (spawn s))
            in TestTree "TestVhdl" $ map node [ "Jumper1" 
-                                             ,  "And41"     
-                                             ,  "AndStuff4" 
-                                             ,  "AndStuff5"
-                                             ,  "Jumper41"
-                                             ,  "Jumper1"
-                                             ,  "Jumper1Rot90"
-                                             ,  "Jumper3"
-                                             ,  "AND2"
-                                             ,  "AND2Rot90"
-                                             ,  "And2Ports"
-                                             ,  "And2Ports2"
-                                             ,  "And2Ports3"
-                                             ,  "And2Ports4"
-                                             ,  "Constant1"
-                                             ,  "RepAnd2"
-                                             ,  "RepAnd3"
-                                             ,  "RepAnd4"
-                                             ,  "Buffer1"
-                                             ,  "Buffer2"
-                                             ,  "WireConnectMid1"
-                                             ,  "WireConnectMid2"
-                                             ,  "CLA1_notext"
-                                             ,  "Mux2to1_1"
-                                             ,  "Buffer3"
-                                             ,  "Buffer6"
-                                             ,  "Buffer4"
+                                             , "And41"     
+                                             , "AndStuff4" 
+                                             , "AndStuff5"
+                                             , "Jumper41"
+                                             , "Jumper1"
+                                             , "Jumper1Rot90"
+                                             , "Jumper3"
+                                             , "AND2"
+                                             , "AND2Rot90"
+                                             , "And2Ports"
+                                             , "And2Ports2"
+                                             , "And2Ports3"
+                                             , "And2Ports4"
+                                             , "Constant1"
+                                             , "RepAnd2"
+                                             , "RepAnd3"
+                                             , "RepAnd4"
+                                             , "Buffer1"
+                                             , "Buffer2"
+                                             , "WireConnectMid1"
+                                             , "WireConnectMid2"
+                                             , "CLA1_notext"
+                                             , "Mux2to1_1"
+                                             , "Buffer3"
+                                             , "Buffer6"
+                                             , "Buffer4"
                                              , "Buffer5"
+                                             , "BuiltInAnd4"
+                                             , "BuiltInAnd4Messy"
+                                             , "LeReg1"
                                              ]
-
--- testAll = withTest "TestVhdl" $ do
---   mapM_ spawn [ "Jumper1"
---               , "And41"     
---               , "AndStuff4" 
---               , "AndStuff5"
---               , "Jumper41"
---               , "Jumper1"
---               , "Jumper1Rot90"
---               , "Jumper3"
---               , "AND2"
---               , "AND2Rot90"
---               , "And2Ports"
---               , "And2Ports2"
---               , "And2Ports3"
---               , "And2Ports4"
---               , "Constant1"
---               , "RepAnd2"
---               , "RepAnd3"
---               , "RepAnd4"
---               , "Buffer1"
---               , "Buffer2"
---               , "WireConnectMid1"
---               , "WireConnectMid2"
---               , "CLA1_notext"
---               , "Mux2to1_1"
---               , "Buffer3"
---               , "Buffer6"
---               --, "Buffer4"
---               --, "Buffer5"
---               ]
-    
---   --spawn "AndStuff6" -- optimize this, eventually.
---   spawnBuiltIn
---   spawnBuiltInAnd4Messy
-
-failing = spawn "LeReg1"
-  
-spawnBuiltIn = spawnOneTest "./test-data/BuiltInAnd4.json" "/user/BuiltInAnd4"
-spawnBuiltInAnd4Messy = spawnOneTest "./test-data/BuiltInAnd4Messy.json" "/user/BuiltInAnd4Messy"
 
 testDUT_UseAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"

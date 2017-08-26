@@ -9,8 +9,6 @@ import qualified TestWire as TW
 import qualified Jade.Rawr.Types as JRT
 import qualified Control.Parallel.Strategies as CPS
 
-
-
 testem :: (Traversable t, Monad m) => t (m a) -> m (t a)
 testem xs = sequence $ CPS.runEval $ CPS.parTraversable CPS.rpar xs
 
