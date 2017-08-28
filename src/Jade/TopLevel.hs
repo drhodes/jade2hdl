@@ -143,7 +143,7 @@ getInputTerminals topl (SubModule name offset) = do
 componentWithTerminal topl modname term@(Terminal c3@(Coord3 x y _) _) =
   ("TopLevel.componentWithTerminal: " ++ modname) <? do
   comps <- components topl modname
-  let pred (GComp set) = (Node (x, y) (TermC term)) `elem` set
+  let pred (GComp gid set) = (Node (x, y) (TermC term)) `elem` set
       result = filter pred comps -- filter out components that don't contain term
   case length result of
     0 -> do
@@ -205,7 +205,7 @@ getInputTermDriver topl modname term =
   "TopLevel.getInputTermDriver" <? do
   
   m <- getModule topl modname
-  (GComp nodes) <- componentWithTerminal topl modname term
+  (GComp gid nodes) <- componentWithTerminal topl modname term
 
   let partList = let ps1 = map nodePart nodes
                      -- remove the source terminal

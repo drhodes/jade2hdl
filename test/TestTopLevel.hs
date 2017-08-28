@@ -31,7 +31,7 @@ buildUserAnd24 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-4.json"
   putStrJ $ do let modname =  "/user/UseAND2_4"
                cs <- TopLevel.components topl modname
-               let (GComp cs') = cs !! 5
+               let (GComp gid cs') = cs !! 5
                return $ show $ map nodePart $ cs'
 
 bendyWire1 = do

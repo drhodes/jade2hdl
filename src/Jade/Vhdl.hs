@@ -197,8 +197,7 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
 
   nodeDecls <- mkNodeDecls topl modname
   outputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectOutput topl modname) outs
-  inputWires <- connectAllInputs topl modname ins 
-  
+  inputWires <- connectAllInputs topl modname ins   
   constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant topl modname) comps
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
@@ -259,7 +258,7 @@ mkPortMap ins outs = "Vhdl.mkPortMap" <? do
 ------------------------------------------------------------------
 replicatedLabel subModName loc zIdx = 
   format "{0}_{1}_{2}" [ Module.mangleModName subModName
-                       , take 5 $ hashid loc
+                       , take 5 $ hashid (zIdx, subModName, loc)
                        , show zIdx ]
 
 mkSubModuleInstance :: TopLevel -> String -> SubModule -> J T.Text
@@ -270,7 +269,7 @@ mkSubModuleInstance topl modname submod@(SubModule name loc) = do
 
   let mkOneInstance submodrep@(MT.SubModuleRep ins outs _ zIdx) = do
         portmap <- mkPortMap ins outs
-        let label = replicatedLabel name loc zIdx
+        let label = replicatedLabel name loc zIdx        
         -- u1 : entity work.AND2 port map (in1 => a, in2 => b, out1 => w1);
         let txt = "{{label}} : entity work.{{submod-name}} port map ({{{port-map}}});"
             Right template = compileTemplate "mkSubModuleInstance" (T.pack txt)

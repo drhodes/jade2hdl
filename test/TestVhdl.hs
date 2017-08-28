@@ -97,6 +97,7 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "WireConnectMid1"
                                          , "WireConnectMid2"
                                          , "CLA1_notext"
+                                         , "CLA1"
                                          , "Mux2to1_1"
                                          , "Buffer3"
                                          , "Buffer6"
@@ -105,6 +106,9 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "BuiltInAnd4"
                                          , "BuiltInAnd4Messy"
                                          , "LeReg1"
+                                         , "CLwiresAdded"
+                                           -- "CL"
+                                           -- failing, need to add wires where the terminals of two modules meet.
                                            --, "GarrInc32"
                                            --, "fast_and4"
                                          ]

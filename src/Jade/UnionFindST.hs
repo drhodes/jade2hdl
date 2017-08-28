@@ -87,14 +87,14 @@ components edges = runST $ do
   
   xs <- sequence [filterM (find uf x) [0.. length nodes - 1] | x <- [0.. length nodes - 1]]
   let indexes = DL.nub xs
-  return $ [GComp $ DL.nub $ map (nodes !!) xs | xs <- indexes]
+  return $ zipWith GComp [1..] [DL.nub $ map (nodes !!) xs | xs <- indexes]
   
 nameComp :: GComp -> J String
-nameComp (GComp nodes) = "UnionFind.nameComp" <? do
+nameComp (GComp gid nodes) = "UnionFind.nameComp" <? do
   let parts = map nodePart nodes
       signals1 = [signal | WireC (Wire _ (Just signal)) <- parts]
       names = [n | Signal (Just (SigSimple n)) _ _ <- signals1] -- ++ signals2]
       genNameLen = 10
   return $ if length names > 0
            then head names
-           else take genNameLen $ "wire_" ++ hashid parts
+           else take genNameLen $ "wire_" ++ show gid

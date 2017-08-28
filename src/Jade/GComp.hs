@@ -14,13 +14,13 @@ hasSig :: GComp -> Sig -> Bool
 hasSig gcomp sig  = sig `elem` (getSigs gcomp)
 
 hasAnyTerm :: GComp -> Bool
-hasAnyTerm (GComp nodes) = or [True | Node _ (TermC _) <- nodes]
+hasAnyTerm (GComp gid nodes) = or [True | Node _ (TermC _) <- nodes]
 
 hasTerm :: GComp -> Terminal -> Bool
-hasTerm (GComp nodes) term1 = or [term1 == term2 | Node _ (TermC term2) <- nodes]
+hasTerm (GComp _ nodes) term1 = or [term1 == term2 | Node _ (TermC term2) <- nodes]
 
 getSigs :: GComp -> [Sig]
-getSigs (GComp nodes) =
+getSigs (GComp _ nodes) =
   let parts = map nodePart nodes
   in  DL.nub [s | (Just s) <- map Part.sig parts]
 
@@ -32,9 +32,9 @@ getSigsWithIdent gcomp ident = do
   -- more than one!
   liftM DL.nub $ filterM (flip Sig.hasIdent ident) (getSigs (removeTerms gcomp))
 
-getWires (GComp nodes) = [w | (Node _ (WireC w)) <- nodes]
+getWires (GComp _ nodes) = [w | (Node _ (WireC w)) <- nodes]
 
-removeTerms (GComp nodes) = GComp [n | n@(Node _ part) <- nodes, not $ Part.isTerm part]
+removeTerms (GComp gid nodes) = GComp gid [n | n@(Node _ part) <- nodes, not $ Part.isTerm part]
 
 width gcomp = "GComp.width" <? do
   let sigs = getSigs gcomp
@@ -42,14 +42,14 @@ width gcomp = "GComp.width" <? do
     then return 1
     else return $ maximum $ map Sig.width sigs
 
-parts gcomp = let (GComp nodes) = removeTerms gcomp
+parts gcomp = let (GComp _ nodes) = removeTerms gcomp
               in map nodePart nodes 
 
 name :: GComp -> J String
-name comp = "UnionFind.nameComp" <? do
+name comp@(GComp gid nodes) = "UnionFind.nameComp" <? do
   let signals1 = [signal | WireC (Wire _ (Just signal)) <- parts comp]
       genNameLen = 10
-  return $ take genNameLen $ "wire_" ++ hashid (parts comp)
+  return $ take genNameLen $ "wire_" ++ show gid
 
 containsSigIdent :: GComp -> String -> J Bool
 containsSigIdent gcomp sigIdent = "GComp.containsSigIdent" <? do

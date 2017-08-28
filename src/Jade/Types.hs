@@ -261,7 +261,8 @@ data Node = Node { nodeLocation :: (Integer, Integer)
                  , nodePart :: Part                   
                  } deriving (Eq, Generic, Show, Hashable, Ord)
 
-newtype GComp = GComp [Node] deriving (Show, Eq, Ord)
+type GID = Integer 
+data GComp = GComp GID [Node] deriving (Show, Eq, Ord)
 
 data Edge = Edge Node Node deriving (Generic, Show, Hashable, Ord, Eq)
 

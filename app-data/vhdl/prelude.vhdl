@@ -82,6 +82,34 @@ begin
 end architecture behavioral ;
 
 
+-- /gates/nand2 ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_nand2 is
+  port (a : in std_logic_vector(0 downto 0);
+        b : in std_logic_vector(0 downto 0);
+        vout : out std_logic_vector(0 downto 0));
+end entity mod_gates_nand2 ;
+architecture behavioral of mod_gates_nand2 is
+begin
+  vout <= a nand b;
+end architecture behavioral ;
+
+-- /gates/nor2 ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_nor2 is
+  port (a : in std_logic_vector(0 downto 0);
+        b : in std_logic_vector(0 downto 0);
+        vout : out std_logic_vector(0 downto 0));
+end entity mod_gates_nor2 ;
+architecture behavioral of mod_gates_nor2 is
+begin
+  vout <= a nor b;
+end architecture behavioral ;
+
 -- /gates/mux2 ------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
