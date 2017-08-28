@@ -8,6 +8,7 @@ import qualified Jade.Signal as Signal
 import qualified Jade.Sig as Sig
 import Data.Maybe
 import Control.Monad
+import Jade.Util
 
 hasSig :: GComp -> Sig -> Bool
 hasSig gcomp sig  = sig `elem` (getSigs gcomp)

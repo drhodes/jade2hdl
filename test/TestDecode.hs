@@ -13,7 +13,6 @@ import Text.Format
 import Jade.Rawr.Types
 import qualified System.IO as SIO
 
-
 testWire1 :: Either String Wire
 testWire1 = eitherDecode "[\"wire\", [136, 64, 1, 0, 0], {\"signal\": \"wd\"}]" 
 
@@ -125,7 +124,6 @@ testAll = withTest "TestDecode" $ do
   f "testSub1" testSub1 
   f "testSchem1 " testSchem1 
 
-
 doResultTestWith :: t1 -> IO (Either String t) -> IO TestState
 doResultTestWith testname f = do
   result <- f
@@ -133,10 +131,6 @@ doResultTestWith testname f = do
     Left msg -> return $ Fail msg
     Right _ -> do passes
                   return $ Pass
-
-rawr = do putStr $ take 1 $ show $ nofact 10000000
-          SIO.hFlush SIO.stdout
-          return Pass
 
 testTree = let f x y = doResultTestWith x (return y)
                node s t = TestNode (Case s (f s t))

@@ -8,6 +8,7 @@ import qualified Numeric as N
 import qualified Jade.Sig as Sig
 import Control.Monad
 import Jade.Util
+import qualified Data.List as DL
 
 ident :: Parser String
 ident = do start <- letter <|> char '_'
@@ -194,8 +195,8 @@ defaultModTest = let
 acreteTestLine filename mt lineNum line =
   case parse testLine filename line of
     Left msg -> mt
-    Right p -> let tlines = modTestLines mt
-               in mt { modTestLines = p:tlines  }
+    Right p -> let tlines = modTestLines mt ++ [p]
+               in mt { modTestLines = tlines }
 
 acreteCycleLine filename mt lineNum line =
   case parse cycleLine filename line of
@@ -250,9 +251,6 @@ acreteTry (f:fs) filename mt lineNum line =
   in if mt' == mt
   then acreteTry fs filename mt lineNum line
   else Right mt'
-
-
-
        
 --acreteOne filename mt lineNum "" = Right mt 
 acreteOne filename mt lineNum line =
@@ -299,6 +297,10 @@ sampleBitVals modt testline@(TestLine bvs _) = do
   assertBvs <- assertBitVals modt testline
   return $ drop (length assertBvs) bvs
 
+setSignals modt =
+  case modCycleLine modt of
+    Just (CycleLine actions) -> DL.nub [sig | SetSignal sig _ <- actions]
+    Nothing -> []
   
 testLineSignals :: ModTest -> TestLine -> Either String [(Sig, [BinVal])]
 testLineSignals modt testline@(TestLine bvs _) = do
@@ -311,7 +313,7 @@ testLineSignals modt testline@(TestLine bvs _) = do
 
   -- improve these error messages
   when (sum inWidths /= (fromIntegral $ length asserts)) $ 
-    fail $ "testline asserts doesn't match the width of the signals: " ++ (show (inSigs, asserts))
+    fail $ "testline asserts do not match the width of the signals: " ++ (show (inSigs, asserts))
 
   when (sum outWidths /= (fromIntegral $ length samples)) $ 
     fail $ "testline samples do not match the width of the signals: " ++ (show (outSigs, samples))

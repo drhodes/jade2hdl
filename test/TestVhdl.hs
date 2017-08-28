@@ -19,6 +19,7 @@ import Data.FileEmbed
 import Data.Text.Encoding 
 import Jade.Types
 import TestUtil
+import Jade.Util
 
 import System.Process 
 import System.Exit      
@@ -27,9 +28,6 @@ import Jade.Rawr.Types
 import qualified System.IO as SIO
        
 spawnOneTest jadefile modname = do
-  --putStrLn $ "Vhdl.Testing: " ++ modname  
-  -- create a test directory
-  
   let autoTestPath = format "test-data/auto-vhdl/{0}/" [hashid modname]
       tbname = Module.testBenchName modname
       prelude = decodeUtf8 $(embedFile "app-data/vhdl/prelude.vhdl")
@@ -58,12 +56,19 @@ spawnOneTest jadefile modname = do
       case ecode' of
         ExitSuccess -> passes >> return Pass
         ExitFailure err' -> do fails
-                               return $ Fail $ modname ++ errlog ++ (show err') ++ stderr
+                               return $ Fail $ unlines [ format "module: {0}" [modname]
+                                                       , format "ecode:  {0}" [show ecode']
+                                                       , errlog
+                                                       , stdout'
+                                                       , stderr'
+                                                       , show err'
+                                                       ]
     ExitFailure err -> do fails
                           return $ Fail $ unlines [ format "module: {0}" [modname]
                                                   , format "ecode:  {0}" [show ecode]
-                                                  , errlog
-                                                  , stderr
+                                                  , format "stdout: {0}" [stdout]
+                                                  , format "stdout: {0}" [stderr]
+                                                  , errlog 
                                                   , show err
                                                   ]
 

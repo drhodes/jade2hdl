@@ -1,45 +1,21 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE FlexibleInstances #-}
+-- {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
--- {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
 module Jade.Types where
 
-import Control.Monad.Identity
-import Data.Vector.Instances
 import GHC.Generics
-import Control.Monad
-import Data.Traversable
-import Data.ByteString.Lazy.Internal
 import qualified Data.Vector as V
 import qualified Data.Map as DM
 import qualified Data.List as DL
-import qualified Data.Set as DS
-import qualified System.Environment as SE
-import Data.Hashable
-import Test.QuickCheck
 import Control.Monad.Except 
-import qualified Data.Hashable as DH
-import qualified Web.Hashids as WH
-import qualified Data.ByteString.Char8 as B
 import Jade.Util
+import Data.Hashable
 
 import Control.Monad.Writer
 import Control.Monad.State.Lazy
-debug = True
-
-hashid :: Hashable a => a -> String
-hashid x =
-  let ctx = WH.hashidsSimple "salt"
-      in B.unpack $ WH.encode ctx . abs . DH.hash $ x
          
 type J = ExceptT String (Writer [String])
-
 
 runX x = 
   let result = runExceptT x
@@ -75,15 +51,14 @@ impossible msg = die $ "The impossible happened: " ++ msg
 unimplemented s = die $ "unimplemented: " ++ s
 
 nb :: String -> J ()
-nb s = if debug == True
-       then tell [s]
-       else return ()
+nb s = tell [s]
 
 bail :: J a
 bail = die "bailing!"
 
 (?) x msg = x `catchError` (\e -> (throwError $ e ++ "\n" ++ "! " ++ msg))
 
+-- | for building nice stack traces.
 (<?) msg x = nb msg >> x ? msg
 
 
@@ -192,8 +167,6 @@ data Part = PortC Port
           | UnusedPart
           deriving (Generic, Show, Eq, Hashable, Ord)
 
-
-
 type Test = String
 
 data Schematic = Schematic [Part] deriving (Generic, Show, Eq, Ord)
@@ -283,17 +256,9 @@ data Node = Node { nodeLocation :: (Integer, Integer)
                  , nodePart :: Part                   
                  } deriving (Eq, Generic, Show, Hashable, Ord)
 
-data GComp = GComp [Node]
-           deriving (Show, Eq, Ord)
+newtype GComp = GComp [Node] deriving (Show, Eq, Ord)
 
-data ComponentType = CtNoTerms
-                   | CtSubModIns
-                   | CtSybModOuts
-
-
-
-data Edge = Edge Node Node
-          deriving (Generic, Show, Hashable, Ord, Eq)
+data Edge = Edge Node Node deriving (Generic, Show, Hashable, Ord, Eq)
 
 data UfInstruction = LinkEdge Edge
                    | LinkNodes Node Node
@@ -302,9 +267,6 @@ data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    , store :: DM.Map a Int
                                    , curId :: Int
                                    } deriving (Show)
-
-
-
 
 list x = nb $ DL.intercalate "\n" $ map show x
 

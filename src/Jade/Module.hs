@@ -8,6 +8,7 @@ import qualified Jade.Decode as D
 import qualified Jade.Part as Part
 import qualified Jade.Icon as Icon
 import qualified Jade.Coord as Coord
+import qualified Jade.ModTest as ModTest
 import qualified Jade.BoundingBox as BoundingBox
 import Jade.Types
 import Jade.Wire
@@ -53,9 +54,20 @@ getInputs m = "Module.getInputs" <? do
   case moduleTest m of
     Just mod ->
       case modInputs mod of
-        Just outs -> return outs
+        Just (Inputs ins) -> return $ Inputs $ ins ++ (setSignals m)
         Nothing -> die $ "Module.getInputs couldn't find inputs in module: " ++ (moduleName m)
     Nothing ->  die $ "Module.getInputs could not find test script in module: " ++ (moduleName m)
+
+getInputsNoSetSigs :: Module -> J Inputs
+getInputsNoSetSigs m = "Module.getInputsNoSetSigs" <? do
+  case moduleTest m of
+    Just mod ->
+      case modInputs mod of
+        Just ins -> return ins
+        Nothing -> die $ "Module.getInputs couldn't find inputs in module: " ++ (moduleName m)
+    Nothing ->  die $ "Module.getInputs could not find test script in module: " ++ (moduleName m)
+
+
 
 getOutputs :: Module -> J Outputs
 getOutputs m = "Module.getOutputs" <? do
@@ -89,6 +101,13 @@ cycleLine m = "Module.cycleLine" <? do
     Just mt -> case modCycleLine mt of
       Nothing -> die "Not cycle line found in this module test"
       Just cl -> return cl
+
+setSignals :: Module -> [Sig]
+setSignals m =
+  case moduleTest m of
+    Just mt -> ModTest.setSignals mt
+    Nothing -> []
+    -- setSignals <- Module.getSetSignals topl modname
 
 testLines :: Module -> J [TestLine]
 testLines m = "Module.testLines" <? do

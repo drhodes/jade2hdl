@@ -51,7 +51,7 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
       -- a <= '0'; b <= '0'; c <= '0'; d <= '0';
       -- let TestLine _ _ = testline
       asserts <- ModTest.assertBitVals modt testline
-      Inputs ins <- Module.getInputs m      
+      Inputs ins <- Module.getInputsNoSetSigs m      
       inputNames <- concatMapM Sig.getNames ins
       let inputWidths = map Sig.width ins
       recurse $ zipWith sigAssert inputNames (splitAssert inputWidths asserts)
@@ -64,14 +64,17 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
           exps = splitAssert outputWidths (map binValToChar expecteds)
           c = case comment of
                 Just s -> "// " ++ s
-                Nothing -> ""
+                Nothing -> "// no comment"
       nb $ show ("expecteds", expecteds)
       nb $ show ("expected testline", testline)
       os <- concatMapM Sig.getNames outs      
       txt <- sequence [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
       recurse $ map T.unpack txt
 
-    SetSignal (SigSimple name) x -> recurse [format "{0} <= {1};" [name, show x]]
+    SetSignal (SigSimple name) x -> case x of
+      0.0 -> recurse [format "{0} <= {1};" [name, quote "0"]];
+      1.0 -> recurse [format "{0} <= {1};" [name, quote "1"]];
+      otherwise -> die $ "SetSignal needs to be 1 or 0, got: " ++ (show x)
       
     x -> "Jade.Vhdl" <? unimplemented (show x)
 
@@ -88,8 +91,7 @@ testCaseIfBlock testnum signal expected comment = do
                             , ("show-expected", toMustache (removeQuotes expected))
                             , ("signal_to_string", toMustache to_string)
                             , ("comment", toMustache comment)
-                            ]
-                
+                            ]                
   return $ substitute temp mapping
 
 binValToStdLogic bv = case bv of { H -> quote "1"
@@ -123,17 +125,18 @@ mkDUT m modname = "Vhdl.testDUT" <? do
 mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
+  let sigs = ins ++ outs
   
-  if null (ins ++ outs)
+  if null sigs
     then return $ "-- no signal decls"
     else let f (SigConcat _) = die "mkSignalDecls doesn't support SigConcat"
              f sig = do
                [name] <- Sig.getNames sig
                let width = Sig.width sig
-                   initialVal = quote $ take (fromIntegral width) (repeat '0')
+                   initialVal = quote $ take (fromIntegral width) (repeat 'U')
                    fmtargs = [name, show (width - 1), initialVal]
-               return $ format "signal {0}: std_logic_vector({1} downto 0) := {2};" fmtargs                 
-         in do sigDecls <- mapM f (ins ++ outs)
+               return $ format "signal {0}: std_logic_vector({1} downto 0) := {2};" fmtargs 
+         in do sigDecls <- mapM f sigs
                return $ DL.intercalate "\n" sigDecls
   
 mkTestBench :: TopLevel -> [Char] -> J T.Text
@@ -186,10 +189,11 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
         [name] <- Sig.getNames sig
         let w = Sig.width sig
         return $ format "{0}: {1} std_logic_vector({2} downto 0)" [ name, dir, show $ w - 1]
-
+  
   portIns <- mapM (renderPort "in") ins
   portOuts <- mapM (renderPort "out") outs
-  let ports = T.pack $ DL.intercalate ";\n" (portIns ++ portOuts)
+  
+  let ports = T.pack $ DL.intercalate ";\n" (concat [portIns, portOuts])
 
   nodeDecls <- mkNodeDecls topl modname
   outputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectOutput topl modname) outs

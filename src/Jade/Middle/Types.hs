@@ -35,6 +35,7 @@ type TermMap = [TermAssoc]
 
 -- replicated submodule.
 data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
+                                   -- ^ all inputs for this slice of the 
                                  , smrTermMapOutput :: [TermMap]
                                  , smrSubModule :: SubModule
                                  , smrZIndex :: Integer
@@ -42,7 +43,23 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
 
 data ModOutput = ModOutput TermMap deriving (Show, Eq)
 
---connectOneOutput :: TopLevel -> String -> Sig -> J ModOutput
+-- | If this module contains a test with a cycle line that mentions
+-- SetSignal, then this probably indicates a CLK is present.  I'm not
+-- sure what to make of this right now.  CLK is not a reserved name as
+-- far as I can tell in either JADE nor VHDL.  So, by the errors I've
+-- been presented it seems that a way forward, at least initially is
+-- to simply check the module for (SetSignal <ident> <value>), and
+-- declare <ident> near the top of the testbench. Another related
+-- wrinkle is that CLK is not included as part of the ASSERT or SAMPLE
+-- lines,
+
+maybeConnectClk topl modname = "Middle/Types.maybeConnectClk" <? do
+  -- get the cycle line from the module.
+  -- get the SetSignals actions if they exist and put them into the in
+  -- ports of the module. this needs to happend elsewhere.
+  undefined
+
+-- TODO: POSSIBLE BUG: rethink how getSlices works WRT how connectOneInput changed.
 connectOneOutput topl modname outSig = "Middle.Types.connectOneOutput" <? do
   -- find the components with the name from sig.
   outSigNames <- Sig.getNames outSig
@@ -85,7 +102,6 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
   -- determine width of inSig, this is absolutely known and defined
   -- in the jade module, this width can be used to deduce the width of other parts.
   let inputWidth = Sig.width inSig 
-  
   -- from the components that have the name from sig, figure in which
   -- slice of which components to take and stack them up
   let getSlices comp = "getSlice" <? do
@@ -94,7 +110,6 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
 
         matchingSigGroups <- mapM (GComp.getSigsWithIdent comp) inSigNames
         explodeds <- mapM Sig.explode (concat matchingSigGroups)
-        nb $ show ("explodeds", explodeds)
         let srcs = concat explodeds
             tgts = reverse $ map (SigIndex compName) [0 .. compWidth - 1]
         when (length tgts /= length srcs) $ do
@@ -102,18 +117,6 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
           bail
         return $ zipWith SigAssign srcs tgts
   concatMapM getSlices comps
-
-
-        
-  --       matchingSigs <- concatMapM (GComp.getSigsWithIdent comp) inSigNames
-  --       singles <- mapM Sig.explode matchingSigs
-  --       let srcs = DL.sort $ concat singles
-  --           tgts = map (SigIndex compName) [0 .. compWidth - 1]
-  --       when (length tgts /= length srcs) $ do
-  --         nb "The lengths of the targets and sources are not the same"
-  --         bail
-  --       return $ zipWith SigAssign srcs tgts
-  -- concatMapM getSlices comps
   
 genbits n | n == 0 = []
           | n `mod` 2 == 0 = 0 : (genbits next)

@@ -1,11 +1,18 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Jade.Util where
 
+import Data.Hashable
 import Control.Monad
 import Text.Format
 import Data.List as DL
 import Data.Char as Char
+import qualified Data.Hashable as DH
+import qualified Web.Hashids as WH
+import qualified Data.ByteString.Char8 as B
+
+
 class (Show a) => Fmt a where
   fmt :: String -> a -> String
 
@@ -56,3 +63,9 @@ bust (chunk:rest) xs = take chunk xs : (bust rest $ drop chunk xs)
 removeQuotes = filter (/= '"') 
 
 concatMapM f xs = concat `liftM` mapM f xs
+
+
+hashid :: Hashable a => a -> String
+hashid x =
+  let ctx = WH.hashidsSimple "salt"
+      in B.unpack $ WH.encode ctx . abs . DH.hash $ x

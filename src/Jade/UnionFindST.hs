@@ -11,6 +11,7 @@ import Jade.Types hiding (ids)
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import Prelude hiding (id)
+import Jade.Util
 
 data UnionFind s = UnionFind { ids :: STUArray s Int Int
                              , szs :: STUArray s Int Int

@@ -67,12 +67,12 @@ boundingBox (Icon parts) = "Icon.boundingBox" <? do
 
 center icon = "Icon.center" <? do
   BB left top right bottom <- boundingBox icon
-
+  let gridsize = 8
   --
-  let closest x = let m = x `mod` 8
+  let closest x = let m = x `mod` gridsize
                   in if m <= 3
                      then x - m
-                     else x + (8 - m)
+                     else x + (gridsize - m)
   
       cx = closest $ (right + left) `div` 2
       cy = closest $ (bottom + top) `div` 2

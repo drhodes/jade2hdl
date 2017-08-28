@@ -26,7 +26,11 @@ entity mod_gates_dreg is
 end entity mod_gates_dreg ;
 architecture behavioral of mod_gates_dreg is
 begin
-  -- do register stuff here.
+  process
+  begin
+    wait until CLK="1";
+    Q <= D;
+  end process;
 end architecture behavioral ;
 
 

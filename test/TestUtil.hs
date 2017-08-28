@@ -16,12 +16,4 @@ withTest name f = do
   f
   putStrLn ""
 
-
-
 expectedEq exp got = unless (got == exp) (expected exp got)
-
--- passes = do putStr "+"
---             SIO.hFlush SIO.stdout
-            
--- fails = do putStr "-"
---            SIO.hFlush SIO.stdout
