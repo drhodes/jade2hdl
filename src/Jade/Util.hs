@@ -69,3 +69,6 @@ hashid :: Hashable a => a -> String
 hashid x =
   let ctx = WH.hashidsSimple "salt"
       in B.unpack $ WH.encode ctx . abs . DH.hash $ x
+
+
+slashesToDashes str = [if x == '/' then '-' else x | x <- str]

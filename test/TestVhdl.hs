@@ -72,43 +72,59 @@ spawnOneTest jadefile modname = do
                                                   , show err
                                                   ]
 
-spawn s = spawnOneTest ("./test-data/" ++ s ++ ".json") ("/user/" ++ s)
 
-testTree = let node s = TestNode (Case s (spawn s))
-           in TestTree "TestVhdl" $ map node [ "Jumper1" 
-                                             , "And41"     
-                                             , "AndStuff4" 
-                                             , "AndStuff5"
-                                             , "Jumper41"
-                                             , "Jumper1"
-                                             , "Jumper1Rot90"
-                                             , "Jumper3"
-                                             , "AND2"
-                                             , "AND2Rot90"
-                                             , "And2Ports"
-                                             , "And2Ports2"
-                                             , "And2Ports3"
-                                             , "And2Ports4"
-                                             , "Constant1"
-                                             , "RepAnd2"
-                                             , "RepAnd3"
-                                             , "RepAnd4"
-                                             , "Buffer1"
-                                             , "Buffer2"
-                                             , "WireConnectMid1"
-                                             , "WireConnectMid2"
-                                             , "CLA1_notext"
-                                             , "Mux2to1_1"
-                                             , "Buffer3"
-                                             , "Buffer6"
-                                             , "Buffer4"
-                                             , "Buffer5"
-                                             , "BuiltInAnd4"
-                                             , "BuiltInAnd4Messy"
-                                             , "LeReg1"
-                                             --, "GarrInc32"
-                                             --, "fast_and4"
-                                             ]
+testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
+            in TestTree "One" $ map node [ "Jumper1" 
+                                         , "And41"     
+                                         , "AndStuff4" 
+                                         , "AndStuff5"
+                                         , "Jumper41"
+                                         , "Jumper1"
+                                         , "Jumper1Rot90"
+                                         , "Jumper3"
+                                         , "AND2"
+                                         , "AND2Rot90"
+                                         , "And2Ports"
+                                         , "And2Ports2"
+                                         , "And2Ports3"
+                                         , "And2Ports4"
+                                         , "Constant1"
+                                         , "RepAnd2"
+                                         , "RepAnd3"
+                                         , "RepAnd4"
+                                         , "Buffer1"
+                                         , "Buffer2"
+                                         , "WireConnectMid1"
+                                         , "WireConnectMid2"
+                                         , "CLA1_notext"
+                                         , "Mux2to1_1"
+                                         , "Buffer3"
+                                         , "Buffer6"
+                                         , "Buffer4"
+                                         , "Buffer5"
+                                         , "BuiltInAnd4"
+                                         , "BuiltInAnd4Messy"
+                                         , "LeReg1"
+                                           --, "GarrInc32"
+                                           --, "fast_and4"
+                                         ]
+  
+spawn (ModPath path filename) =
+  let testPath = path ++ "/" ++ filename ++ ".json"
+      modname = "/user/" ++ filename
+  in spawnOneTest testPath modname
+
+testTree2 =
+  let testcase filename modname =
+        TestNode (Case (slashesToDashes modname) (spawnOneTest filename modname))
+  in TestTree "Two" [ testcase "./test-data/SubmodAnd6.json" "/user/submod/and6"
+                    , testcase "./test-data/SubmodAnd6.json" "/user/submod/and6"
+                    ]
+
+
+testTree = TestTree "Vhdl" [ testTree1
+                           , testTree2 ]
+
 
 testDUT_UseAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"

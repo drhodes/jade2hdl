@@ -90,6 +90,10 @@ data Icon = Icon { iconParts :: [IconPart]
                    -- ^ A flat list of icon elements found in the icon view
                  } deriving (Generic, Show, Eq, Hashable, Ord)
 
+data ModPath = ModPath { modPath :: FilePath
+                       , modFile :: String
+                       } deriving (Show, Eq)
+
 ------------------------------------------------------------------
 -- Schematic Types
 type ModuleName = String
