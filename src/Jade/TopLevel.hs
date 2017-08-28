@@ -29,8 +29,10 @@ modules (TopLevel m) = DM.toList m
 getModule :: TopLevel -> String -> J Module
 getModule (TopLevel m) name = "TopLevel.getModule" <? do
   -- if name `startsWith` "/gate"
-  -- then return $ BuiltInModule name
+  -- then return $ BuiltInModule name  
   case DM.lookup name m of
+    --Just mod@(Module _ Nothing _ _) -> die $ "No schematic found for module: " ++ name
+    --Just mod@(Module _ _ Nothing _) -> die $ "No module test found module: " ++ name      
     Just mod -> return mod{moduleName = name}
     Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
 

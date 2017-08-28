@@ -155,6 +155,7 @@ data SubModule = SubModule { subName :: String
                            , subCoord3 :: Coord3
                            } deriving (Generic, Show, Eq, Hashable, Ord)
 
+
 data Replicated a = Rep a
 
 data Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord)

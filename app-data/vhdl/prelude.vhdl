@@ -64,6 +64,24 @@ begin
   vout <= a and b and c and d;
 end architecture behavioral ;
 
+
+-- /gates/nand4 ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_nand4 is
+  port (a : in std_logic_vector(0 downto 0);
+        b : in std_logic_vector(0 downto 0);
+        c : in std_logic_vector(0 downto 0);
+        d : in std_logic_vector(0 downto 0);
+        vout : out std_logic_vector(0 downto 0));
+end entity mod_gates_nand4 ;
+architecture behavioral of mod_gates_nand4 is
+begin
+  vout <= not (a and b and c and d);
+end architecture behavioral ;
+
+
 -- /gates/mux2 ------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
@@ -106,6 +124,21 @@ architecture behavioral of mod_gates_and2 is
 begin
   vout <= a and b;
 end architecture behavioral ;
+
+
+-- /gates/inverter ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_inverter is
+  port (a : in std_logic_vector(0 downto 0);
+        vout : out std_logic_vector(0 downto 0)) ;
+end entity mod_gates_inverter ;
+architecture behavioral of mod_gates_inverter is
+begin
+  vout <= not a;
+end architecture behavioral ;
+
 
 -- /gates/buffer ------------------------------------------------------------------
 library ieee;

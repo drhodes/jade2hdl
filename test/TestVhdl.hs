@@ -106,6 +106,8 @@ testTree = let node s = TestNode (Case s (spawn s))
                                              , "BuiltInAnd4"
                                              , "BuiltInAnd4Messy"
                                              , "LeReg1"
+                                             --, "GarrInc32"
+                                             --, "fast_and4"
                                              ]
 
 testDUT_UseAnd23 = do
