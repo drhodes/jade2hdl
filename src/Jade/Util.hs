@@ -71,4 +71,4 @@ hashid x =
       in B.unpack $ WH.encode ctx . abs . DH.hash $ x
 
 
-slashesToDashes str = [if x == '/' then '-' else x | x <- str]
+slashesToScores str = [if x == '/' then '-' else x | x <- str]

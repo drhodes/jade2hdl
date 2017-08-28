@@ -28,4 +28,5 @@ new (x1, y1) (x2, y2) =
 portToEdge p@(Port (Coord3 x y r) _) =
   let n = Node (x, y) (PortC p)
   in Edge n n
-  
+
+mkDegenerate c = new (Coord.c3ToPoint c) (Coord.c3ToPoint c)

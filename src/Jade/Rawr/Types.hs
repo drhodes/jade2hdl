@@ -44,7 +44,7 @@ runTree (TestTree s trees) = do
   return result
   
 runTree (TestNode c@(Case s f)) = do
-  result <- sequence $ CPS.runEval $ CPS.parList CPS.rseq [f]
+  result <- sequence $ CPS.runEval $ CPS.parList CPS.rpar [f]
   mapM_ (rawrLog s) result
   return result
 

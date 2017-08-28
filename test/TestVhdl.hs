@@ -107,7 +107,7 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "BuiltInAnd4Messy"
                                          , "LeReg1"
                                          , "CLwiresAdded"
-                                           -- "CL"
+                                         , "CL"
                                            -- failing, need to add wires where the terminals of two modules meet.
                                            --, "GarrInc32"
                                            --, "fast_and4"
@@ -120,7 +120,7 @@ spawn (ModPath path filename) =
 
 testTree2 =
   let testcase filename modname =
-        TestNode (Case (slashesToDashes modname) (spawnOneTest filename modname))
+        TestNode (Case (slashesToScores modname) (spawnOneTest filename modname))
   in TestTree "Two" [ testcase "./test-data/SubmodAnd6.json" "/user/submod/and6"
                     , testcase "./test-data/SubmodAnd6.json" "/user/submod/and6"
                     ]

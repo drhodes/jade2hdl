@@ -16,6 +16,7 @@ import qualified Jade.Sig as Sig
 import qualified Jade.GComp as GComp
 import qualified Jade.Schematic as Schem
 import qualified Jade.Jumper as Jumper
+import qualified Jade.Coord as Coord
 import Jade.Types
 import Jade.Util
 import Control.Monad
@@ -31,8 +32,6 @@ getModule (TopLevel m) name = "TopLevel.getModule" <? do
   -- if name `startsWith` "/gate"
   -- then return $ BuiltInModule name  
   case DM.lookup name m of
-    --Just mod@(Module _ Nothing _ _) -> die $ "No schematic found for module: " ++ name
-    --Just mod@(Module _ _ Nothing _) -> die $ "No module test found module: " ++ name      
     Just mod -> return mod{moduleName = name}
     Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
 
@@ -74,14 +73,27 @@ makeWire2WireEdge w1 w2 =
                      (_, _, True, _) -> econ loc2 w1 loc3 w2
                      (_, _, _, True) -> econ loc2 w1 loc4 w2
                      _ -> Nothing
-          
+
+terminalsOverlapP (Terminal (Coord3 x1 y1 _) _) (Terminal (Coord3 x2 y2 _)  _) = (x1,y1) == (x2,y2)
+
+
+
+getOverlappingTerminals :: TopLevel -> String -> J [(Terminal, Terminal)]
+getOverlappingTerminals topl modname = "TopLevel.collectOverlappingTerminals" <? do
+  allsubs <- getSubModules topl modname
+  ts <- concatMapM (terminals topl) allsubs
+  return $ DL.nub $ DL.sort [(min t1 t2, max t1 t2) | t1 <- ts, t2 <- ts, terminalsOverlapP t1 t2, t1 /= t2]
+
+connectOverlappingTerminals :: [(Terminal, Terminal)] -> J [Wire]
+connectOverlappingTerminals termPairs = "TopLevel.connectOverlappingTerminals" <? do
+  return $ [Wire.mkDegenerate c | (Terminal c _, _) <- termPairs]
+
 processEdges :: [Wire] -> [Part] -> J [Edge]
 processEdges wires parts = "TopLevel.processEdges" <? do
   nb "with all wires, make an edge from ones that share a point with a part"
   let wireEdges = map Wire.toEdge wires
   partEdges <- sequence [makePartEdge w p | w <- wires, p <- parts]
   
-  --nb $ show partEdges
   let Just edges = sequence $ filter Maybe.isJust partEdges
   wireNbrs <- sequence [makeWire2WireEdge v w | v <- wires, w <- wires]
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
@@ -127,9 +139,23 @@ components topl modname = "TopLevel.components" <? do
   ssnw <- connectWiresWithSameSigName parts 
   jumperWires <- mapM makeJumperWire jumpers
   portWires <- mapM makePortWire ports
+  ts <- getOverlappingTerminals topl modname
+  --nb "getOverlappingTerminals"
+  -- list ts
+  overlappingTermWires <- connectOverlappingTerminals ts
+
   
-  let wireEdges = map Wire.toEdge (wires ++ jumperWires ++ ssnw ++ portWires)
-  edges <- processEdges (wires ++ jumperWires ++ ssnw ++ portWires) (termcs) -- ++ ports)  
+  -- list overlappingTermWires
+  -- nb "OVERlappingtermwires"
+  -- bail
+  
+  let wireEdges = map Wire.toEdge $ concat [ wires
+                                           , jumperWires
+                                           , ssnw
+                                           , portWires
+                                           , overlappingTermWires ]
+                  
+  edges <- processEdges (wires ++ jumperWires ++ ssnw ++ portWires ++ overlappingTermWires) (termcs) -- ++ ports)  
   
   let comps = UF.components $ edges ++ wireEdges
   return comps
