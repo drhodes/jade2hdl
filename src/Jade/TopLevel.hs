@@ -20,6 +20,7 @@ import qualified Jade.Coord as Coord
 import Jade.Types
 import Jade.Util
 import Control.Monad
+import Control.Monad.State
 import qualified Web.Hashids as WH
 
 -- |Get a list of pairs (modulename, module)
@@ -76,8 +77,6 @@ makeWire2WireEdge w1 w2 =
 
 terminalsOverlapP (Terminal (Coord3 x1 y1 _) _) (Terminal (Coord3 x2 y2 _)  _) = (x1,y1) == (x2,y2)
 
-
-
 getOverlappingTerminals :: TopLevel -> String -> J [(Terminal, Terminal)]
 getOverlappingTerminals topl modname = "TopLevel.collectOverlappingTerminals" <? do
   allsubs <- getSubModules topl modname
@@ -125,7 +124,20 @@ connectWiresWithSameSigName parts = "connectWiresWithSameSigName" <? do
   return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | [WireC w1, WireC w2] <- pairs]
 
 components  :: TopLevel -> String -> J [GComp] 
-components topl modname = "TopLevel.components" <? do  
+components topl modname = "TopLevel.components" <? do
+  -- memoize
+  Memo memo <- get
+  case DM.lookup modname memo of
+    -- Already computed this component, so return in.
+    Just comps -> return comps
+    -- Compute the component, insert it into the memo map, then return it.
+    Nothing -> do cs <- components' topl modname
+                  put (Memo (DM.insert modname cs memo))
+                  return cs
+      
+
+components'  :: TopLevel -> String -> J [GComp] 
+components' topl modname = "TopLevel.components" <? do
   (Module _ (Just schem@(Schematic parts)) _ _) <- getModule topl modname
   terms <- sequence [terminals topl submod | submod <- Schem.getSubModules schem]
   

@@ -21,28 +21,27 @@ import Control.Monad.State
 import Control.Monad.Identity
 import Data.Functor.Identity
 
-type J a = ExceptT String (Writer [String]) a 
-type K a = ExceptT String (StateT Memo (Writer [String])) a 
+--type J a = ExceptT String (Writer [String]) a 
+type J a = ExceptT String (StateT Memo (Writer [String])) a 
 
-data Memo = Memo { memoComps :: DM.Map String GComp }
+data Memo = Memo { memoComps :: DM.Map String [GComp] }
 emptyMemo = Memo DM.empty
 
-runK :: K a -> (Either String a, [String])
-runK x = let stateV = runExceptT x
+runX :: J a -> (Either String a, [String])
+runX x = let stateV = runExceptT x
              writerV = evalStateT stateV emptyMemo
          in runWriter writerV
 
-asdf :: K Int
+asdf :: J Int
 asdf = "asdf" <? do
   put emptyMemo
   memo <- get
   return 42
   
-runX :: ExceptT e (WriterT t Data.Functor.Identity.Identity) a -> (Either e a, t)
-runX x = 
-  let result = runExceptT x
-      (a, b) = runWriter result -- :: Writer String (Either String Integer)
-  in (a, b)
+-- runX x = 
+--   let result = runExceptT x
+--       (a, b) = runWriter result -- :: Writer String (Either String Integer)
+--   in (a, b)
 
 runLog :: J a -> String
 runLog x = let log = snd $ runX x

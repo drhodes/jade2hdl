@@ -106,16 +106,12 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "BuiltInAnd4"
                                          , "BuiltInAnd4Messy"
                                          , "LeReg1"
-
-                                         -- there's nothing wrong with these, just slow.
-                                         
-                                         -- , "CLwiresAdded"
-                                         -- , "CL"
-                                         -- , "CLA4"
-                                         -- , "fast_and4"
-                                         -- , "CLA32"
-                                         
-                                           --, "GarrInc32"
+                                         , "CLwiresAdded"
+                                         , "CL"
+                                         , "CLA4"
+                                         , "fast_and4"
+                                         , "CLA32"
+                                         --, "GarrInc32"
                                          ]
   
 spawn (ModPath path filename) =
