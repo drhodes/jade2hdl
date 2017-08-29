@@ -51,7 +51,7 @@ testTermDriverAnd23 = do
                inputTerms <- TopLevel.getInputTerminals topl submodule
                result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
                case result of
-                 [SigSimple "pg7Bj1XGp2OJ9_out",SigSimple "QxrKbYgWM4dLd_out"] -> return "+"
+                 [SigSimple "pg7Bj1XGp2OJ9_OUT",SigSimple "QxrKbYgWM4dLd_OUT"] -> return "+"
                  x -> die $ "hmm, found: " ++ show x
 
 testTermDriverAnd23_Wire = do
@@ -78,15 +78,13 @@ testGetComponentsWithName modname signame exp = do
                         else "FAIL" ++ (show ("expected", exp, "got", length cs))
 
 testGetComponentsWithNameAll = do
-  testGetComponentsWithName "RepAnd2" "in2" 1
-  testGetComponentsWithName "RepAnd2" "in1" 1
-  testGetComponentsWithName "RepAnd2" "out1" 1
-  testGetComponentsWithName "RepAnd2" "farfennugen" 0
+  testGetComponentsWithName "RepAnd2" "IN2" 1
+  testGetComponentsWithName "RepAnd2" "IN1" 1
+  testGetComponentsWithName "RepAnd2" "OUT1" 1
+  testGetComponentsWithName "RepAnd2" "FARFENNUGEN" 0
   testGetComponentsWithName "Jumper1" "A" 1
-  testGetComponentsWithName "Jumper1" "vout" 1
-  testGetComponentsWithName "BuiltInAnd4Messy" "vout" 1
-
-
+  testGetComponentsWithName "Jumper1" "VOUT" 1
+  testGetComponentsWithName "BuiltInAnd4Messy" "VOUT" 1
 
 testTopLevelComponents2 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
@@ -112,7 +110,7 @@ testTopLevelGetInputs = do
 
                -- find which signal is driving the input terminal.
                driver <- TopLevel.getInputTermDriver topl modname (terms !! 1)
-               if driver == SigSimple "QxrKbYgWM4dLd_out"
+               if driver == SigSimple "QxrKbYgWM4dLd_OUT"
                  then return "+"
                  else return "FAIL"
                 
@@ -142,9 +140,9 @@ testLoneJumper1 = do
 testComponentUseAND2Rot90 = do
   let modname = "UseAND2Rot90"
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
-  let expected = [ [SigSimple "out1",SigSimple "useOut1"]
-                 , [SigSimple "in1",SigSimple "useIn1"]
-                 , [SigSimple "in2",SigSimple "useIn2"]]
+  let expected = [ [SigSimple "OUT1",SigSimple "USEOUT1"]
+                 , [SigSimple "IN1",SigSimple "USEIN1"]
+                 , [SigSimple "IN2",SigSimple "USEIN2"]]
 
   let func = do comps <- TopLevel.components topl ("/user/" ++ modname)
                 return $ map GComp.getSigs comps

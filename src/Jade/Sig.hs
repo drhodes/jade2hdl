@@ -8,6 +8,7 @@ import qualified Numeric as N
 import Text.Format
 import Control.Monad
 import Jade.Util
+import Data.Char as DC
 {-
 signal names need to be parsed.
 
@@ -23,7 +24,7 @@ symbol :: Parser String
 symbol = do
   x <- letter <|> char '_'
   rest <- many (alphaNum <|> char '_')
-  return $ x:rest
+  return $ map DC.toUpper (x:rest)
 
 -- := sig#count         replicate sig specified number of times 
 sigHash :: Parser Sig
