@@ -39,9 +39,8 @@ spawnOneTest jadefile modname = do
   Right topl <- Decode.decodeTopLevel jadefile
   errlog <- runJIO $ do
     nb $ "spawnOneTest: " ++ modname
-    moduleCode <- Vhdl.mkAllMods topl 
+    moduleCode <- Vhdl.mkAllMods topl modname
     testCode <- Vhdl.mkTestBench topl modname
-    mods <- Vhdl.mkAllMods topl
     return $ do
       TIO.writeFile outfile (T.concat [prelude, moduleCode, testCode])
       
@@ -109,9 +108,10 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "CLwiresAdded"
                                          , "CL"
                                          , "CLA4"
+                                         , "fast_and4"
+                                         , "CLA32"                                         
                                            -- failing, need to add wires where the terminals of two modules meet.
                                            --, "GarrInc32"
-                                           --, "fast_and4"
                                          ]
   
 spawn (ModPath path filename) =

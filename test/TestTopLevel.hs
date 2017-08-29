@@ -268,3 +268,8 @@ checkJumper41 = do
     liftM show $ TopLevel.components topl modname
 
 
+checkDependencyOrder1 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/CLA32.json"
+  printJ $ do let modname =  "/user/CLA32"
+              cs <- TopLevel.dependencyOrder topl modname
+              return cs 

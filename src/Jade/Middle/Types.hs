@@ -31,6 +31,9 @@ flipDir Out = In
 flipTermAssoc (TermAssoc dir src tgt) = TermAssoc (flipDir dir) tgt src
 flipTermMap xs = map flipTermAssoc xs
 
+
+
+
 type TermMap = [TermAssoc] 
 
 -- replicated submodule.

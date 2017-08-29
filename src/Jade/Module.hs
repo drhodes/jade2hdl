@@ -12,6 +12,7 @@ import qualified Jade.ModTest as ModTest
 import qualified Jade.BoundingBox as BoundingBox
 import Jade.Types
 import Jade.Wire
+import Text.Format
 
 getIcon :: Module -> J Icon
 getIcon (Module _ _ _ (Just x)) = return x
@@ -27,6 +28,12 @@ terminals mod p@(Coord3 mx my mr) = "Module.testTerms:" <? do
         in Terminal (Coord3 (mx + dx) (my + dy) (Coord.composeRot mr tr)) sig
   
   return $ [rotateTerm t | IconTerm t <- iconParts icon]
+
+getSchematic :: Module -> J Schematic
+getSchematic (Module name schem _ __) = "Module.getSchematic" <?
+  case schem of
+    Just schem -> return schem
+    Nothing -> die $ "No schematic found for module: " ++ name
 
 boundingBox :: Module -> Coord3 -> J BoundingBox
 boundingBox (Module _ _ _ icon) offset = "Module.boundingBox" <? do
@@ -55,7 +62,8 @@ getInputs m = "Module.getInputs" <? do
     Just mod ->
       case modInputs mod of
         Just (Inputs ins) -> return $ Inputs $ ins ++ (setSignals m)
-        Nothing -> die $ "Module.getInputs couldn't find inputs in module: " ++ (moduleName m)
+        Nothing -> do nb $ format "Is there a test script in module: {0}?" [moduleName m]
+                      die $ "Module.getInputs couldn't find inputs in module: " ++ (moduleName m)
     Nothing ->  die $ "Module.getInputs could not find test script in module: " ++ (moduleName m)
 
 getInputsNoSetSigs :: Module -> J Inputs

@@ -140,25 +140,27 @@ components topl modname = "TopLevel.components" <? do
   jumperWires <- mapM makeJumperWire jumpers
   portWires <- mapM makePortWire ports
   ts <- getOverlappingTerminals topl modname
-  --nb "getOverlappingTerminals"
-  -- list ts
   overlappingTermWires <- connectOverlappingTerminals ts
-
   
-  -- list overlappingTermWires
-  -- nb "OVERlappingtermwires"
-  -- bail
-  
-  let wireEdges = map Wire.toEdge $ concat [ wires
-                                           , jumperWires
-                                           , ssnw
-                                           , portWires
-                                           , overlappingTermWires ]
+  let allWires = concat [wires, jumperWires, ssnw, portWires, overlappingTermWires]
+      wireEdges = map Wire.toEdge allWires
                   
-  edges <- processEdges (wires ++ jumperWires ++ ssnw ++ portWires ++ overlappingTermWires) (termcs) -- ++ ports)  
+  edges <- processEdges allWires termcs 
   
   let comps = UF.components $ edges ++ wireEdges
   return comps
+
+-- | VHDL requires that modules be instantiated in dependency order,
+
+
+dependencyOrder :: TopLevel -> String -> J [String]
+dependencyOrder topl modname = "TopLevel.dependencyOrder" <? 
+  if not $ modname `startsWith` "/user/" then return []
+  else do m <- getModule topl modname
+          schem <- Module.getSchematic m
+          let subnames = DL.nub [subname | (SubModule subname _) <- Schem.getSubModules schem]
+          children <- concatMapM (dependencyOrder topl) subnames
+          return $ filter (`startsWith` "/user") $ DL.nub $ children ++ subnames 
 
 getInputTerminals :: TopLevel -> SubModule -> J [Terminal]
 getInputTerminals topl (SubModule name offset) = do
