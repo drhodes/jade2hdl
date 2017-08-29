@@ -1,0 +1,1 @@
+raise an error when parsing a signal called "out", this is a reserved name in vhdl

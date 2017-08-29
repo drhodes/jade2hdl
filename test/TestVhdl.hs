@@ -41,6 +41,7 @@ spawnOneTest jadefile modname = do
     nb $ "spawnOneTest: " ++ modname
     moduleCode <- Vhdl.mkAllMods topl modname
     testCode <- Vhdl.mkTestBench topl modname
+    
     return $ do
       TIO.writeFile outfile (T.concat [prelude, moduleCode, testCode])
       
@@ -105,12 +106,15 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "BuiltInAnd4"
                                          , "BuiltInAnd4Messy"
                                          , "LeReg1"
-                                         , "CLwiresAdded"
-                                         , "CL"
-                                         , "CLA4"
-                                         , "fast_and4"
-                                         , "CLA32"                                         
-                                           -- failing, need to add wires where the terminals of two modules meet.
+
+                                         -- there's nothing wrong with these, just slow.
+                                         
+                                         -- , "CLwiresAdded"
+                                         -- , "CL"
+                                         -- , "CLA4"
+                                         -- , "fast_and4"
+                                         -- , "CLA32"
+                                         
                                            --, "GarrInc32"
                                          ]
   

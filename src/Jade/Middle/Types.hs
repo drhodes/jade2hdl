@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Jade.Middle.Types where
 
 import Control.Monad
@@ -126,15 +127,15 @@ genbits n | n == 0 = []
           | otherwise = 1 : (genbits next)
   where next = n `div` 2
 
-connectConstantComp topl modname comp = "connectConstantComp" <? do
+connectConstantComp topl modname comp = "Middle.Types/connectConstantComp" <? do
   let quotedSigs = GComp.getQuotedSigs comp
   compWidth <- GComp.width comp
   compName <- GComp.name comp
   case quotedSigs of
     [SigQuote val numBits] -> do
       when (compWidth /= numBits) $ do
-        let txt = "width mismatch in signals component width: {0} and constant width: {1}"
-        die $ format txt [show compWidth, show numBits]
+        let msg = "width mismatch in signals component width: {0} and constant width: {1}"
+        die $ format msg [show compWidth, show numBits]
 
       -- this is a twos complement representation.
       let bits = reverse $ take (fromInteger numBits) $ (genbits val) ++ repeat 0
@@ -145,7 +146,7 @@ connectConstantComp topl modname comp = "connectConstantComp" <? do
 
       return $ zipWith SigAssign srcs tgts
     [] -> return []
-
+    xs -> die $ "unhandled case in connectConstantComp: " ++ show xs
 ---------------------------------------------------------------------------------------------------
 replicateOneTerminal :: Integer -> Direction -> Terminal -> GComp -> J TermMap
 replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicateOneTerminal" <? do

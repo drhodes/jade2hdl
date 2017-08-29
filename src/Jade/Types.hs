@@ -1,4 +1,6 @@
+{-# LANGUAGE DeriveFunctor #-}
 -- {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
@@ -13,10 +15,30 @@ import Jade.Util
 import Data.Hashable
 
 import Control.Monad.Writer
-import Control.Monad.State.Lazy
-         
-type J = ExceptT String (Writer [String])
+import Control.Monad.Reader
+--import Control.Monad.State.Lazy
+import Control.Monad.State
+import Control.Monad.Identity
+import Data.Functor.Identity
 
+type J a = ExceptT String (Writer [String]) a 
+type K a = ExceptT String (StateT Memo (Writer [String])) a 
+
+data Memo = Memo { memoComps :: DM.Map String GComp }
+emptyMemo = Memo DM.empty
+
+runK :: K a -> (Either String a, [String])
+runK x = let stateV = runExceptT x
+             writerV = evalStateT stateV emptyMemo
+         in runWriter writerV
+
+asdf :: K Int
+asdf = "asdf" <? do
+  put emptyMemo
+  memo <- get
+  return 42
+  
+runX :: ExceptT e (WriterT t Data.Functor.Identity.Identity) a -> (Either e a, t)
 runX x = 
   let result = runExceptT x
       (a, b) = runWriter result -- :: Writer String (Either String Integer)
@@ -50,7 +72,6 @@ die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
 impossible msg = die $ "The impossible happened: " ++ msg
 unimplemented s = die $ "unimplemented: " ++ s
 
-nb :: String -> J ()
 nb s = tell [s]
 
 bail :: J a

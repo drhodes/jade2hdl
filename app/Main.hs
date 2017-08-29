@@ -3,34 +3,34 @@ module Main where
 import Jade.Types
 import Options.Applicative
 import Data.Semigroup ((<>))
+import Control.Monad
 
 data Example = Example { infile :: String
                        , hdl :: String
                        , enthusiasm :: Int
                        }
 
+
+
+targetOption :: Parser String
+targetOption = strOption $ mconcat [ long "target-lang"
+                                   , short 't'
+                                   , metavar "TARGETLANG"
+                                   , help "[vhdl|verilog]" ]
+
+infileOption = strOption $ mconcat [ long "infile"
+                                   , metavar "SOURCE"
+                                   , help "JADE exported json module" ]
+
+
+thuseOption = option auto $ mconcat [ long "enthusiasm"
+                                    , help "How enthusiastically to greet"
+                                    , showDefault
+                                    , value 1
+                                    , metavar "INT" ]
+
 sample :: Parser Example
-sample = Example
-  ------------------------------------------------------------------
-  <$> strOption
-  ( long "infile"
-    <> metavar "SOURCE"
-    <> help "JADE exported json module" )
-  
-  ------------------------------------------------------------------
-  <*> strOption
-  ( long "target-lang"
-    <> short 't'
-    <> metavar "TARGETLANG"
-    <> help "Which HDL to export" )
-  
-  ------------------------------------------------------------------
-  <*> option auto
-  ( long "enthusiasm"
-    <> help "How enthusiastically to greet"
-    <> showDefault
-    <> value 1
-    <> metavar "INT" )
+sample = liftA3 Example targetOption infileOption thuseOption
   
 main :: IO ()
 main = greet =<< execParser opts
