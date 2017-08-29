@@ -108,6 +108,7 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "LeReg1"
                                          , "CLwiresAdded"
                                          , "CL"
+                                         , "CLA4"
                                            -- failing, need to add wires where the terminals of two modules meet.
                                            --, "GarrInc32"
                                            --, "fast_and4"
