@@ -81,6 +81,21 @@ begin
   vout <= not (a and b and c and d);
 end architecture behavioral ;
 
+-- /gates/and3 ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_and3 is
+  port (a : in std_logic_vector(0 downto 0);
+        b : in std_logic_vector(0 downto 0);
+        c : in std_logic_vector(0 downto 0);
+        vout : out std_logic_vector(0 downto 0));
+end entity mod_gates_and3 ;
+architecture behavioral of mod_gates_and3 is
+begin
+  vout <= a and b and c;
+end architecture behavioral ;
+
 
 -- /gates/nand2 ------------------------------------------------------------------
 library ieee;
