@@ -54,9 +54,8 @@ spawnOneTest jadefile modname = do
     ExitSuccess -> do 
       (ecode', stdout', stderr') <- readCreateProcessWithExitCode cmd2 ""
       case ecode' of
-        ExitSuccess -> passes >> return Pass
-        ExitFailure err' -> do fails
-                               return $ Fail $ unlines [ format "module: {0}" [modname]
+        ExitSuccess -> return Pass
+        ExitFailure err' -> do return $ Fail $ unlines [ format "module: {0}" [modname]
                                                        , format "ecode:  {0}" [show ecode']
                                                        , errlog
                                                        , stdout'

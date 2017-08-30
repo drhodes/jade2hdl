@@ -100,3 +100,5 @@ readHex c = let wrap x = Right $ fromIntegral x
   _ -> Left $ format "Couldn't parse '{0}' as a hex digit" [show c]
 
   
+ok :: a -> Either String a
+ok x = Right x

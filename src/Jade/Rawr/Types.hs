@@ -13,6 +13,7 @@ import Prelude hiding (pow)
 import Control.Monad
 import Control.Monad.Writer
 import Control.Monad.Identity
+import Data.Functor.Identity
 import qualified System.IO as SIO
 import Text.Format
 import qualified Control.Parallel.Strategies as CPS
@@ -60,12 +61,21 @@ fails = putStr "X" >> SIO.hFlush SIO.stdout
 rawrLog :: String -> TestState -> IO ()
 rawrLog string state =  
   case state of
-    Pass -> return ()
-    Fail msg -> do let logPath = "./logs/" ++ string ++ ".log"
+    Pass -> passes >> return ()
+    Fail msg -> do fails
+                   let logPath = "./logs/" ++ string ++ ".log"
                    writeFile logPath msg
 
 doTree :: String -> Writer [TestTree] a -> TestTree
 doTree name doblock = TestTree name  $ execWriter doblock
+
+-- reportIO :: MonadWriter [TestTree] IO => String -> IO TestState -> IO ()
+-- reportIO name result = tell [TestNode $ Case name $ result]
+
+-- report :: String -> TestState -> Writer [TestTree] (IO ())
+-- report name result = tell [TestNode $ Case name $ return result]
+
+
 
 done name x = tell [Done name x]
 
