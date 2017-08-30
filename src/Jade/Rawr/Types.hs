@@ -40,7 +40,7 @@ concatTreeName _ t = t
 runTree :: TestTree -> IO [TestState]
 runTree (TestTree s trees) = do
   putStrLn ""
-  putStr $ take 20 $ s ++ ":                    "
+  putStr $ take 40 $ s ++ ":" ++ repeat ' '
   result <- liftM concat $ mapM runTree (map (concatTreeName s) trees)
   return result
   
@@ -75,6 +75,8 @@ doTree name doblock = TestTree name  $ execWriter doblock
 -- report :: String -> TestState -> Writer [TestTree] (IO ())
 -- report name result = tell [TestNode $ Case name $ return result]
 
+report name state = TestNode (Case name $ return state)
+reportIO name state = TestNode (Case name $ state)
 
 
 done name x = tell [Done name x]

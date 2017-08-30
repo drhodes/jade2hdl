@@ -18,11 +18,11 @@ main = do
   JRT.runTree $ JRT.TestTree "TestAll"
     [ TD.testTree
     , TI.testTree
+    , TM.testTree
     , TV.testTree
-    ]
+    ]    
   putStrLn ""
-  testem [ TM.testAll
-         , TTL.testAll
+  testem [ TTL.testAll
          , TW.testAll
          --, TV.testAll -- "./test-data/AndStuff6.json" "/user/AndStuff6"
          ]

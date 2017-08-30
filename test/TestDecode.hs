@@ -52,7 +52,6 @@ testSchem2 = eitherDecode schem2
 expectedStr exp got = unlines [ "Expected : " ++ show exp
                               , "Got      : " ++ show got ]
 
-report name state = TestNode (Case name $ return state)
 
 doTestString name tstring exp =
   case eitherDecode tstring of
@@ -65,7 +64,6 @@ doTestEither name eitherResult =
   case eitherResult of
     Right _ -> report name Pass
     Left msg -> report name $ Fail msg
-
 
 testLine1 = let tstring = "[ \"line\", [ -8, -8, 0, 0, 16 ] ]"
                 exp = ok (Line (Coord5 {c5x = -8, c5y = -8, c5r = Rot0, c5dx = 0, c5dy = 16}))
