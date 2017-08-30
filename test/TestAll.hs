@@ -20,6 +20,7 @@ main = do
     , TI.testTree
     , TM.testTree
     , TV.testTree
+    , TTL.testTree
     ]    
   putStrLn ""
   testem [ TTL.testAll

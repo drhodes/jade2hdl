@@ -57,6 +57,7 @@ runJIO x =
     (Right f, log) -> do f
                          return ""
 
+
 die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
 
 impossible msg = die $ "The impossible happened: " ++ msg
@@ -169,9 +170,6 @@ data Port = Port { portCoord3 :: Coord3
 data SubModule = SubModule { subName :: String
                            , subCoord3 :: Coord3
                            } deriving (Generic, Show, Eq, Hashable, Ord)
-
-
-data Replicated a = Rep a
 
 data Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord)
 

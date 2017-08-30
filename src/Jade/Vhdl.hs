@@ -212,6 +212,7 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
                             ]
   return $ substitute temp mapping
 
+
 mkAllMods topl modname = "Vhdl.mkAllMods" <? do
   userModNames <- TopLevel.dependencyOrder topl modname
   --let  userModNames = [name | (name, _) <- TopLevel.modules topl, name `startsWith` "/user"]

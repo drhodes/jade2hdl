@@ -40,10 +40,8 @@ spawnOneTest jadefile modname = do
   errlog <- runJIO $ do
     nb $ "spawnOneTest: " ++ modname
     moduleCode <- Vhdl.mkAllMods topl modname
-    testCode <- Vhdl.mkTestBench topl modname
-    
-    return $ do
-      TIO.writeFile outfile (T.concat [prelude, moduleCode, testCode])
+    testCode <- Vhdl.mkTestBench topl modname    
+    return $ TIO.writeFile outfile (T.concat [prelude, moduleCode, testCode])
       
   let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }
   let cmd1 = sh "ghdl -a -g --std=08 *.vhdl"
@@ -70,7 +68,6 @@ spawnOneTest jadefile modname = do
                                                   , errlog 
                                                   , show err
                                                   ]
-
 
 testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
             in TestTree "One" $ map node [ "Jumper1" 
