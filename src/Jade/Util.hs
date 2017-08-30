@@ -7,7 +7,7 @@ import Data.Hashable
 import Control.Monad
 import Text.Format
 import Data.List as DL
-import Data.Char as Char
+import Data.Char as DC
 import qualified Data.Hashable as DH
 import qualified Web.Hashids as WH
 import qualified Data.ByteString.Char8 as B
@@ -48,8 +48,8 @@ chunk n [] = []
 chunk n xs = take (fromIntegral n) xs : chunk (fromIntegral n) (drop (fromIntegral n) xs)
 
 
-strip x = let x1 = dropWhile Char.isSpace x
-              x2 = dropWhile Char.isSpace (reverse x1)
+strip x = let x1 = dropWhile DC.isSpace x
+              x2 = dropWhile DC.isSpace (reverse x1)
           in reverse x2
 
 quote x = ['"'] ++ x ++ ['"']
@@ -72,3 +72,31 @@ hashid x =
 
 
 slashesToScores str = [if x == '/' then '-' else x | x <- str]
+
+
+
+
+
+
+readHex :: Num b => Char -> Either String b
+readHex c = let wrap x = Right $ fromIntegral x
+            in case DC.toUpper c of
+  '0' -> wrap 0
+  '1' -> wrap 1
+  '2' -> wrap 2
+  '3' -> wrap 3
+  '4' -> wrap 4
+  '5' -> wrap 5
+  '6' -> wrap 6
+  '7' -> wrap 7
+  '8' -> wrap 8
+  '9' -> wrap 9
+  'A' -> wrap 0xA
+  'B' -> wrap 0xB
+  'C' -> wrap 0xC
+  'D' -> wrap 0xD
+  'E' -> wrap 0xE
+  'F' -> wrap 0xF
+  _ -> Left $ format "Couldn't parse '{0}' as a hex digit" [show c]
+
+  

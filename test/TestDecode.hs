@@ -12,6 +12,7 @@ import TestUtil
 import Text.Format
 import Jade.Rawr.Types
 import qualified System.IO as SIO
+import qualified Data.ByteString as DB
 
 testWire1 :: Either String Wire
 testWire1 = eitherDecode "[\"wire\", [136, 64, 1, 0, 0], {\"signal\": \"wd\"}]" 
@@ -132,6 +133,12 @@ doResultTestWith testname f = do
     Right _ -> do passes
                   return $ Pass
 
+-- testMem1 = 
+--   let tstring = "[ \"memory\", [ 8, 0, 0 ], { \"name\": \"Mem1\", \"contents\": \"0\n1\" } ]"
+--       expected = Right $ MemUnit "Mem1" (Coord3 8 0 Rot0) (DB.pack [0, 1])
+--   in eitherDecode tstring
+--   --dotest "testMem1" tstring expected
+
 testTree = let f x y = doResultTestWith x (return y)
                node s t = TestNode (Case s (f s t))
            in TestTree "Decode" [ node "testWire1" testWire1
@@ -143,4 +150,5 @@ testTree = let f x y = doResultTestWith x (return y)
                                 , node "testComp1" testComp1 
                                 , node "testSub1" testSub1 
                                 , node "testSchem1" testSchem1 
+                                --, node "testMem1" testMem1
                                 ]

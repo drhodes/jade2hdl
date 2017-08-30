@@ -6,26 +6,29 @@
 
 module Jade.Decode where
 
-import qualified Data.Scientific as DS
-import GHC.Generics
 import Control.Monad
-import Data.Traversable
 import Data.Aeson
 import Data.Aeson.Types
 import Data.ByteString.Lazy.Internal
-import qualified Data.ByteString.Lazy as DBL
-import qualified Data.Vector as V
-import qualified Data.Map as DM
-import qualified System.Environment as SE
-import qualified Jade.Sig as Sig
-import qualified Jade.ModTest as MT
-import Jade.Types
 import Data.FileEmbed
-import qualified Data.String.Class as DSC
 import Data.Text.Encoding
-import qualified Text.Read as TR
-import qualified Data.Maybe as M
+import Data.Traversable
+import GHC.Generics
+import Jade.Types
 import Jade.Util
+import Text.Format
+import qualified Data.ByteString.Lazy as DBL
+import qualified Data.ByteString as DB
+import qualified Data.Map as DM
+import qualified Data.Maybe as M
+import qualified Data.Char as DC
+import qualified Data.Scientific as DS
+import qualified Data.String.Class as DSC
+import qualified Data.Vector as V
+import qualified Jade.ModTest as MT
+import qualified Jade.Sig as Sig
+import qualified System.Environment as SE
+import qualified Text.Read as TR
 
 {-
 A JADE exported module is encoded as JSON.
@@ -201,8 +204,27 @@ instance FromJSON Port where
 instance FromJSON SubModule where
   parseJSON (Array v) = "Decode.SubModule" <?? do
     name <- parseJSON $ v V.! 0
-    sub <- parseJSON $ v V.! 1
-    return $ SubModule name sub
+    loc <- parseJSON $ v V.! 1
+    return $ SubModule name loc
+
+--  [ "memory", [ 8, 0, 0 ], { "name": "Mem1", "contents": "0\n1" } ]
+instance FromJSON MemUnit where
+  parseJSON (Array v) = "Decode.MemUnit" <?? do
+    loc <- parseJSON $ v V.! 1
+
+    Object o <- parseJSON (v V.! 2)
+    name <- o .: "name"
+    contents <- (o .: "contents") :: Parser String
+
+    -- contents is now a string of what should be hex digits with
+    -- whitespace.
+    let bytes = sequence $ map readHex $ filter (not . DC.isSpace) contents
+    case bytes of
+      Right bytes ->
+        return $ MemUnit name loc (DB.pack bytes)      
+      Left msg ->
+        let msg = "Couldn't parse contents of MemUnit: {0}, because: {1}"
+        in fail $ format msg [name, msg]
 
 instance FromJSON Jumper where
   parseJSON (Array v) = "Decode.Jumper" <?? do
@@ -213,14 +235,10 @@ instance FromJSON Part where
   parseJSON v@(Array arr) = "Decode.Part" <?? do
     ctype <- parseJSON $ arr V.! 0 :: Parser String
     case ctype of
-      "wire" ->
-        do w <- parseJSON v
-           return $ WireC w
-      "port" -> do p <- parseJSON v
-                   return $ PortC p
-      "jumper" ->
-        do p <- parseJSON v
-           return $ JumperC p
+      "wire" -> WireC <$> parseJSON v
+      "port" -> PortC <$> parseJSON v
+      "jumper" -> JumperC <$> parseJSON v
+      "memory" -> MemUnitC <$> parseJSON v
       txt -> if txt `startsWith` "text"
              then return UnusedPart
              else do sub <- parseJSON v
@@ -246,7 +264,8 @@ instance FromJSON Module where
 
 instance FromJSON TopLevel where
   parseJSON (Array arr) = "Decode.TopLevel:Array" <?? do
-    when (V.length arr < 2) (fail $ "Decode.TopLevel.parseJson fails because array not long enough: " ++ show arr)
+    let msg = "Decode.TopLevel.parseJson fails because array not long enough: "
+    when (V.length arr < 2) (fail $ msg ++ show arr)
     mods <- parseJSON $ arr V.! 1
     return $ TopLevel mods
 

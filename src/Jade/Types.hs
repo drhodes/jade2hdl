@@ -1,6 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveFunctor #-}
--- {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
@@ -10,18 +9,21 @@ import GHC.Generics
 import qualified Data.Vector as V
 import qualified Data.Map as DM
 import qualified Data.List as DL
-import Control.Monad.Except 
+import qualified Data.ByteString as DB
 import Jade.Util
 import Data.Hashable
 
+import Control.Monad.Except 
 import Control.Monad.Writer
 import Control.Monad.Reader
---import Control.Monad.State.Lazy
 import Control.Monad.State
-import Control.Monad.Identity
-import Data.Functor.Identity
 
---type J a = ExceptT String (Writer [String]) a 
+--         Exception handling.
+--         |               Global state for memoization.
+--         |               |      State type, memoization lookup table
+--         |               |      |     Log handling.
+--         |               |      |     |                 return val.
+--         |               |      |     |                 |
 type J a = ExceptT String (StateT Memo (Writer [String])) a 
 
 data Memo = Memo { memoComps :: DM.Map String [GComp] }
@@ -31,17 +33,6 @@ runX :: J a -> (Either String a, [String])
 runX x = let stateV = runExceptT x
              writerV = evalStateT stateV emptyMemo
          in runWriter writerV
-
-asdf :: J Int
-asdf = "asdf" <? do
-  put emptyMemo
-  memo <- get
-  return 42
-  
--- runX x = 
---   let result = runExceptT x
---       (a, b) = runWriter result -- :: Writer String (Either String Integer)
---   in (a, b)
 
 runLog :: J a -> String
 runLog x = let log = snd $ runX x
@@ -184,11 +175,17 @@ data Replicated a = Rep a
 
 data Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord)
 
+data MemUnit = MemUnit { memName :: String
+                       , memCoord3 :: Coord3
+                       , memContents :: DB.ByteString
+                       } deriving (Generic, Show, Eq, Hashable, Ord)
+
 data Part = PortC Port
           | SubModuleC SubModule
           | WireC Wire
           | JumperC Jumper
           | TermC Terminal
+          | MemUnitC MemUnit
           | UnusedPart
           deriving (Generic, Show, Eq, Hashable, Ord)
 
