@@ -15,20 +15,22 @@ testem xs = sequence $ CPS.runEval $ CPS.parTraversable CPS.rpar xs
 main = do
   putStrLn ""
   putStrLn "Starting test"
-  JRT.runTree $ JRT.TestTree "TestAll"
-    [ TD.testTree
-    , TI.testTree
-    , TM.testTree
-    , TV.testTree
-    , TTL.testTree
-    ]    
+  stuff <- JRT.runTree $ JRT.TestTree ""
+           [ TD.testTree
+           , TI.testTree
+           , TM.testTree
+           , TV.testTree
+           , TTL.testTree
+           ]    
   putStrLn ""
-  testem [ TTL.testAll
-         , TW.testAll
-         --, TV.testAll -- "./test-data/AndStuff6.json" "/user/AndStuff6"
-         ]
-  putStrLn "All done."
   
+  testem
+    [ --TTL.testAll
+      TW.testAll
+      --, TV.testAll -- "./test-data/AndStuff6.json" "/user/AndStuff6"
+    ]
+  putStrLn "All done."
+  print stuff
     
 
 

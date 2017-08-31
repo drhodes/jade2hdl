@@ -2,6 +2,7 @@ module TestTopLevel where
 
 import Jade.Types
 import qualified Data.List as DL
+import qualified Data.ByteString as DB
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Modul
@@ -240,6 +241,7 @@ testTreeNumComponents =
 
 testTree = TestTree "TopLevel" [ testTreeNumComponents
                                , testTreeGetComponentsWithNameAll
+                               , testTreeTerminals
                                ]
 
 testTreeGetComponentsWithNameAll =
@@ -254,6 +256,36 @@ testTreeGetComponentsWithNameAll =
 
                                       , TestNode $ Case "portTest1" portTest1
                                       ]
+
+testTreeTerminals =
+  let t name f = TestNode $ Case name testTerminals1
+  in TestTree "terminals" [ t "testTerminals1" testTerminals1
+                          ]
+
+
+testTerminals1 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/MemUnit1.json" 
+  let modname =  "/user/MemUnit1"
+      name = "Mem1"
+      loc = Coord3 0 0 Rot0
+      contents = "0\n1"
+      (numports, naddr, ndata) = (1,1,1)
+      
+      func = TopLevel.terminals topl (SubMemUnit (MemUnit name loc contents numports naddr ndata))
+      cs = runJ func
+      
+      exp = [ Terminal (Coord3 {c3x = 0, c3y = 0, c3r = Rot0}) (SigSimple "ADDR_PORT1")
+            , Terminal (Coord3 {c3x = 72, c3y = 0, c3r = Rot0}) (SigSimple "DATA_PORT1")
+            , Terminal (Coord3 {c3x = 0, c3y = 8, c3r = Rot0}) (SigSimple "OE_PORT1")
+            , Terminal (Coord3 {c3x = 0, c3y = 16, c3r = Rot0}) (SigSimple "WE_PORT1")
+            , Terminal (Coord3 {c3x = 0, c3y = 24, c3r = Rot0}) (SigSimple "CLK_PORT1")
+            ]
+            
+  case cs of
+    Right cs -> if DL.sort cs == DL.sort exp
+                then return Pass
+                else return $ Fail $ runLog (func >> (expected exp cs))
+    Left msg -> return $ Fail msg
 
 portTest1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/port-test-1.json" 

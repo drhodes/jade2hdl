@@ -34,6 +34,7 @@ library
                      , Jade.Util
                      , Jade.Icon
                      , Jade.Signal
+                     , Jade.MemUnit
                      , Jade.Middle.Types
                      , Jade.Rawr.Types
                      , TestModule

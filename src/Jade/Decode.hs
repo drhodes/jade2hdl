@@ -216,15 +216,17 @@ instance FromJSON MemUnit where
     name <- o .: "name"
     contents <- (o .: "contents") :: Parser String
 
-    -- contents is now a string of what should be hex digits with
-    -- whitespace.
-    let bytes = sequence $ map readHex $ filter (not . DC.isSpace) contents
-    case bytes of
-      Right bytes ->
-        return $ MemUnit name loc (DB.pack bytes)      
-      Left msg ->
-        let msg = "Couldn't parse contents of MemUnit: {0}, because: {1}"
-        in fail $ format msg [name, msg]
+    let fieldNum key = do
+          num <- (o .:? key) :: Parser (Maybe String)
+          case num of
+            Nothing -> return 1
+            Just n -> return $ read n
+
+    nports <- fieldNum "nports"
+    ndata <- fieldNum "ndata"
+    naddr <- fieldNum "naddr"
+    
+    return $ MemUnit name loc contents nports naddr ndata
 
 instance FromJSON Jumper where
   parseJSON (Array v) = "Decode.Jumper" <?? do
@@ -238,7 +240,7 @@ instance FromJSON Part where
       "wire" -> WireC <$> parseJSON v
       "port" -> PortC <$> parseJSON v
       "jumper" -> JumperC <$> parseJSON v
-      "memory" -> MemUnitC <$> parseJSON v
+      "memory" -> SubModuleC . SubMemUnit <$> parseJSON v
       txt -> if txt `startsWith` "text"
              then return UnusedPart
              else do sub <- parseJSON v

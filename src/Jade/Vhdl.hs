@@ -282,6 +282,12 @@ mkSubModuleInstance topl modname submod@(SubModule name loc) = do
         return $ substitute template mapping
   liftM (T.intercalate (T.pack "\n")) $ mapM mkOneInstance subModuleReps
 
+
+mkSubModuleInstance topl modname mem@(SubMemUnit _) = do
+  nb "Jade.Vhdl.mkSubModuleInstance"
+  
+  unimplemented "mkSubModuleInstance"
+
 ------------------------------------------------------------------
 -- get all node names needed for wiring.
 -- no input names.

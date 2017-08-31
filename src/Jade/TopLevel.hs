@@ -17,6 +17,7 @@ import qualified Jade.GComp as GComp
 import qualified Jade.Schematic as Schem
 import qualified Jade.Jumper as Jumper
 import qualified Jade.Coord as Coord
+import qualified Jade.MemUnit as MemUnit
 import Jade.Types
 import Jade.Util
 import Control.Monad
@@ -198,12 +199,16 @@ componentWithTerminal topl modname term@(Terminal c3@(Coord3 x y _) _) =
 
 -- | Get a list of input and output terminals in a submodule offset by
 -- the position of the submodule
-
 terminals :: TopLevel -> SubModule -> J [Terminal]
 terminals topl (SubModule modname offset) = "TopLevel.terminals" <? do
   nb $ show ("TopLevel.terminals checks submodule: " ++ modname)
   mod <- getModule topl modname
   Module.terminals mod offset
+
+terminals topl (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
+  MemUnit.terminals memunit
+
+
 
 -- | Get the number of distinct nodes in the schematic
 numComponents :: TopLevel -> String -> J Int
@@ -287,7 +292,6 @@ getInputTermDriver topl modname term =
               Just sig -> return sig
               Nothing -> die $ "Impossible, no signal was found in this part: " ++ show match
 
-
 getComponentWithTerminal :: TopLevel -> String -> Terminal -> J GComp
 getComponentWithTerminal topl modname term  = "getComponentWithTerminal" <? do
   comps <- components topl modname
@@ -297,7 +301,6 @@ getComponentWithTerminal topl modname term  = "getComponentWithTerminal" <? do
               return c
     [] -> die $ "No component found with terminal: " ++ show term
     _ -> impossible $ "More than one component found with terminal: " ++ show term
-
 
 subModuleWithOutputTerminal topl modname term = "subModuleWithOutputTerminal" <? do
   allsubs <- getSubModules topl modname

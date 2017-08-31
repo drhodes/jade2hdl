@@ -57,14 +57,11 @@ runJIO x =
     (Right f, log) -> do f
                          return ""
 
-
 die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
-
 impossible msg = die $ "The impossible happened: " ++ msg
 unimplemented s = die $ "unimplemented: " ++ s
 
 nb s = tell [s]
-
 bail :: J a
 bail = die "bailing!"
 
@@ -144,10 +141,7 @@ data Rot = Rot0
 data Coord3 = Coord3 { c3x :: Integer
                      , c3y :: Integer
                      , c3r :: Rot
-                     } deriving (Eq, Generic, Hashable, Ord)
-
-instance Show Coord3 where
-  show (Coord3 x y r) = fmt "<C3 {0} {1} {2}>" (x, y, r)
+                     } deriving (Show, Eq, Generic, Hashable, Ord)
 
 data Wire = Wire { wireCoord5 :: Coord5
                  , wireSignal :: Maybe Signal
@@ -168,14 +162,21 @@ data Port = Port { portCoord3 :: Coord3
                  } deriving (Generic, Show, Eq, Hashable, Ord)
       
 data SubModule = SubModule { subName :: String
-                           , subCoord3 :: Coord3
-                           } deriving (Generic, Show, Eq, Hashable, Ord)
+                           , subCoord3 :: Coord3 } 
+               | SubMemUnit MemUnit
+               deriving (Generic, Show, Eq, Hashable, Ord)
 
 data Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord)
 
 data MemUnit = MemUnit { memName :: String
                        , memCoord3 :: Coord3
-                       , memContents :: DB.ByteString
+                       , memContents :: String
+                       , memNumPorts :: Integer
+                         -- ^ number of memory ports in this unit.
+                       , memNumAddr :: Integer
+                         -- ^ width of the address terminal
+                       , memNumData :: Integer 
+                         -- ^ width of the output data terminal
                        } deriving (Generic, Show, Eq, Hashable, Ord)
 
 data Part = PortC Port
@@ -183,7 +184,6 @@ data Part = PortC Port
           | WireC Wire
           | JumperC Jumper
           | TermC Terminal
-          | MemUnitC MemUnit
           | UnusedPart
           deriving (Generic, Show, Eq, Hashable, Ord)
 

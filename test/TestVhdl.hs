@@ -108,7 +108,9 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "fast_and4"
                                          , "CLA32"
                                          , "GarrInc4"
+                                         , "AndStuff6"
                                          , "MemUnit1"
+                                         --, "MemUnit2"
                                          --, "GarrInc32"
                                          ]
   

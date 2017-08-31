@@ -24,7 +24,12 @@ symbol :: Parser String
 symbol = do
   x <- letter <|> char '_'
   rest <- many (alphaNum <|> char '_')
-  return $ map DC.toUpper (x:rest)
+  let sym = map DC.toUpper (x:rest)
+  case sym of
+    -- "OUT" is a reserved name in HDL, save the user from having to change it by renaming it.
+    "OUT" -> return "RESERVED_OUT"
+    x -> return x
+
 
 -- := sig#count         replicate sig specified number of times 
 sigHash :: Parser Sig
