@@ -35,8 +35,8 @@ import Text.Format
 -- | Get a list of input and output terminals in a memunit submodule
 
 terminals :: MemUnit -> J [Terminal]
-terminals (MemUnit name loc contents nports naddr ndata) = "MemUnit.terminals" <? do
-  concatMapM (buildPort name loc naddr ndata) [1 .. nports]
+terminals mem@(MemUnit name loc contents nports naddr ndata) = "MemUnit.terminals" <? do
+  concatMapM (buildPort mem) [1 .. nports]
 
 getInputTerminals memunit = terminals memunit >>= filterM isInputTerm
 getOutputTerminals memunit = terminals memunit >>= filterM isOutputTerm
@@ -48,8 +48,16 @@ isOutputTerm (Terminal _ s) = do
 
 isInputTerm t = liftM not (isOutputTerm t)
 
-buildPort unitName loc naddr ndata portno = "MemUnit.buildPort" <? do
-  let sigport name = format "{1}_PORT{2}" [unitName, name, show portno]
+-- centerOffset memunit =
+--   let loc = memCoord3 memunit
+--       numports = memNumPorts memunit
+--   in case numports of
+--     1 -> (0, 0)
+--     2 -> (28, undefined)
+--     3 -> (28, undefined)
+
+buildPort mem@(MemUnit name loc _ nports naddr ndata) portno = "MemUnit.buildPort" <? do
+  let sigport name = format "{0}_PORT{1}" [name, show portno]
       simple name = SigSimple (sigport name)
   
       addrSig = if naddr == 1
@@ -63,19 +71,18 @@ buildPort unitName loc naddr ndata portno = "MemUnit.buildPort" <? do
       offsetY y = y + (portno - 1) * 40
 
       Coord3 x y r = loc
-      withOffset x' y' = Coord3 (x+x') (offsetY(y+y')) r
+      withOffset x' y' = Coord.rotate (Coord3 (x+x') (offsetY(y+y')) Rot0) r (x+0) (y+0)
       
-  return [ Terminal (withOffset 0 0)  addrSig
-         , Terminal (withOffset 72 0)  dataSig
-         , Terminal (withOffset 0 8) (simple "OE")
-         , Terminal (withOffset 0 16) (simple "WE")
-         , Terminal (withOffset 0 24) (simple "CLK")
-         ]
-  -- return [ Terminal (Coord3 0 (offsetY 0) Rot0 )  addrSig
-  --        , Terminal (Coord3 72 (offsetY 0) Rot0)  dataSig
-  --        , Terminal (Coord3 0 (offsetY 8) Rot0) (simple "OE")
-  --        , Terminal (Coord3 0 (offsetY 16) Rot0) (simple "WE")
-  --        , Terminal (Coord3 0 (offsetY 24) Rot0) (simple "CLK")
-  --        ]
+  nb $ format "memunit location {0}, {1}" [show x, show y]
+  
+  let terms =  [ Terminal (withOffset 0 0)  addrSig
+               , Terminal (withOffset 72 0)  dataSig
+               , Terminal (withOffset 0 8) (simple "OE")
+               , Terminal (withOffset 0 16) (simple "WE")
+               , Terminal (withOffset 0 24) (simple "CLK")
+               ]
+
+  list terms
+  return terms
 
 

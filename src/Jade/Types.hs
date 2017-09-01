@@ -52,8 +52,7 @@ putStrJ x = case runJ x of
 runJIO :: J (IO a) -> IO String
 runJIO x =
   case runX x of
-    (Left msg, log) -> do putStrLn msg
-                          return $ DL.intercalate "\n" ("Cool Story" : uniq log)
+    (Left msg, log) -> do return $ DL.intercalate "\n" ("Cool Story" : uniq log ++ [msg])
     (Right f, log) -> do f
                          return ""
 

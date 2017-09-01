@@ -111,7 +111,9 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "AndStuff6"
                                          , "MemUnit1"
                                          , "MemUnitMoved1"
-                                         --, "MemUnit2"
+                                         , "MemUnitRotate1"
+                                         , "MemUnitRotate2"
+                                         , "MemUnit2"
                                          --, "GarrInc32"
                                          ]
   
@@ -127,10 +129,8 @@ testTree2 =
                     , testcase "./test-data/SubmodAnd6.json" "/user/submod/and6"
                     ]
 
-
 testTree = TestTree "Vhdl" [ testTree1
                            , testTree2 ]
-
 
 testDUT_UseAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"
