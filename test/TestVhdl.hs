@@ -110,6 +110,7 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "GarrInc4"
                                          , "AndStuff6"
                                          , "MemUnit1"
+                                         , "MemUnitMoved1"
                                          --, "MemUnit2"
                                          --, "GarrInc32"
                                          ]

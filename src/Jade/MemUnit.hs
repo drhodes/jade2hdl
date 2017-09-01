@@ -36,7 +36,7 @@ import Text.Format
 
 terminals :: MemUnit -> J [Terminal]
 terminals (MemUnit name loc contents nports naddr ndata) = "MemUnit.terminals" <? do
-  concatMapM (buildPort name naddr ndata) [1 .. nports]
+  concatMapM (buildPort name loc naddr ndata) [1 .. nports]
 
 getInputTerminals memunit = terminals memunit >>= filterM isInputTerm
 getOutputTerminals memunit = terminals memunit >>= filterM isOutputTerm
@@ -48,7 +48,7 @@ isOutputTerm (Terminal _ s) = do
 
 isInputTerm t = liftM not (isOutputTerm t)
 
-buildPort unitName naddr ndata portno = "MemUnit.buildPort" <? do
+buildPort unitName loc naddr ndata portno = "MemUnit.buildPort" <? do
   let sigport name = format "{1}_PORT{2}" [unitName, name, show portno]
       simple name = SigSimple (sigport name)
   
@@ -60,13 +60,22 @@ buildPort unitName naddr ndata portno = "MemUnit.buildPort" <? do
                 then simple "DATA"
                 else SigRange (sigport "DATA") (naddr - 1) 0
       
-      offsetY x = x + (portno - 1) * 40
+      offsetY y = y + (portno - 1) * 40
+
+      Coord3 x y r = loc
+      withOffset x' y' = Coord3 (x+x') (offsetY(y+y')) r
       
-  return [ Terminal (Coord3 0 (offsetY 0) Rot0 )  addrSig
-         , Terminal (Coord3 72 (offsetY 0) Rot0)  dataSig
-         , Terminal (Coord3 0 (offsetY 8) Rot0) (simple "OE")
-         , Terminal (Coord3 0 (offsetY 16) Rot0) (simple "WE")
-         , Terminal (Coord3 0 (offsetY 24) Rot0) (simple "CLK")
+  return [ Terminal (withOffset 0 0)  addrSig
+         , Terminal (withOffset 72 0)  dataSig
+         , Terminal (withOffset 0 8) (simple "OE")
+         , Terminal (withOffset 0 16) (simple "WE")
+         , Terminal (withOffset 0 24) (simple "CLK")
          ]
+  -- return [ Terminal (Coord3 0 (offsetY 0) Rot0 )  addrSig
+  --        , Terminal (Coord3 72 (offsetY 0) Rot0)  dataSig
+  --        , Terminal (Coord3 0 (offsetY 8) Rot0) (simple "OE")
+  --        , Terminal (Coord3 0 (offsetY 16) Rot0) (simple "WE")
+  --        , Terminal (Coord3 0 (offsetY 24) Rot0) (simple "CLK")
+  --        ]
 
 
