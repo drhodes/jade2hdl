@@ -1,19 +1,45 @@
 ------------------------------------------------------------------
 -- VHDL PRELUDE --------------------------------------------------
 
--- library IEEE;
--- use IEEE.STD_LOGIC_1164.ALL;
+-- /modmem1 ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_textio.all;
+use ieee.numeric_std.all;
+use ieee.numeric_std_unsigned.all;
+use std.textio.all;   
 
--- entity mod_user_and2 is
---   port (a : in std_logic_vector(0 downto 0);
---         b : in std_logic_vector(0 downto 0);
---         vout : out std_logic_vector(0 downto 0));
--- end entity mod_user_and2 ;
--- architecture behavioral of mod_user_and2 is
--- begin
---     vout <= a and b;
--- end architecture behavioral ;
 
+--   modMem1_YqLZ2_0 : entity work.modMem1 port map (Mem1_ADDR_PORT1(0) => wire_1(0),
+--                                                   Mem1_OE_PORT1(0) => wire_2(0),
+--                                                   Mem1_WE_PORT1(0) => wire_3(0),
+--                                                   Mem1_CLK_PORT1(0) => wire_4(0),
+--                                                   Mem1_DATA_PORT1(0) => wire_5(0));
+
+entity modmem1 is
+  port (ADDR_PORT1 : in std_logic_vector(0 downto 0);
+        OE_PORT1 : in std_logic_vector(0 downto 0);
+        WE_PORT1 : in std_logic_vector(0 downto 0);
+        CLK_PORT1 : in std_logic_vector(0 downto 0);
+        DATA_PORT1 : out std_logic_vector(0 downto 0));
+  
+end entity modmem1 ;
+architecture behavioral of modmem1 is
+  type rom_array is array (NATURAL range <>) of std_logic_vector(0 downto 0);
+  constant data0: std_logic_vector (0 downto 0) := "0";
+  constant data1: std_logic_vector (0 downto 0) := "1";
+  constant rom: rom_array := (data0, data1);
+  
+begin
+  process (CLK_PORT1, OE_PORT1)
+    variable j: integer;
+  begin
+    j := to_integer(unsigned(ADDR_PORT1));
+    if falling_edge(CLK_PORT1(0)) then
+      DATA_PORT1 <= rom(j) when (OE_PORT1 = "1") else "U";
+    end if;   
+  end process;
+end architecture behavioral ;
 
 -- /gates/mod_gates_dreg ------------------------------------------------------------------
 library ieee;
@@ -32,7 +58,6 @@ begin
     Q <= D;
   end process;
 end architecture behavioral ;
-
 
 -- /gates/mod_gates_tristate ------------------------------------------------------------------
 library ieee;
@@ -64,7 +89,6 @@ begin
   vout <= a and b and c and d;
 end architecture behavioral ;
 
-
 -- /gates/nand4 ------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
@@ -95,7 +119,6 @@ architecture behavioral of mod_gates_and3 is
 begin
   vout <= a and b and c;
 end architecture behavioral ;
-
 
 -- /gates/nand2 ------------------------------------------------------------------
 library ieee;
@@ -167,7 +190,6 @@ architecture behavioral of mod_gates_and2 is
 begin
   vout <= a and b;
 end architecture behavioral ;
-
 
 -- /gates/inverter ------------------------------------------------------------------
 library ieee;

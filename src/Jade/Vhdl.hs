@@ -16,6 +16,7 @@ import qualified Jade.Sig as Sig
 import qualified Jade.GComp as GComp
 import qualified Jade.ModTest as ModTest
 import qualified Jade.Middle.Types as MT
+import qualified Jade.MemUnit as MemUnit
 
 import Control.Monad
 import Jade.Util
@@ -283,11 +284,25 @@ mkSubModuleInstance topl modname submod@(SubModule name loc) = do
   liftM (T.intercalate (T.pack "\n")) $ mapM mkOneInstance subModuleReps
 
 
-mkSubModuleInstance topl modname mem@(SubMemUnit _) = do
+mkSubModuleInstance topl modname mem@(SubMemUnit memunit) = do
   nb "Jade.Vhdl.mkSubModuleInstance"
-  
-  unimplemented "mkSubModuleInstance"
+  nb "MemUnits are not replicated in JADE."
+  MT.SubModuleRep ins outs _ zIdx <- MT.memUnitInstance topl modname memunit
 
+  portmap <- mkPortMap ins outs
+  let loc = memCoord3 memunit
+      name = memName memunit
+  let label = replicatedLabel name loc zIdx        
+  -- u1 : entity work.AND2 port map (in1 => a, in2 => b, out1 => w1);
+  let txt = "{{label}} : entity work.{{submod-name}} port map ({{{port-map}}});"
+      Right template = compileTemplate "mkSubModuleInstance" (T.pack txt)
+      mapping = DM.fromList [ ("label", toMustache label)
+                            , ("submod-name", toMustache $ Module.mangleModName name)
+                            , ("port-map", toMustache portmap)
+                            ]
+  return $ substitute template mapping
+
+  
 ------------------------------------------------------------------
 -- get all node names needed for wiring.
 -- no input names.

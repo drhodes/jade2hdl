@@ -13,6 +13,7 @@ import qualified Data.Vector as V
 import qualified Jade.Decode as Decode
 import qualified Jade.GComp as GComp
 import qualified Jade.Module as Module
+import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Part as Part
 import qualified Jade.Sig as Sig
 import qualified Jade.TopLevel as TopLevel
@@ -32,9 +33,6 @@ flipDir Out = In
 flipTermAssoc (TermAssoc dir src tgt) = TermAssoc (flipDir dir) tgt src
 flipTermMap xs = map flipTermAssoc xs
 
-
-
-
 type TermMap = [TermAssoc] 
 
 -- replicated submodule.
@@ -46,22 +44,6 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
                                  } deriving (Show, Eq)
 
 data ModOutput = ModOutput TermMap deriving (Show, Eq)
-
--- | If this module contains a test with a cycle line that mentions
--- SetSignal, then this probably indicates a CLK is present.  I'm not
--- sure what to make of this right now.  CLK is not a reserved name as
--- far as I can tell in either JADE nor VHDL.  So, by the errors I've
--- been presented it seems that a way forward, at least initially is
--- to simply check the module for (SetSignal <ident> <value>), and
--- declare <ident> near the top of the testbench. Another related
--- wrinkle is that CLK is not included as part of the ASSERT or SAMPLE
--- lines,
-
-maybeConnectClk topl modname = "Middle/Types.maybeConnectClk" <? do
-  -- get the cycle line from the module.
-  -- get the SetSignals actions if they exist and put them into the in
-  -- ports of the module. this needs to happend elsewhere.
-  undefined
 
 -- TODO: POSSIBLE BUG: rethink how getSlices works WRT how connectOneInput changed.
 connectOneOutput topl modname outSig = "Middle.Types.connectOneOutput" <? do
@@ -231,4 +213,34 @@ subModuleInstances topl modname submod@(SubModule name loc) = do
       otms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- outputTermMaps] :: [[TermMap]]
 
   buildSubModuleReps itms otms submod (repd - 1)
+
+subModuleInstances topl modname (SubMemUnit memunit) = do
+  nb "Middle.Types.subModuleInstances"
+  die "This should not be called on SubMemUnit, instead call memUnitInstance"
+  
+
+memUnitInstance :: TopLevel -> String -> MemUnit -> J SubModuleRep
+memUnitInstance topl modname memunit = "Middle.Types.memUnitInstance" <? do
+  let zidx = 0
+      repd = 1
+  m <- TopLevel.getModule topl modname
+  
+  inputTerms <- MemUnit.getInputTerminals memunit
+  inputComps <- mapM (TopLevel.componentWithTerminal topl modname) inputTerms
+
+  outputTerms <- MemUnit.getOutputTerminals memunit
+  outputComps <- mapM (TopLevel.componentWithTerminal topl modname) outputTerms
+  
+
+  inputTermMaps <- zipWithM (replicateOneTerminal repd In) inputTerms (map GComp.removeTerms inputComps)
+  outputTermMaps <- zipWithM (replicateOneTerminal repd Out) outputTerms (map GComp.removeTerms outputComps)
+
+  let itms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- inputTermMaps] :: [[TermMap]]
+      otms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- outputTermMaps] :: [[TermMap]]
+
+  
+  rep <- buildSubModuleReps itms otms (SubMemUnit memunit) 0
+  when (length rep /= 1) (impossible "This should contain one memunit representation")
+  return $ head rep
+
   
