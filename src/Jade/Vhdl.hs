@@ -198,8 +198,10 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
 
   nodeDecls <- mkNodeDecls topl modname
   outputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectOutput topl modname) outs
-  inputWires <- connectAllInputs topl modname ins   
-  constantWires <- T.intercalate (T.pack "\n --1") `liftM` mapM (connectConstant topl modname) comps
+  inputWires <- connectAllInputs topl modname ins
+
+  -- TODO this is where all the spaces are being inserted.
+  constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant topl modname) comps
 
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt
