@@ -192,6 +192,32 @@ begin
   Y <= D1 when (S = "1") else D0;
 end architecture behavioral ;
 
+-- /gates/mux4 ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_mux4 is
+  port (D0 : in std_logic_vector(0 downto 0);
+        D1 : in std_logic_vector(0 downto 0);
+        D2 : in std_logic_vector(0 downto 0);
+        D3 : in std_logic_vector(0 downto 0);
+        S : in std_logic_vector(1 downto 0);
+        Y : out std_logic_vector(0 downto 0)) ;
+end entity mod_gates_mux4 ;
+architecture behavioral of mod_gates_mux4 is
+begin
+  process (D0, D1, D2, D3, S, Y) is
+  begin  
+  if (S="00") then Y <= D0;
+  elsif (S="01") then Y <= D1;
+  elsif (S="10") then Y <= D2;
+  elsif (S="11") then Y <= D3;
+  else Y <= "X";
+  end if;
+  end process;    
+end architecture behavioral ;
+
+
 -- /gates/xor2 ------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
@@ -246,6 +272,20 @@ architecture behavioral of mod_gates_buffer is
 begin
   vout <= a;
 end architecture behavioral ;
+
+-- /gates/buffer_h ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_buffer_h is
+  port (a : in std_logic_vector(0 downto 0);
+        vout : out std_logic_vector(0 downto 0)) ;
+end entity mod_gates_buffer_h ;
+architecture behavioral of mod_gates_buffer_h is
+begin
+  vout <= a;
+end architecture behavioral ;
+
 
 -- /gates/or2 ------------------------------------------------------------------
 library ieee;
