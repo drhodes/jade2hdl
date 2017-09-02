@@ -118,8 +118,9 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "zreg2"
                                          , "Mux21Rep4"
                                          , "Mux21Rep32"
-                                         --, "CycleCounter"
                                          , "CycleIdentity1"
+                                         , "FreqDivider"
+                                         --, "CycleCounter"
                                          --, "GarrInc32"
                                          ]
   

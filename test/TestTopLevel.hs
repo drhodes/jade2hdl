@@ -28,22 +28,6 @@ bendyWire1 = do
     Right _ -> return Pass
     Left msg -> return $ Fail msg
 
-testTermDriverAnd23 :: IO TestState
-testTermDriverAnd23 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-  let result = runJ $ do
-        let modname =  "/user/UseAND2_3"
-        subs <- TopLevel.getSubModules topl modname
-        let submodule@(SubModule subname subloc) = subs !! 2
-        inputTerms <- TopLevel.getInputTerminals topl submodule
-        result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
-        case result of
-          [SigSimple "pg7Bj1XGp2OJ9_OUT",SigSimple "QxrKbYgWM4dLd_OUT"] -> return "+"
-          x -> die $ "hmm, found: " ++ show x
-  case result of
-    Right _ -> return Pass
-    Left msg -> return $ Fail msg
-
 
 testTermDriverAnd23_Wire :: IO TestState
 testTermDriverAnd23_Wire = do
@@ -149,14 +133,12 @@ testTreeMiscEtc =
   let t name f = TestNode $ Case name f
   in TestTree "MiscEtc" [ t "testTermDriverAnd23_Wire" testTermDriverAnd23_Wire
                         , t "bendyWire1" bendyWire1
-                        , t "testTermDriverAnd23" testTermDriverAnd23
                         , t "portTest1" portTest1
                         , t "testTopLevelGetInputs" testTopLevelGetInputs
                         , t "testSigConnectedToSubModuleP1" testSigConnectedToSubModuleP1
                         , t "testSigConnectedToSubModuleP2" testSigConnectedToSubModuleP2
                         , t "testLoneJumper1" testLoneJumper1
                         ]
-
 
 testComponents :: String -> [[Sig]] -> IO TestState
 testComponents modname exp = do
@@ -366,3 +348,4 @@ checkTopLevelComponents1 :: IO (J Int)
 checkTopLevelComponents1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
   return $ TopLevel.numComponents topl "/user/UseAND2"
+
