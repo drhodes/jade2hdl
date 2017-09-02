@@ -66,8 +66,6 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
           c = case comment of
                 Just s -> "// " ++ s
                 Nothing -> "// no comment"
-      nb $ show ("expecteds", expecteds)
-      nb $ show ("expected testline", testline)
       os <- concatMapM Sig.getNames outs      
       txt <- sequence [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
       recurse $ map T.unpack txt
@@ -197,7 +195,9 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
   let ports = T.pack $ DL.intercalate ";\n" (concat [portIns, portOuts])
 
   nodeDecls <- mkNodeDecls topl modname
-  outputWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectOutput topl modname) outs
+  outMap <- mapM (connectOutput topl modname) outs
+  list outMap
+  outputWires <- T.intercalate (T.pack "\n") `liftM` (return outMap)
   inputWires <- connectAllInputs topl modname ins
 
   -- TODO this is where all the spaces are being inserted.
@@ -220,7 +220,8 @@ mkAllMods topl modname = "Vhdl.mkAllMods" <? do
   userModNames <- TopLevel.dependencyOrder topl modname
   --let  userModNames = [name | (name, _) <- TopLevel.modules topl, name `startsWith` "/user"]
   T.concat `liftM` mapM (mkModule topl) (userModNames ++ [modname])
-
+  
+  
 ------------------------------------------------------------------
 comma = T.pack ", \n"
 
@@ -285,7 +286,6 @@ mkSubModuleInstance topl modname submod@(SubModule name loc) = do
         return $ substitute template mapping
   liftM (T.intercalate (T.pack "\n")) $ mapM mkOneInstance subModuleReps
 
-
 mkSubModuleInstance topl modname mem@(SubMemUnit memunit) = do
   nb "Jade.Vhdl.mkSubModuleInstance"
   nb "MemUnits are not replicated in JADE."
@@ -303,7 +303,6 @@ mkSubModuleInstance topl modname mem@(SubMemUnit memunit) = do
                             , ("port-map", toMustache portmap)
                             ]
   return $ substitute template mapping
-
   
 ------------------------------------------------------------------
 -- get all node names needed for wiring.

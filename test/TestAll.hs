@@ -15,19 +15,17 @@ testem xs = sequence $ CPS.runEval $ CPS.parTraversable CPS.rpar xs
 main = do
   putStrLn ""
   putStrLn "Starting test"
+  testem [ TW.testAll ]
+    
   JRT.runTree $ JRT.TestTree ""
            [ TD.testTree
            , TI.testTree
            , TM.testTree
-           , TV.testTree
            , TTL.testTree
+           , TV.testTree
            ]    
   putStrLn ""
   
-  testem
-    [ TTL.testAll
-    , TW.testAll
-    ]
   putStrLn "All done."
     
 

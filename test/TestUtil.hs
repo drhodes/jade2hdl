@@ -5,7 +5,6 @@ import Text.Format
 import Control.Monad
 import qualified System.IO as SIO
 
-
 expected :: Show a => a -> a -> J ()
 expected exp got = do
   nb $ "Expected : " ++ show exp

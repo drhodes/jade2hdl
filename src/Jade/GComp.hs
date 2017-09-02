@@ -6,6 +6,7 @@ import Jade.Types
 import qualified Jade.Part as Part
 import qualified Jade.Signal as Signal
 import qualified Jade.Sig as Sig
+import qualified Jade.Wire as Wire
 import Data.Maybe
 import Control.Monad
 import Jade.Util
@@ -32,15 +33,21 @@ getSigsWithIdent gcomp ident = do
   -- more than one!
   liftM DL.nub $ filterM (flip Sig.hasIdent ident) (getSigs (removeTerms gcomp))
 
+getWires :: GComp -> [Wire]
 getWires (GComp _ nodes) = [w | (Node _ (WireC w)) <- nodes]
 
 removeTerms (GComp gid nodes) = GComp gid [n | n@(Node _ part) <- nodes, not $ Part.isTerm part]
 
 width gcomp = "GComp.width" <? do
-  let sigs = getSigs gcomp
-  if length sigs == 0
-    then return 1
-    else return $ maximum $ map Sig.width sigs
+  -- first check the wire signals, maybe the wires have user specified width
+  let ws = getWires gcomp
+  case [w | Just w <- map Wire.width ws] of    
+      [] -> let sigs = getSigs gcomp
+            in if length sigs == 0
+               then return 1
+               else return $ maximum $ map Sig.width sigs
+      -- at least one wire width was specified by the user, so use that.
+      widths -> return $ maximum widths
 
 parts gcomp = let (GComp _ nodes) = removeTerms gcomp
               in map nodePart nodes 

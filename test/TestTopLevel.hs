@@ -13,58 +13,55 @@ import TestUtil
 import Control.Monad
 import Jade.Rawr.Types 
 
-buildUserAnd24 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-4.json"
-  putStrJ $ do let modname =  "/user/UseAND2_4"
-               cs <- TopLevel.components topl modname
-               let (GComp gid cs') = cs !! 5
-               return $ show $ map nodePart $ cs'
 
+bendyWire1 :: IO TestState
 bendyWire1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/bendy-wire-1.json"
-  putStrJ $ do
-    let modname =  "/user/BendyWire1"
-    cs <- TopLevel.components topl modname
-    case length cs of
-      1 -> return "+"
-      x -> die $ "hmm, found: " ++ show x
+  let result = runJ $ do
+        let modname =  "/user/BendyWire1"
+        cs <- TopLevel.components topl modname
+        case length cs of
+          1 -> return "+"
+          x -> die $ "hmm, found: " ++ show x
 
+  case result of
+    Right _ -> return Pass
+    Left msg -> return $ Fail msg
+
+testTermDriverAnd23 :: IO TestState
 testTermDriverAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-  putStrJ $ do let modname =  "/user/UseAND2_3"
-               subs <- TopLevel.getSubModules topl modname
-               let submodule@(SubModule subname subloc) = subs !! 2
-               inputTerms <- TopLevel.getInputTerminals topl submodule
-               result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
-               case result of
-                 [SigSimple "pg7Bj1XGp2OJ9_OUT",SigSimple "QxrKbYgWM4dLd_OUT"] -> return "+"
-                 x -> die $ "hmm, found: " ++ show x
+  let result = runJ $ do
+        let modname =  "/user/UseAND2_3"
+        subs <- TopLevel.getSubModules topl modname
+        let submodule@(SubModule subname subloc) = subs !! 2
+        inputTerms <- TopLevel.getInputTerminals topl submodule
+        result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
+        case result of
+          [SigSimple "pg7Bj1XGp2OJ9_OUT",SigSimple "QxrKbYgWM4dLd_OUT"] -> return "+"
+          x -> die $ "hmm, found: " ++ show x
+  case result of
+    Right _ -> return Pass
+    Left msg -> return $ Fail msg
 
+
+testTermDriverAnd23_Wire :: IO TestState
 testTermDriverAnd23_Wire = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-  putStrJ $ do let modname =  "/user/UseAND2_3"
-               subs <- TopLevel.getSubModules topl modname
-               let submodule@(SubModule subname subloc) = subs !! 0
-               inputTerms <- TopLevel.getInputTerminals topl submodule
-               result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
-               case result of
-                 [SigSimple "A",SigSimple "B"] -> return "+"
-                 x -> die $ "hmm, found: " ++ show x
+  let result = runJ $ do let modname =  "/user/UseAND2_3"
+                         subs <- TopLevel.getSubModules topl modname
+                         let submodule@(SubModule subname subloc) = subs !! 0
+                         inputTerms <- TopLevel.getInputTerminals topl submodule
+                         result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
+                         case result of
+                           [SigSimple "A",SigSimple "B"] -> return Pass
+                           x -> return $ Fail $ runLog $ die $ "hmm, found: " ++ show x
+  case result of
+    Right x -> return x
+    Left msg -> return $ Fail msg
 
-testTopLevelComponents1 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
-  return $ TopLevel.numComponents topl "/user/UseAND2"
-
+testGetComponentsWithName :: String -> String -> Int -> IO TestState
 testGetComponentsWithName modname signame exp = do
-  Right topl <- Decode.decodeTopLevel $ "./test-data/" ++ modname ++ ".json"
-  putStrJ $ do let modname' =  "/user/" ++ modname
-               cs <- TopLevel.getComponentsWithName topl modname' signame
-               return $ if length cs == exp
-                        then "+"
-                        else "FAIL" ++ (show ("expected", exp, "got", length cs))
-
-testGetComponentsWithName2 :: String -> String -> Int -> IO TestState
-testGetComponentsWithName2 modname signame exp = do
   Right topl <- Decode.decodeTopLevel $ "./test-data/" ++ modname ++ ".json"
   let modname' =  "/user/" ++ modname
       cs = runJ $ TopLevel.getComponentsWithName topl modname' signame
@@ -74,16 +71,11 @@ testGetComponentsWithName2 modname signame exp = do
                 then return Pass
                 else return $ Fail (show ("expected", exp, "got", length cs))
 
-
-testTopLevelComponents2 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
-  return $ TopLevel.components topl "/user/UseAND2"
-
-testTopLevelGetInputs :: IO ()
+testTopLevelGetInputs :: IO TestState
 testTopLevelGetInputs = do
   let modname =  "/user/UseAND2_3"
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-  putStrJ $ do cs <- TopLevel.components topl modname
+  let func =do cs <- TopLevel.components topl modname
                subs <- TopLevel.getSubModules topl modname
                -- pick a submodule with anonymous wires connected to
                -- two other submodule outputs
@@ -99,32 +91,46 @@ testTopLevelGetInputs = do
 
                -- find which signal is driving the input terminal.
                driver <- TopLevel.getInputTermDriver topl modname (terms !! 1)
-               if driver == SigSimple "QxrKbYgWM4dLd_OUT"
-                 then return "+"
-                 else return "FAIL"
-                
+               if driver == SigSimple "LdyPxAwJGq0vO_RESERVED_OUT"
+                 then return Pass
+                 else do nb $ show driver
+                         die $ "driver `not equal to` SigSimple QxrKbYgWM4dLd_OUT"
+  case runJ func of
+    Right x -> return x
+    Left msg -> return $ Fail $ runLog func
+                 
+testSigConnectedToSubModuleP1 :: IO TestState
 testSigConnectedToSubModuleP1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
-  putStrJ $ do
-    Outputs outs <- TopLevel.getOutputs topl "/user/Jumper1"
-    eh <- TopLevel.sigConnectedToSubModuleP topl "/user/Jumper1" (outs !! 0)
-    if eh == False then return "+" else return "FAIL"
+  let func = do Outputs outs <- TopLevel.getOutputs topl "/user/Jumper1"
+                eh <- TopLevel.sigConnectedToSubModuleP topl "/user/Jumper1" (outs !! 0)
+                if eh == False
+                  then return Pass
+                  else return $ Fail "no message"
+  return $ case runJ func of
+             Right x -> x
+             Left msg -> Fail msg
 
 testSigConnectedToSubModuleP2 = do
   Right topl <- Decode.decodeTopLevel "./test-data/UseAND2_3.json"
-  putStrJ $ do
-    let modname =  "/user/UseAND2_3"
-    Outputs outs <- TopLevel.getOutputs topl modname
-    v <- mapM (TopLevel.sigConnectedToSubModuleP topl modname) outs
-    if v == [True] then return "+" else return "FAIL"
+  let func = do
+        let modname =  "/user/UseAND2_3"
+        Outputs outs <- TopLevel.getOutputs topl modname
+        v <- mapM (TopLevel.sigConnectedToSubModuleP topl modname) outs
+        if v == [True] then return Pass else return (Fail "no message")
+  return $ case runJ func of
+             Right x -> x
+             Left msg -> Fail msg
 
+testLoneJumper1 :: IO TestState
 testLoneJumper1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/LoneJumper1.json"
   case runJ $ do TopLevel.components topl "/user/LoneJumper1" of
     Right comps -> if (map GComp.getSigs comps) == [[]]
-                   then passes
-                   else fail "FAIL: unexpected result in testLoneJumper1"
-    Left msg -> fail msg
+                   then return Pass
+                   else return $ Fail $ "FAIL: unexpected result in testLoneJumper1"
+    Left msg -> return $ Fail msg
+
 
 testComponentUseAND2Rot90 = do
   let modname = "UseAND2Rot90"
@@ -136,12 +142,23 @@ testComponentUseAND2Rot90 = do
   let func = do comps <- TopLevel.components topl ("/user/" ++ modname)
                 return $ map GComp.getSigs comps
   case runJ func of
-    Right x -> passes
-    Left msg -> print msg
+    Right x -> return Pass
+    Left msg -> return $ Fail msg
+
+testTreeMiscEtc =
+  let t name f = TestNode $ Case name f
+  in TestTree "MiscEtc" [ t "testTermDriverAnd23_Wire" testTermDriverAnd23_Wire
+                        , t "bendyWire1" bendyWire1
+                        , t "testTermDriverAnd23" testTermDriverAnd23
+                        , t "portTest1" portTest1
+                        , t "testTopLevelGetInputs" testTopLevelGetInputs
+                        , t "testSigConnectedToSubModuleP1" testSigConnectedToSubModuleP1
+                        , t "testSigConnectedToSubModuleP2" testSigConnectedToSubModuleP2
+                        , t "testLoneJumper1" testLoneJumper1
+                        ]
 
 
-printLog f = putStrLn $ runLog f
-
+testComponents :: String -> [[Sig]] -> IO TestState
 testComponents modname exp = do
   Right topl <- Decode.decodeTopLevel $ format "./test-data/{0}.json" [modname]
   let func = do
@@ -154,35 +171,26 @@ testComponents modname exp = do
                   list comps
                   return False
   case runJ func of
-    Left msg -> print msg
-    Right True -> passes
-    Right False -> putStrLn $ runLog func
+    Left msg -> return $ Fail msg
+    Right True -> return Pass
+    Right False -> return $ Fail $ runLog func
 
-testAll = withTest "TestTopLevel" $ do
-  testTermDriverAnd23 
-  testTermDriverAnd23_Wire 
-  testTopLevelComponents1 
-  testTopLevelComponents2 
-  testTopLevelGetInputs
-  testTopLevelGetInputs 
-  testSigConnectedToSubModuleP1 
-  testSigConnectedToSubModuleP2 
-  testLoneJumper1
-  testComponentUseAND2Rot90 
+
+
+-- testAll = withTest "TestTopLevel" $ do
+--   testTermDriverAnd23 
+--   testTermDriverAnd23_Wire
+--   -- testTopLevelComponents1 
+--   -- testTopLevelComponents2 
+--   testTopLevelGetInputs
+--   testSigConnectedToSubModuleP1 
+--   testSigConnectedToSubModuleP2 
+--   testLoneJumper1
+--   testComponentUseAND2Rot90 
 
   --------------------------------------------
-  testReplicationDepth "And2Ports" 1 
-  testReplicationDepth "And2Ports2" 1
-  testReplicationDepth "And2Ports3" 1
-  testReplicationDepth "And2Ports4" 1
-
-  --testGetComponentsWithNameAll
-  testReplicationDepth "RepAnd2" 2
-  testReplicationDepth "RepAnd3" 4
-  testReplicationDepth "RepAnd4" 4
-
   
-testReplicationDepth :: String -> Integer -> IO ()
+testReplicationDepth :: String -> Integer -> IO TestState
 testReplicationDepth modname expDepth = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   let func = do
@@ -192,14 +200,13 @@ testReplicationDepth modname expDepth = do
         d <- TopLevel.replicationDepth topl ("/user/" ++ modname) sub
         nb $ show d
         if (expDepth == d)
-          then return True
+          then return Pass
           else do expected expDepth d
-                  return False
+                  return $ Fail "hmmm."
         
   case runJ func of
-    Right True -> passes
-    Right False -> printLog func
-    Left msg -> printLog func >> fail msg
+    Right state -> return state
+    Left msg -> return $ Fail $ runLog func ++ msg
 
 testNumComponents2 modname numcomps = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
@@ -242,10 +249,14 @@ testTreeNumComponents =
 testTree = TestTree "TopLevel" [ testTreeNumComponents
                                , testTreeGetComponentsWithNameAll
                                , testTreeTerminals
+                               , testTreeReplicationDepth
+                               , testTreeMiscEtc
                                ]
+                              
+
 
 testTreeGetComponentsWithNameAll =
-  let t modname signame exp = TestNode $ Case modname (testGetComponentsWithName2 modname signame exp)
+  let t modname signame exp = TestNode $ Case modname (testGetComponentsWithName modname signame exp)
   in TestTree "getComponentsWithName" [ t "RepAnd2" "IN2" 1
                                       , t "RepAnd2" "IN1" 1
                                       , t "RepAnd2" "OUT1" 1
@@ -254,8 +265,18 @@ testTreeGetComponentsWithNameAll =
                                       , t "Jumper1" "VOUT" 1
                                       , t "BuiltInAnd4Messy" "VOUT" 1
 
-                                      , TestNode $ Case "portTest1" portTest1
                                       ]
+
+testTreeReplicationDepth =
+  let t modname exp = TestNode $ Case modname (testReplicationDepth modname exp)
+  in TestTree "getReplicationDepth" [ t "And2Ports" 1 
+                                    , t "And2Ports2" 1
+                                    , t "And2Ports3" 1
+                                    , t "And2Ports4" 1
+                                    , t "RepAnd2" 2
+                                    , t "RepAnd3" 4
+                                    , t "RepAnd4" 4
+                                    ]
 
 testTreeTerminals =
   let t name f = TestNode $ Case name testTerminals1
@@ -329,3 +350,19 @@ buildUserAnd23 = do
   printJ $ do let modname =  "/user/UseAND2_3"
               cs <- TopLevel.components topl modname
               return $ cs !! 4
+
+buildUserAnd24 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-4.json"
+  putStrJ $ do let modname =  "/user/UseAND2_4"
+               cs <- TopLevel.components topl modname
+               let (GComp gid cs') = cs !! 5
+               return $ show $ map nodePart $ cs'
+
+checkTopLevelComponents = do
+  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
+  return $ TopLevel.components topl "/user/UseAND2"
+
+checkTopLevelComponents1 :: IO (J Int)
+checkTopLevelComponents1 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
+  return $ TopLevel.numComponents topl "/user/UseAND2"

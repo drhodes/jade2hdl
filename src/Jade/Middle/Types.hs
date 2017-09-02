@@ -45,44 +45,36 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
 
 data ModOutput = ModOutput TermMap deriving (Show, Eq)
 
--- TODO: POSSIBLE BUG: rethink how getSlices works WRT how connectOneInput changed.
-connectOneOutput topl modname outSig = "Middle.Types.connectOneOutput" <? do
+connectOneOutput :: TopLevel -> String -> Sig -> J [SigAssign]
+connectOneOutput topl modname outSig = "connectOneOutput" <? do
   -- find the components with the name from sig.
   outSigNames <- Sig.getNames outSig
-  comps <- concatMapM (TopLevel.getComponentsWithName topl modname) outSigNames
   
+  comps <- concatMapM (TopLevel.getComponentsWithName topl modname) outSigNames
   -- determine width of outSig, this is absolutely known and defined
   -- in the jade module, this width can be used to deduce the width of other parts.
   let outputWidth = Sig.width outSig 
-  
-  -- from the components that have the name from sig, figure out which
+  -- from the components that have the name from sig, figure in which
   -- slice of which components to take and stack them up
-  let getSlices comp = "<inner function>/getSlice" <? do
-        compName <- GComp.name comp
-        compWidth <- GComp.width comp        
-        -- find outSig in comp.
-        matchingSigs <- concatMapM (GComp.getSigsWithIdent comp) outSigNames
+  let getSlices comp = "getSlice" <? do
+        compName  <- GComp.name comp
+        compWidth <- GComp.width comp
         
-        -- for each sig create a termmap, use the
-        singles <- mapM Sig.explode matchingSigs
-
-        let tgts = reverse $ DL.sort $ concat singles
-            srcs = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
-        
-        when (length tgts /= length srcs) $ do
-          nb "The lengths of the targets and sources are not the same"
-          nb "SRCS" >> list srcs
-          nb "TGTS" >> list tgts
-          bail
+        matchingSigGroups <- mapM (GComp.getSigsWithIdent comp) outSigNames
+        explodeds <- concatMapM Sig.explode (concat matchingSigGroups)
+        let srcs = explodeds
+            tgts = reverse $ map (SigIndex compName) [0 .. compWidth - 1]
             
-        return $ zipWith SigAssign srcs tgts
-  liftM concat $ mapM getSlices comps
+        when (length tgts /= length srcs) $ die "The lengths of the targets and sources are not the same"
+        return $ zipWith SigAssign tgts srcs
+  concatMapM getSlices comps
+
+
 
 connectOneInput :: TopLevel -> String -> Sig -> J [SigAssign]
 connectOneInput topl modname inSig = "connectOneInput" <? do
   -- find the components with the name from sig.
   inSigNames <- Sig.getNames inSig
-  nb $ show ("inSigNames", inSigNames)
   
   comps <- concatMapM (TopLevel.getComponentsWithName topl modname) inSigNames
   -- determine width of inSig, this is absolutely known and defined
@@ -98,9 +90,7 @@ connectOneInput topl modname inSig = "connectOneInput" <? do
         explodeds <- mapM Sig.explode (concat matchingSigGroups)
         let srcs = concat explodeds
             tgts = reverse $ map (SigIndex compName) [0 .. compWidth - 1]
-        when (length tgts /= length srcs) $ do
-          nb "The lengths of the targets and sources are not the same"
-          bail
+        when (length tgts /= length srcs) $ die "The lengths of the targets and sources are not the same"
         return $ zipWith SigAssign srcs tgts
   concatMapM getSlices comps
   

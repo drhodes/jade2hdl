@@ -1,6 +1,7 @@
 module Jade.Wire where
 
 import Jade.Types
+import qualified Jade.Signal as Signal
 import qualified Jade.Coord as Coord
 
 toEdge w@(Wire (Coord5 x y rot dx dy) _) =
@@ -18,6 +19,10 @@ ends w@(Wire c5 _) = Coord.coord5ends c5
 hasSameSig (Wire _ Nothing) _ = False
 hasSameSig _ (Wire _ Nothing) = False
 hasSameSig (Wire _ s1) (Wire _ s2) = s1 == s2
+
+width :: Wire -> Maybe Integer
+width (Wire _ (Just signal)) = Signal.width signal
+width _ = Just 1
 
 new (x1, y1) (x2, y2) =
   let dx = x2 - x1
