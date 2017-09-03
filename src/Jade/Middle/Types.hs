@@ -45,54 +45,35 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
 
 data ModOutput = ModOutput TermMap deriving (Show, Eq)
 
+
+-- from the components that have the name from sig, figure in which
+-- slice of which components to take and stack them up
+
+getSlices sigNames direction comp  = "getSlice" <? do
+  compName  <- GComp.name comp
+  compWidth <- GComp.width comp
+        
+  matchingSigGroups <- mapM (GComp.getSigsWithIdent comp) sigNames
+  explodeds <- concatMapM Sig.explode (concat matchingSigGroups)
+  let srcs = explodeds
+      tgts = reverse $ map (SigIndex compName) [0 .. compWidth - 1]
+            
+  when (length tgts /= length srcs) $ die "The lengths of the targets and sources are not the same"
+  case direction of
+    In -> return $ zipWith SigAssign tgts srcs
+    Out -> return $ zipWith SigAssign srcs tgts
+
 connectOneOutput :: TopLevel -> String -> Sig -> J [SigAssign]
 connectOneOutput topl modname outSig = "connectOneOutput" <? do
-  -- find the components with the name from sig.
   outSigNames <- Sig.getNames outSig
-  
   comps <- concatMapM (TopLevel.getComponentsWithName topl modname) outSigNames
-  -- determine width of outSig, this is absolutely known and defined
-  -- in the jade module, this width can be used to deduce the width of other parts.
-  let outputWidth = Sig.width outSig 
-  -- from the components that have the name from sig, figure in which
-  -- slice of which components to take and stack them up
-  let getSlices comp = "getSlice" <? do
-        compName  <- GComp.name comp
-        compWidth <- GComp.width comp
-        
-        matchingSigGroups <- mapM (GComp.getSigsWithIdent comp) outSigNames
-        explodeds <- concatMapM Sig.explode (concat matchingSigGroups)
-        let srcs = explodeds
-            tgts = reverse $ map (SigIndex compName) [0 .. compWidth - 1]
-            
-        when (length tgts /= length srcs) $ die "The lengths of the targets and sources are not the same"
-        return $ zipWith SigAssign tgts srcs
-  concatMapM getSlices comps
-
-
+  concatMapM (getSlices outSigNames In) comps
 
 connectOneInput :: TopLevel -> String -> Sig -> J [SigAssign]
 connectOneInput topl modname inSig = "connectOneInput" <? do
-  -- find the components with the name from sig.
   inSigNames <- Sig.getNames inSig
-  
   comps <- concatMapM (TopLevel.getComponentsWithName topl modname) inSigNames
-  -- determine width of inSig, this is absolutely known and defined
-  -- in the jade module, this width can be used to deduce the width of other parts.
-  let inputWidth = Sig.width inSig 
-  -- from the components that have the name from sig, figure in which
-  -- slice of which components to take and stack them up
-  let getSlices comp = "getSlice" <? do
-        compName  <- GComp.name comp
-        compWidth <- GComp.width comp
-
-        matchingSigGroups <- mapM (GComp.getSigsWithIdent comp) inSigNames
-        explodeds <- mapM Sig.explode (concat matchingSigGroups)
-        let srcs = concat explodeds
-            tgts = reverse $ map (SigIndex compName) [0 .. compWidth - 1]
-        when (length tgts /= length srcs) $ die "The lengths of the targets and sources are not the same"
-        return $ zipWith SigAssign srcs tgts
-  concatMapM getSlices comps
+  concatMapM (getSlices inSigNames Out) comps
   
 genbits n | n == 0 = []
           | n `mod` 2 == 0 = 0 : (genbits next)
@@ -134,10 +115,12 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
   case termWidth of
     Just termWidth ->
       let totalWidth = fromInteger $ termWidth * numReplications
+          -- ^ interfunction comment.
       in if compWidth == totalWidth
             -- the component has wirewidth equal to the full
             -- replication width, so the component will need to be
             -- sliced in slices equal to the width of the terminal.
+
          then do nb "case compWidth == totalWidth"
                  let singles = reverse [0 .. totalWidth - 1]
                      srcs = map (SigIndex compId) singles
@@ -167,7 +150,7 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicate
                   nb "case compWidth > totalWidth"
                   impossible "This can't happen if the JADE modules tests pass in JADE"                  
     y -> do nb $ "got: " ++ show y
-            die $ "Couldn't determine width of componenent: " ++ show comp
+            die $ "Couldn't determine width of terminal."
 
 oneOfEach xs =  
   if 0 `elem` (map length xs)
@@ -184,6 +167,7 @@ buildSubModuleReps inputTermMaps outputTermMaps submod zidx = "buildSubModuleRep
                            (map tail inputTermMaps)
                            (map tail outputTermMaps) submod (zidx-1))
 
+--here.
 subModuleInstances :: TopLevel -> String -> SubModule -> J [SubModuleRep]
 subModuleInstances topl modname submod@(SubModule name loc) = do
   nb "Middle.Types.subModuleInstances"

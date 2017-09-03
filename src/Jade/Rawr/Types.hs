@@ -27,14 +27,15 @@ instance Show Case where
 data TestTree = TestTree String [TestTree]
               | TestNode Case
               
-data TestState = Ready
-               | Running
-               | Pass
+data TestState = Pass
                | Fail String
                deriving (Show, Eq)
 
 concatTreeName s (TestTree name subtrees) = TestTree (concat [s, "/", name]) subtrees
 concatTreeName _ t = t
+
+
+
 
 runTree :: TestTree -> IO [TestState]
 runTree (TestTree s trees) = do

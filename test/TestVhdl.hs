@@ -60,8 +60,7 @@ spawnOneTest jadefile modname = do
                                                        , stderr'
                                                        , show err'
                                                        ]
-    ExitFailure err -> do fails
-                          return $ Fail $ unlines [ format "module: {0}" [modname]
+    ExitFailure err -> do return $ Fail $ unlines [ format "module: {0}" [modname]
                                                   , format "ecode:  {0}" [show ecode]
                                                   , format "stdout: {0}" [stdout]
                                                   , format "stdout: {0}" [stderr]
@@ -120,9 +119,12 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "Mux21Rep32"
                                          , "CycleIdentity1"
                                          , "FreqDivider"
-                                         --, "Bool2"
+                                         , "FA1"
+                                         , "Ripple32"
+                                         , "ZipReplication"
                                          , "Mux4Rep1"
-                                         --, "CycleCounter"
+                                         , "Bool2"
+                                         , "CycleCounter"
                                          --, "GarrInc32"
                                          ]
   
