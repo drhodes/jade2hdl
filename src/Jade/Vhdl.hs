@@ -330,6 +330,13 @@ mkNodeDecls topl modname =
     else do sigDecls <- mapM f keepers
             return $ concat $ DL.intersperse "\n" sigDecls
 
+-- | some signal names are not module inputs or outputs, they are
+-- internal signal names.  Search for the internal signal names and
+-- declare them.
+-- mkInternalDecls topl modname =
+--   topl modname
+
+
 -- If output signals are not connected directly to a submodule output,
 -- then there is no structural output to that output.
 connectOutput :: TopLevel -> String -> Sig -> J T.Text
