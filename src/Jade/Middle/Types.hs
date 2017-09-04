@@ -45,46 +45,12 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
 
 data ModOutput = ModOutput TermMap deriving (Show, Eq)
 
--- from the components that have the name from sig, figure in which
--- slice of which components to take and stack them up
+flipAssign (SigAssign src tgt) = SigAssign tgt src
 
-pickTarget (SigIndex _ i) tgts = (cycle tgts) !! (fromInteger i)
-
-
-
-
-getSlices sigNames direction comp  = "Middle/Types.getSlices" <? do
-  compName  <- GComp.name comp
-  compWidth <- GComp.width comp
-               
-  matchingSigGroups <- mapM (GComp.getSigsWithIdent comp) sigNames
-  nb "!! sigNames"
-  list sigNames
-  nb "!! matchingSigGroups"
-  list matchingSigGroups
-  
-  explodeds <- concatMapM Sig.explode (concat matchingSigGroups)
-  let srcs = explodeds
-      tgts = reverse $ map (SigIndex compName) [0 .. compWidth-1]
-            
-  when (length tgts /= length srcs) $
-    do nb "targets: "
-       list tgts
-       nb "explodeds, aka srcs: "
-       list srcs
-       die "The lengths of the targets and sources are not the same"
-  case direction of
-    In -> return $ zipWith SigAssign tgts srcs
-    Out -> return $ zipWith SigAssign srcs tgts
-
-connectOneOutput :: TopLevel -> String -> Sig -> J [SigAssign]
 connectOneOutput topl modname outSig = "Middle/Types.connectOneOutput" <? do
-  outSigNames <- Sig.getNames outSig
-  comps <- concatMapM (TopLevel.getComponentsWithName topl modname) outSigNames
-  concatMapM (getSlices outSigNames In) comps
+  nb "connectOneInput is reused here, the assignments are flipped around"
+  map flipAssign `liftM` connectOneInput topl modname outSig 
 
-
---------------------------------------------
 connectOneInput :: TopLevel -> String -> Sig -> J [SigAssign]
 connectOneInput topl modname (SigConcat sigs) = "Middle/Types.connectOneInput@(SigConcat)" <? do
   unimplemented
@@ -99,7 +65,6 @@ connectOneInput topl modname inSig = "Middle/Types.connectOneInput" <? do
       -- for each component, locate the z-index of the signame
       concatMapM (locateIndexes topl modname signame) comps
     xs -> unimplemented
-
 
 -- | locate the z-indexes of the signame in a net
 locateIndexes topl modname signame comp = "Middle/Types.locateIdx" <? do
