@@ -198,7 +198,7 @@ hasTerminalsAt2 modname locs = do
                                         , msg ]
 
 
-t name iofunc exp = TestNode $ Case name (iofunc name exp)
+t name iofunc exp = TestCase name (iofunc name exp)
 
 testTreeHasTerminalsAt = TestTree "hasTerminalsAt" $
   [ t "IconBoundingBox6" hasTerminalsAt2 [(8,40),(24,40),(16,-8)]

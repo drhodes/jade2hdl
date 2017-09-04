@@ -45,35 +45,76 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
 
 data ModOutput = ModOutput TermMap deriving (Show, Eq)
 
-
 -- from the components that have the name from sig, figure in which
 -- slice of which components to take and stack them up
 
-getSlices sigNames direction comp  = "getSlice" <? do
+pickTarget (SigIndex _ i) tgts = (cycle tgts) !! (fromInteger i)
+
+
+
+
+getSlices sigNames direction comp  = "Middle/Types.getSlices" <? do
   compName  <- GComp.name comp
   compWidth <- GComp.width comp
-        
+               
   matchingSigGroups <- mapM (GComp.getSigsWithIdent comp) sigNames
+  nb "!! sigNames"
+  list sigNames
+  nb "!! matchingSigGroups"
+  list matchingSigGroups
+  
   explodeds <- concatMapM Sig.explode (concat matchingSigGroups)
   let srcs = explodeds
-      tgts = reverse $ map (SigIndex compName) [0 .. compWidth - 1]
+      tgts = reverse $ map (SigIndex compName) [0 .. compWidth-1]
             
-  when (length tgts /= length srcs) $ die "The lengths of the targets and sources are not the same"
+  when (length tgts /= length srcs) $
+    do nb "targets: "
+       list tgts
+       nb "explodeds, aka srcs: "
+       list srcs
+       die "The lengths of the targets and sources are not the same"
   case direction of
     In -> return $ zipWith SigAssign tgts srcs
     Out -> return $ zipWith SigAssign srcs tgts
 
 connectOneOutput :: TopLevel -> String -> Sig -> J [SigAssign]
-connectOneOutput topl modname outSig = "connectOneOutput" <? do
+connectOneOutput topl modname outSig = "Middle/Types.connectOneOutput" <? do
   outSigNames <- Sig.getNames outSig
   comps <- concatMapM (TopLevel.getComponentsWithName topl modname) outSigNames
   concatMapM (getSlices outSigNames In) comps
 
+
+--------------------------------------------
 connectOneInput :: TopLevel -> String -> Sig -> J [SigAssign]
-connectOneInput topl modname inSig = "connectOneInput" <? do
+connectOneInput topl modname (SigConcat sigs) = "Middle/Types.connectOneInput@(SigConcat)" <? do
+  unimplemented
+
+connectOneInput topl modname inSig = "Middle/Types.connectOneInput" <? do  
   inSigNames <- Sig.getNames inSig
-  comps <- concatMapM (TopLevel.getComponentsWithName topl modname) inSigNames
-  concatMapM (getSlices inSigNames Out) comps
+  case inSigNames of
+    [] -> die "No signames found"
+    [signame] -> do
+      -- find components with signame
+      comps <- TopLevel.getComponentsWithName topl modname signame
+      -- for each component, locate the z-index of the signame
+      concatMapM (locateIndexes topl modname signame) comps
+    xs -> unimplemented
+
+
+-- | locate the z-indexes of the signame in a net
+locateIndexes topl modname signame comp = "Middle/Types.locateIdx" <? do
+  workingSigs <- GComp.getSigsWithIdentNoFlatten comp signame
+  exploded <- concatMapM Sig.explode workingSigs
+  
+  let idxs = downFrom $ length exploded - 1
+      indexedNames = zip exploded idxs
+
+  matchedSigs <- filterM (\(sig, idx) -> Sig.hasIdent sig signame) indexedNames
+  compName <- GComp.name comp
+  let assigns = [SigAssign sig (SigIndex compName (fromIntegral idx))
+                | (sig, idx) <- matchedSigs]
+  return assigns
+
   
 genbits n | n == 0 = []
           | n `mod` 2 == 0 = 0 : (genbits next)
@@ -95,14 +136,16 @@ connectConstantComp topl modname comp = "Middle.Types/connectConstantComp" <? do
           
       nb "The targets are the comp replicated"
       let tgts = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
-      let srcs = map (SigSimple . (\x -> "'" ++ show x ++ "'")) bits 
+      let srcs = [SigSimple (format "'{0}'" [show b]) | b <- bits]
 
       return $ zipWith SigAssign srcs tgts
     [] -> return []
     xs -> die $ "unhandled case in connectConstantComp: " ++ show xs
+    
 ---------------------------------------------------------------------------------------------------
 replicateOneTerminal :: Integer -> Direction -> Terminal -> GComp -> J TermMap
-replicateOneTerminal numReplications dir term@(Terminal _ sig) comp = "replicateOneTerminal" <? do
+replicateOneTerminal numReplications dir term@(Terminal _ sig) comp =
+  "Middle/Types.replicateOneTerminal" <? do
   compWidth <- GComp.width comp
   compId <- GComp.name comp
   termWidth <- Part.width (TermC term)
@@ -158,7 +201,8 @@ oneOfEach xs =
   else (map head xs, map tail xs)
 
 buildSubModuleReps :: [[TermMap]] -> [[TermMap]] -> SubModule -> Integer -> J [SubModuleRep]
-buildSubModuleReps inputTermMaps outputTermMaps submod zidx = "buildSubModuleRep" <? do
+buildSubModuleReps inputTermMaps outputTermMaps submod zidx =
+  "Middle/Types.buildSubModuleRep" <? do
   if zidx < 0 then return []
     else do let itms = map head inputTermMaps
                 otms = map head outputTermMaps
@@ -194,7 +238,7 @@ subModuleInstances topl modname (SubMemUnit memunit) = do
   
 
 memUnitInstance :: TopLevel -> String -> MemUnit -> J SubModuleRep
-memUnitInstance topl modname memunit = "Middle.Types.memUnitInstance" <? do
+memUnitInstance topl modname memunit = "Middle/Types.memUnitInstance" <? do
   let zidx = 0
       repd = 1
   m <- TopLevel.getModule topl modname

@@ -60,6 +60,7 @@ spawnOneTest jadefile modname = do
                                                        , stderr'
                                                        , show err'
                                                        ]
+                                 
     ExitFailure err -> do return $ Fail $ unlines [ format "module: {0}" [modname]
                                                   , format "ecode:  {0}" [show ecode]
                                                   , format "stdout: {0}" [stdout]
@@ -67,10 +68,18 @@ spawnOneTest jadefile modname = do
                                                   , errlog 
                                                   , show err
                                                   ]
+                            
+testTreeBuffer =
+  let node s = TestCase s (spawn (ModPath "./test-data" s))
+  in TestTree "Buffers" $ map node [ "Buffer4"
+                                   , "Buffer5"
+                                   , "Buffer6"
+                                   ]
 
-testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
-            in TestTree "One" $ map node [ "Jumper1" 
-                                         , "And41"     
+testTree1 = let node s = TestCase s (spawn (ModPath "./test-data" s))
+            in TestTree "One" $ map node [ "Jumper1"
+                                         , "SimpleJumper21"
+                                         , "And41"
                                          , "AndStuff4" 
                                          , "AndStuff5"
                                          , "Jumper41"
@@ -84,9 +93,6 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "And2Ports3"
                                          , "And2Ports4"
                                          , "Constant1"
-                                         , "RepAnd2"
-                                         , "RepAnd3"
-                                         , "RepAnd4"
                                          , "Buffer1"
                                          , "Buffer2"
                                          , "WireConnectMid1"
@@ -95,9 +101,6 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "CLA1"
                                          , "Mux2to1_1"
                                          , "Buffer3"
-                                         , "Buffer6"
-                                         , "Buffer4"
-                                         , "Buffer5"
                                          , "BuiltInAnd4"
                                          , "BuiltInAnd4Messy"
                                          , "LeReg1"
@@ -115,19 +118,30 @@ testTree1 = let node s = TestNode (Case s (spawn (ModPath "./test-data" s)))
                                          , "MemUnit2"
                                          , "zreg"
                                          , "zreg2"
-                                         , "Mux21Rep4"
-                                         , "Mux21Rep32"
                                          , "CycleIdentity1"
                                          , "FreqDivider"
                                          , "FA1"
-                                         , "Ripple32"
-                                         , "ZipReplication"
-                                         , "Mux4Rep1"
-                                         , "Bool2"
-                                         , "CycleCounter"
+                                         
+                                         -- , "CycleCounter"
                                          --, "GarrInc32"
                                          ]
-  
+
+testTreeReplication =
+  let node s = TestCase s (spawn (ModPath "./test-data" s))
+  in TestTree "Replication" $
+  map node [ "RepAnd2"
+           , "RepAnd3"
+           , "RepAnd4"
+           , "Rep1FA2"
+           , "Rep1FA2"
+           , "Ripple32"
+           , "Mux21Rep4"
+           , "Mux21Rep32"
+           , "ZipReplication"
+           , "Mux4Rep1"
+           , "Bool2"                                       
+           ]
+               
 spawn (ModPath path filename) =
   let testPath = path ++ "/" ++ filename ++ ".json"
       modname = "/user/" ++ filename
@@ -135,13 +149,16 @@ spawn (ModPath path filename) =
 
 testTree2 =
   let testcase filename modname =
-        TestNode (Case (slashesToScores modname) (spawnOneTest filename modname))
+        TestCase (slashesToScores modname) (spawnOneTest filename modname)
   in TestTree "Two" [ testcase "./test-data/SubmodAnd6.json" "/user/submod/and6"
                     , testcase "./test-data/SubmodAnd6.json" "/user/submod/and6"
                     ]
 
-testTree = TestTree "Vhdl" [ testTree1
-                           , testTree2 ]
+testTree = TestTree "Vhdl" [ testTreeReplication
+                           , testTreeBuffer
+                           , testTree1
+                           , testTree2
+                           ]
 
 testDUT_UseAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"

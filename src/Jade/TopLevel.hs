@@ -246,11 +246,9 @@ getOutputs topl modname = "TopLevel.getOutputs" <? do
 -- modules are also driving signals.  
 
 getInputTermDriver :: TopLevel -> String -> Terminal -> J Sig
-getInputTermDriver topl modname term = 
-  "TopLevel.getInputTermDriver" <? do
-  
+getInputTermDriver topl modname term = "TopLevel.getInputTermDriver" <? do
   m <- getModule topl modname
-  (GComp gid nodes) <- componentWithTerminal topl modname term
+  GComp gid nodes <- componentWithTerminal topl modname term
 
   let partList = let ps1 = map nodePart nodes
                      -- remove the source terminal
@@ -263,8 +261,7 @@ getInputTermDriver topl modname term =
   -- lines.  if so, then that's it.
   (Inputs inputSigs) <- getInputs topl modname
   let partsMatchingInput = DL.nub [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
-
-  nb $ show nodes
+  
   case length partsMatchingInput of
     0 -> "no parts matching inputs" <? do
       let terms = [t | (TermC t) <- partList]
@@ -357,5 +354,17 @@ getComponentsWithName topl modname signame = "TopLevel.getComponentsWithName" <?
   comps <- components topl modname  
   filterM (flip GComp.containsSigIdent signame) comps
   
+getAllSigNames topl modname = do
+  comps <- components topl modname
+  let parts = (concat $ map GComp.parts comps)    
+  results <- concatMapM Sig.getNames $ [x | Just x <- map Part.sig parts]
+  return $ DL.nub results
 
-  
+-- | Given a signal name scour all the components that contains the
+-- name for the total width of all signals with the name.
+getWidthOfSigName topl modname signame = do
+  comps <- getComponentsWithName topl modname signame
+  sigs <- concatMapM (flip GComp.getSigsWithIdent signame) comps
+  return $ sum $ map Sig.width (DL.nub sigs)
+
+

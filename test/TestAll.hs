@@ -17,7 +17,7 @@ main = do
   putStrLn "Starting test"
   testem [ TW.testAll ]
     
-  JRT.runTree $ JRT.TestTree ""
+  JRT.runTree [] $ JRT.TestTree "T"
            [ TD.testTree
            , TI.testTree
            , TM.testTree

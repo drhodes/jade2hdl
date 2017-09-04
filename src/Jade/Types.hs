@@ -58,7 +58,9 @@ runJIO x =
 
 die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
 impossible msg = die $ "The impossible happened: " ++ msg
-unimplemented s = die $ "unimplemented: " ++ s
+
+unimplemented :: J a
+unimplemented = die "unimplemented."
 
 nb s = tell [s]
 bail :: J a
@@ -112,6 +114,10 @@ data Direction = In | Out | InOut
 data SigNum = Bin String
             | Num Integer
             deriving (Generic, Show, Eq, Hashable, Ord)
+
+data SigType = OneSig Sig
+             | ManySig [Sig]
+             deriving (Show, Eq, Generic, Hashable, Ord)
 
 data Sig = SigSimple String
          | SigIndex String Integer

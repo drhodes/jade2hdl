@@ -33,7 +33,7 @@ import qualified Data.Text.IO as DT
 
 mkTestLine :: Module -> [Action] -> TestLine -> Integer -> J [String]
 mkTestLine _ [] _ _ = return []
-mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do  
+mkTestLine m (act:actions) testline testnum = "Vhdl.mkTestLine" <? do  
   let recurse x = liftM (x++) (mkTestLine m actions testline testnum)
 
   let splitAssert [] xs = [xs]
@@ -75,10 +75,10 @@ mkTestLine m (act:actions) testline testnum = "mkTestLine" <? do
       1.0 -> recurse [format "{0} <= {1};" [name, quote "1"]];
       otherwise -> die $ "SetSignal needs to be 1 or 0, got: " ++ (show x)
       
-    x -> "Jade.Vhdl" <? unimplemented (show x)
+    x -> unimplemented
 
 testCaseIfBlock :: Integer -> String -> String -> String -> J T.Text
-testCaseIfBlock testnum signal expected comment = do
+testCaseIfBlock testnum signal expected comment = "Vhdl.testCaseIfBlock" <? do
   nb $ show ("expected", expected)
 
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/test-case-if-block.mustache")
@@ -106,7 +106,7 @@ sigAssert x bv = format "{0} <= {1};" [x, quote $ map binValToChar bv]
 
 portAssoc :: Sig -> J String
 portAssoc (SigConcat _) = die "Vhdl.portAssoc doesn't support SigConcat"
-portAssoc sig = do
+portAssoc sig = "Vhdl.portAssoc" <? do
   [name] <- Sig.getNames sig
   let w = Sig.width sig - 1
   return $ format "{0}({1} downto 0) => {0}({1} downto 0)" [name,show w]
@@ -139,8 +139,7 @@ mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
                return $ DL.intercalate "\n" sigDecls
   
 mkTestBench :: TopLevel -> [Char] -> J T.Text
-mkTestBench topl modname =
-  "Jade.Vhdl.mkTestBench" <? do
+mkTestBench topl modname = "Jade.Vhdl.mkTestBench" <? do
   m <- TopLevel.getModule topl modname
   sigDecls <- mkSignalDecls m modname
   dut <- mkDUT m modname
@@ -174,14 +173,16 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
              Just x -> return x
              Nothing -> die $ "No schematic found in module: " ++ modname
 
-  -- collect all terminals from submodule in the schematic
   subs <- TopLevel.getSubModules topl modname
-
-  comps <- TopLevel.components topl modname
+  comps <- TopLevel.components topl modname  
   instances <- mapM (mkSubModuleInstance topl modname) subs
   
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
+  
+  nb $ "hey ins"
+  list ins
+  
 
   let renderPort dir (SigConcat _) = die "mkModule/renderPort doesn't support SigConcat"
       renderPort dir sig = do
@@ -195,47 +196,53 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
   let ports = T.pack $ DL.intercalate ";\n" (concat [portIns, portOuts])
 
   nodeDecls <- mkNodeDecls topl modname
+  nodeDeclsNotFromInput <- mkNodeDeclsNotFromInput topl modname
+  
   outMap <- mapM (connectOutput topl modname) outs
   list outMap
   outputWires <- T.intercalate (T.pack "\n") `liftM` (return outMap)
   inputWires <- connectAllInputs topl modname ins
+
 
   -- TODO this is where all the spaces are being inserted.
   constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant topl modname) comps
 
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt
-      mapping = DM.fromList [ ("module-name", toMustache (Module.mangleModName modname))
-                            , ("ports", toMustache ports)
-                            , ("node-declarations", toMustache nodeDecls)
-                            , ("submodule-entity-instances", toMustache  (T.intercalate  (T.pack "\n") instances))
-                            , ("maybe-wire-input", toMustache inputWires)
-                            , ("maybe-wire-constants", toMustache constantWires)
-                            , ("maybe-wire-output", toMustache outputWires)
-                            ]
+      mapping = DM.fromList
+        [ ("module-name", toMustache (Module.mangleModName modname))
+        , ("ports", toMustache ports)
+        , ("node-declarations", toMustache nodeDecls)
+        , ("submodule-entity-instances", toMustache  (T.intercalate  (T.pack "\n") instances))
+        , ("maybe-wire-input", toMustache inputWires)
+        , ("maybe-wire-constants", toMustache constantWires)
+        , ("maybe-wire-output", toMustache outputWires)
+        ]
   return $ substitute temp mapping
 
 
 mkAllMods topl modname = "Vhdl.mkAllMods" <? do
   userModNames <- TopLevel.dependencyOrder topl modname
-  --let  userModNames = [name | (name, _) <- TopLevel.modules topl, name `startsWith` "/user"]
   T.concat `liftM` mapM (mkModule topl) (userModNames ++ [modname])
-  
   
 ------------------------------------------------------------------
 comma = T.pack ", \n"
 
 mkSigName :: Sig -> J T.Text
-mkSigName sig = do
+mkSigName sig = "Vhdl.mkSigName" <? do
+  let p x = return $ T.pack x
   case sig of
-    SigIndex name idx -> return $ T.pack $ format "{0}({1})" [name, show idx]
-    SigSimple name -> do
-      nb $ "mkSigName get a sig: " ++ show sig
-      return $ T.pack name
-    x -> unimplemented $ "Vhdl.mkSigName: " ++ show x
+    SigIndex name idx ->
+      p $ format "{0}({1})" [name, show idx]
+    SigSimple name ->
+      p $ format "{0}" [name]
+    x -> do nb "These other sigtype aren't meant to be code generated."
+            nb "Boil the signal down to SigIndex in the program"
+            nb $ show x
+            unimplemented
 
 mkTermAssoc :: MT.TermAssoc -> J T.Text
-mkTermAssoc (MT.TermAssoc dir src tgt) = do
+mkTermAssoc (MT.TermAssoc dir src tgt) = "Vhdl.mkTermAssoc" <? do
   -- TermAssoc {taDir = In, taSrc = SigIndex "A" 0, taTgt = SigIndex "in1" 0}
   srcTxt <- mkSigName src
   tgtTxt <- mkSigName tgt
@@ -244,7 +251,7 @@ mkTermAssoc (MT.TermAssoc dir src tgt) = do
     Out -> return $ T.concat [ srcTxt , T.pack " => " , tgtTxt ]
 
 mkTermAssign :: MT.SigAssign -> J T.Text
-mkTermAssign (MT.SigAssign src tgt) = do
+mkTermAssign (MT.SigAssign src tgt) = "Vhdl.mkTermAssign" <? do
   srcTxt <- mkSigName src
   tgtTxt <- mkSigName tgt
   return $ T.concat [ tgtTxt , T.pack " <= " , srcTxt ]
@@ -268,8 +275,8 @@ replicatedLabel subModName loc zIdx =
                        , show zIdx ]
 
 mkSubModuleInstance :: TopLevel -> String -> SubModule -> J T.Text
-mkSubModuleInstance topl modname submod@(SubModule name loc) = do
-  nb "Jade.Vhdl.mkSubModuleInstance"
+mkSubModuleInstance topl modname submod@(SubModule name loc) = 
+  "Jade.Vhdl.mkSubModuleInstance" <? do
   subModuleReps <- MT.subModuleInstances topl modname submod
   let repDepth = length subModuleReps
 
@@ -286,8 +293,8 @@ mkSubModuleInstance topl modname submod@(SubModule name loc) = do
         return $ substitute template mapping
   liftM (T.intercalate (T.pack "\n")) $ mapM mkOneInstance subModuleReps
 
-mkSubModuleInstance topl modname mem@(SubMemUnit memunit) = do
-  nb "Jade.Vhdl.mkSubModuleInstance"
+mkSubModuleInstance topl modname mem@(SubMemUnit memunit) =
+  "Jade.Vhdl.mkSubModuleInstance" <? do
   nb "MemUnits are not replicated in JADE."
   MT.SubModuleRep ins outs _ zIdx <- MT.memUnitInstance topl modname memunit
 
@@ -305,10 +312,15 @@ mkSubModuleInstance topl modname mem@(SubMemUnit memunit) = do
   return $ substitute template mapping
   
 ------------------------------------------------------------------
+mkCompName comp = "Vhdl.mkCompName" <? do        
+  n <- GComp.name comp -- get the net name
+  w <- GComp.width comp -- get the width
+  let temp = "signal {0} : std_logic_vector({1} downto 0);"
+  return $ format temp [n, show (w - 1)] -- one less because of zero indexing.
+
 -- get all node names needed for wiring.
 -- no input names.
-mkNodeDecls topl modname =
-  "Jade.Vhdl.mkNodeDecls" <? do
+mkNodeDecls topl modname = "Jade.Vhdl.mkNodeDecls" <? do
   nb "These ins and outs aren't going to be SigConcats, ever."
   Inputs ins <- TopLevel.getInputs topl modname
   Outputs outs <- TopLevel.getOutputs topl modname
@@ -319,16 +331,36 @@ mkNodeDecls topl modname =
   
   let keepers = [comp | (n, comp) <- zip compNames comps, n `notElem` ignore]
 
-  let f comp = do        
-        n <- GComp.name comp
-        w <- GComp.width comp
-        let temp = "signal {0} : std_logic_vector({1} downto 0);"
-        return $ format temp [n, show (w - 1)] -- one less because of zero indexing.
-      
   if null keepers
     then return "-- no node decls"
-    else do sigDecls <- mapM f keepers
+    else do sigDecls <- mapM mkCompName keepers
             return $ concat $ DL.intersperse "\n" sigDecls
+
+declareSigName topl modname signame = "Vhdl.declareSigName" <? do
+  width <- TopLevel.getWidthOfSigName topl modname signame
+  let temp = "signal {0} : std_logic_vector({1} downto 0);"
+  return $ format temp [signame, show (width - 1)] -- one less because of zero indexing.
+
+mkNodeDeclsNotFromInput topl modname = "Jade.Vhdl.mkNodeDeclsFromInput" <? do
+  Inputs ins <- TopLevel.getInputs topl modname
+  Outputs outs <- TopLevel.getOutputs topl modname
+  ignore <- concatMapM Sig.getNames (ins ++ outs)
+  
+  comps <- TopLevel.components topl modname
+  compNames <- mapM GComp.name comps
+  list compNames
+  nb "-- ignores"
+  list ignore
+  allNames <- TopLevel.getAllSigNames topl modname
+  nb "-- allnames"
+  list allNames                                       
+  let keepers = (DL.nub allNames) DL.\\ (DL.nub ignore)
+  nb "-- keepers"
+  list keepers
+  sigDecls <- mapM (declareSigName topl modname) keepers
+  
+  return $ concat $ DL.intersperse "\n" sigDecls
+
 
 -- | some signal names are not module inputs or outputs, they are
 -- internal signal names.  Search for the internal signal names and
@@ -337,23 +369,24 @@ mkNodeDecls topl modname =
 --   topl modname
 
 
+withSemiColonNewLines txts = T.concat [T.append t (T.pack ";\n") | t <- txts]
+
 -- If output signals are not connected directly to a submodule output,
 -- then there is no structural output to that output.
 connectOutput :: TopLevel -> String -> Sig -> J T.Text
-connectOutput topl modname outSig = "Jade.Vhdl.connectOutput" <? do
+connectOutput topl modname outSig = "Vhdl.connectOutput" <? do
   assignMap <- MT.connectOneOutput topl modname outSig
-  txts <- mapM mkTermAssign assignMap
-  return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
+  withSemiColonNewLines `liftM` mapM mkTermAssign assignMap
 
 -- If input signals are not connected directly to a submodule output,
 -- then there is no structural input for that input.
-connectAllInputs topl modname inSigs = "Jade.Vhdl.connectAllInputs" <? do  
+connectAllInputs topl modname inSigs = "Vhdl.connectAllInputs" <? do
+  nb "!! connectAllInputs.inSigs"
+  list inSigs
   assignMap <- concatMapM (MT.connectOneInput topl modname) inSigs
-  txts <- mapM mkTermAssign assignMap
-  return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
+  withSemiColonNewLines `liftM` mapM mkTermAssign assignMap
   
 connectConstant :: TopLevel -> String -> GComp -> J T.Text
-connectConstant topl modname comp = "Jade.Vhdl.connectConstant" <? do
+connectConstant topl modname comp = "Vhdl.connectConstant" <? do
   assignMap <- MT.connectConstantComp topl modname comp
-  txts <- mapM mkTermAssign assignMap
-  return $ T.concat [T.append t (T.pack ";\n") | t <- txts]
+  withSemiColonNewLines `liftM` mapM mkTermAssign assignMap

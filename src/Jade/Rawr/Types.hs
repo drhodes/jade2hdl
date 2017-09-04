@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Jade.Rawr.Types where
@@ -10,22 +11,16 @@ import qualified System.IO as SIO
 import Text.Format
 import qualified Control.Parallel.Strategies as CPS
 import Jade.Util
+import qualified Data.List as DL
 
 nofact n = if n <= 0
            then 0
            else n + (nofact (n-1))
 
 test1 = CPS.parList CPS.rseq (map nofact $ take 10 (repeat 10000000))
-
-data Case = Case String (IO TestState)
-          | Done String TestState
-          
-instance Show Case where
-  show (Case name _) = format "<Case {0} <func>>" [name]
-  show (Done name state) = format "<Done {0} {1}>" [name, show state]
           
 data TestTree = TestTree String [TestTree]
-              | TestNode Case
+              | TestCase String (IO TestState)
               
 data TestState = Pass
                | Fail String
@@ -34,49 +29,39 @@ data TestState = Pass
 concatTreeName s (TestTree name subtrees) = TestTree (concat [s, "/", name]) subtrees
 concatTreeName _ t = t
 
+type TestPath = [String]
+showTestPath tp = DL.intercalate "/" tp
 
-
-
-runTree :: TestTree -> IO [TestState]
-runTree (TestTree s trees) = do
+runTree :: TestPath -> TestTree -> IO [TestState]
+runTree tp (TestTree s trees) = do
   putStrLn ""
-  putStr $ take 40 $ s ++ repeat ' '
-  concatMapM runTree (map (concatTreeName s) trees)
+  putStr $ take 40 $ (showTestPath (tp ++ [s])) ++ repeat ' '
+  concatMapM (runTree (tp ++ [s])) trees
   
-runTree (TestNode c@(Case s f)) = do
+runTree tp (TestCase s f) = do
   result <- sequence $ CPS.runEval $ CPS.parList CPS.rpar [f]
-  mapM_ (rawrLog s) result
+  mapM_ (rawrLog tp s) result
   return result
-
 
 passes = putStr "·" >> SIO.hFlush SIO.stdout            
 fails = putStr "X" >> SIO.hFlush SIO.stdout
 
-rawrLog :: String -> TestState -> IO ()
-rawrLog name state =  
+rawrLog tp name state =  
   case state of
-    Pass -> passes >> return ()
+    Pass -> passes
     Fail log -> do fails
-                   let logPath = "./logs/" ++ name ++ ".log"
+                   let fname = DL.intercalate "_" (tp ++ [name])
+                   let logPath = "./logs/" ++ fname ++ ".log"
                    writeFile logPath log
 
 doTree :: String -> Writer [TestTree] a -> TestTree
 doTree name doblock = TestTree name  $ execWriter doblock
 
--- reportIO :: MonadWriter [TestTree] IO => String -> IO TestState -> IO ()
--- reportIO name result = tell [TestNode $ Case name $ result]
-
--- report :: String -> TestState -> Writer [TestTree] (IO ())
--- report name result = tell [TestNode $ Case name $ return result]
-
-report name state = TestNode (Case name $ return state)
-reportIO name state = TestNode (Case name $ state)
-
-
-done name x = tell [Done name x]
+report name state = TestCase name $ return state
+reportIO name state = TestCase name $ state
 
 test :: MonadWriter [TestTree] m => String -> IO TestState -> m ()
-test name f = tell [TestNode $ Case name f]
+test name f = tell [TestCase name f]
 
 asdf = doTree "MyTree" $ do
   test "asdf" $ return Pass

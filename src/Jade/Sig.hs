@@ -178,3 +178,6 @@ explode sig = "Sig.explode" <?
     x -> die $ "Sig.explode doesn't support: " ++ show x
 
 
+flatten :: Sig -> J [Sig]
+flatten (SigConcat xs) = return xs
+flatten x = return [x]

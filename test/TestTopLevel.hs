@@ -130,7 +130,7 @@ testComponentUseAND2Rot90 = do
     Left msg -> return $ Fail msg
 
 testTreeMiscEtc =
-  let t name f = TestNode $ Case name f
+  let t name f = TestCase name f
   in TestTree "MiscEtc" [ t "testTermDriverAnd23_Wire" testTermDriverAnd23_Wire
                         , t "bendyWire1" bendyWire1
                         , t "portTest1" portTest1
@@ -207,7 +207,7 @@ testNumComponents2 modname numcomps = do
     Left msg -> return $ Fail msg
 
 testTreeNumComponents = 
-  let t modname exp = TestNode $ Case modname (testNumComponents2 modname exp)
+  let t modname exp = TestCase modname (testNumComponents2 modname exp)
   in TestTree "testNumComponents"
   [ t "Jumper4" 1
   , t "Jumper5" 1
@@ -232,13 +232,12 @@ testTree = TestTree "TopLevel" [ testTreeNumComponents
                                , testTreeGetComponentsWithNameAll
                                , testTreeTerminals
                                , testTreeReplicationDepth
+                               , testTreeGetWidthOfSigName
                                , testTreeMiscEtc
                                ]
-                              
-
 
 testTreeGetComponentsWithNameAll =
-  let t modname signame exp = TestNode $ Case modname (testGetComponentsWithName modname signame exp)
+  let t modname signame exp = TestCase modname (testGetComponentsWithName modname signame exp)
   in TestTree "getComponentsWithName" [ t "RepAnd2" "IN2" 1
                                       , t "RepAnd2" "IN1" 1
                                       , t "RepAnd2" "OUT1" 1
@@ -250,7 +249,7 @@ testTreeGetComponentsWithNameAll =
                                       ]
 
 testTreeReplicationDepth =
-  let t modname exp = TestNode $ Case modname (testReplicationDepth modname exp)
+  let t modname exp = TestCase modname (testReplicationDepth modname exp)
   in TestTree "getReplicationDepth" [ t "And2Ports" 1 
                                     , t "And2Ports2" 1
                                     , t "And2Ports3" 1
@@ -260,8 +259,30 @@ testTreeReplicationDepth =
                                     , t "RepAnd4" 4
                                     ]
 
+testGetWidthOfSigName modname signame expectedWidth = do
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+  let func = do w <- TopLevel.getWidthOfSigName topl ("/user/" ++ modname) signame
+                if w == expectedWidth
+                  then return Pass
+                  else return $ Fail $ format "Expected width {0}, got {1}" [show expectedWidth, show w]
+                                     
+  case runJ func of
+    Right state -> return state
+    Left msg -> return $ Fail $ runLog func ++ msg
+  
+     
+testTreeGetWidthOfSigName = 
+  let t modname signame exp = TestCase modname (testGetWidthOfSigName modname signame exp)
+  in TestTree "GetWidthOfSigName" [ t "Rep1FA2" "CO" 1 
+                                  , t "Rep1FA2" "S" 2
+                                  , t "Rep1FA2" "A" 2
+                                  , t "Rep1FA2" "B" 2
+                                  , t "Rep1FA2" "CIN" 1
+                                  , t "Rep1FA2" "COUT" 1
+                                  ]
+
 testTreeTerminals =
-  let t name f = TestNode $ Case name testTerminals1
+  let t name f = TestCase name testTerminals1
   in TestTree "terminals" [ t "testTerminals1" testTerminals1
                           ]
 
@@ -299,6 +320,10 @@ portTest1 = do
                   1 -> return Pass
                   x -> return $ Fail $ show (runLog $ die $ "hmm, found: " ++ show x)
     Left msg -> return $ Fail msg
+
+
+
+
 
 ------------------------------------------------------------------
 -- CHECKS

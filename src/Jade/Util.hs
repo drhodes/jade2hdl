@@ -74,7 +74,7 @@ hashid x =
       in B.unpack $ WH.encode ctx . abs . DH.hash $ x
 
 
-slashesToScores str = [if x == '/' then '-' else x | x <- str]
+slashesToScores str = [if x == '/' then '_' else x | x <- str]
 
 
 
@@ -105,3 +105,8 @@ readHex c = let wrap x = Right $ fromIntegral x
   
 ok :: a -> Either String a
 ok x = Right x
+
+
+contains a b = DL.isInfixOf b a
+
+downFrom n = [n, n-1 .. 0]
