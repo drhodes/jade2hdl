@@ -97,8 +97,8 @@ outputsHaveSig mod sig = "outputsHaveSig" <? do
   return $ sig `elem` outs
 
 partInInputs :: Module -> Part -> J Bool
-partInInputs mod comp = "Module.partInInputs" <? do
-  case Part.sig comp of 
+partInInputs mod net = "Module.partInInputs" <? do
+  case Part.sig net of 
     Just s -> inputsHaveSig mod s
     Nothing -> return False
 

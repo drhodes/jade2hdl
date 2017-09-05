@@ -50,12 +50,7 @@ unite uf p q = do
 -- end of swipe from
 -- https://gist.github.com/kseo/8693028
 
-  
--- components :: _
--- components = undefined
-
 --fromEdges :: Ord t => [Edge t] -> UnionFind (Node t)
-
 --fromEdges :: Foldable t => t a -> ST s (UnionFind s)
 
 -- https://hackage.haskell.org/package/extra-1.6/docs/src/Control-Monad-Extra.html#partitionM
@@ -87,10 +82,10 @@ components edges = runST $ do
   
   xs <- sequence [filterM (find uf x) [0.. length nodes - 1] | x <- [0.. length nodes - 1]]
   let indexes = DL.nub xs
-  return $ zipWith GComp [1..] [DL.nub $ map (nodes !!) xs | xs <- indexes]
+  return $ zipWith Net [1..] [DL.nub $ map (nodes !!) xs | xs <- indexes]
   
-nameComp :: GComp -> J String
-nameComp (GComp gid nodes) = "UnionFind.nameComp" <? do
+nameComp :: Net -> J String
+nameComp (Net gid nodes) = "UnionFind.nameComp" <? do
   let parts = map nodePart nodes
       signals1 = [signal | WireC (Wire _ (Just signal)) <- parts]
       names = [n | Signal (Just (SigSimple n)) _ _ <- signals1] -- ++ signals2]

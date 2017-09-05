@@ -18,7 +18,7 @@ import qualified Data.Map as DM
 import qualified Data.Text as T
 import qualified Data.Text.IO as DT
 import qualified Jade.Decode as Decode
-import qualified Jade.GComp as GComp
+import qualified Jade.Net as Net
 import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Middle.Types as MT
 import qualified Jade.ModTest as ModTest
@@ -177,7 +177,7 @@ mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
   schem <- Module.getSchematic m
 
   subs <- TopLevel.getSubModules modname
-  comps <- TopLevel.components  modname  
+  nets <- TopLevel.nets  modname  
   instances <- mapM (mkSubModuleInstance modname) subs
   
   Inputs ins <- Module.getInputs m
@@ -200,7 +200,7 @@ mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
   inputWires <- connectAllInputs modname ins
 
   -- TODO this is where all the spaces are being inserted.
-  constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant modname) comps
+  constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant modname) nets
 
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt
@@ -307,9 +307,9 @@ mkSubModuleInstance modname mem@(SubMemUnit memunit) =
   return $ substitute template mapping
   
 ------------------------------------------------------------------
-mkCompName comp = "Vhdl.mkCompName" <? do        
-  n <- GComp.name comp -- get the net name
-  w <- GComp.width comp -- get the width
+mkNetName net = "Vhdl.mkNetName" <? do        
+  n <- Net.name net -- get the net name
+  w <- Net.width net -- get the width
   let temp = "signal {0} : std_logic_vector({1} downto 0);"
   return $ format temp [n, show (w - 1)] -- one less because of zero indexing.
 
@@ -321,14 +321,14 @@ mkNodeDecls modname = "Jade.Vhdl.mkNodeDecls" <? do
   Outputs outs <- TopLevel.getOutputs modname
   ignore <- concatMapM Sig.getNames (ins ++ outs)
   
-  comps <- TopLevel.components modname
-  compNames <- mapM GComp.name comps
+  nets <- TopLevel.nets modname
+  netNames <- mapM Net.name nets
   
-  let keepers = [comp | (n, comp) <- zip compNames comps, n `notElem` ignore]
+  let keepers = [net | (n, net) <- zip netNames nets, n `notElem` ignore]
 
   if null keepers
     then return "-- no node decls"
-    else do sigDecls <- mapM mkCompName keepers
+    else do sigDecls <- mapM mkNetName keepers
             return $ concat $ DL.intersperse "\n" sigDecls
 
 declareSigName modname signame = "Vhdl.declareSigName" <? do
@@ -342,9 +342,9 @@ internalSigNames modname = do
   Outputs outs <- TopLevel.getOutputs modname
   ignore <- concatMapM Sig.getNames (ins ++ outs)
   
-  comps <- TopLevel.components modname
-  compNames <- mapM GComp.name comps
-  list compNames
+  nets <- TopLevel.nets modname
+  netNames <- mapM Net.name nets
+  list netNames
   nb "-- ignores"
   list ignore
   allNames <- TopLevel.getAllSigNames modname
@@ -384,7 +384,7 @@ connectAllInputs modname inSigs = "Vhdl.connectAllInputs" <? do
   assignMap <- concatMapM (MT.connectOneInput modname) inSigs
   withSemiColonNewLines `liftM` mapM mkTermAssign assignMap
   
-connectConstant :: String -> GComp -> J T.Text
-connectConstant modname comp = "Vhdl.connectConstant" <? do
-  assignMap <- MT.connectConstantComp modname comp
+connectConstant :: String -> Net -> J T.Text
+connectConstant modname net = "Vhdl.connectConstant" <? do
+  assignMap <- MT.connectConstantNet modname net
   withSemiColonNewLines `liftM` mapM mkTermAssign assignMap

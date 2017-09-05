@@ -4,7 +4,7 @@ import Jade.Types
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Modul
-import qualified Jade.GComp as GComp
+import qualified Jade.Net as Net
 import qualified Jade.Wire as Wire
 import Text.Format
 import Control.Monad

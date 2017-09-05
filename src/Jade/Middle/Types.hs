@@ -11,7 +11,7 @@ import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.Vector as V
 import qualified Jade.Decode as Decode
-import qualified Jade.GComp as GComp
+import qualified Jade.Net as Net
 import qualified Jade.Module as Module
 import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Part as Part
@@ -60,35 +60,35 @@ connectOneInput modname inSig = "Middle/Types.connectOneInput" <? do
   case inSigNames of
     [] -> die "No signames found"
     [signame] -> do
-      -- find components with signame
-      comps <- TopLevel.getComponentsWithName modname signame
-      -- for each component, assign the signame
-      concatMapM (assignSig modname signame) comps
+      -- find nets with signame
+      nets <- TopLevel.getNetsWithName modname signame
+      -- for each net, assign the signame
+      concatMapM (assignSig modname signame) nets
     xs -> unimplemented
 
 
--- is this comp connected to the output terminal of a submodule or
+-- is this net connected to the output terminal of a submodule or
 -- an input terminal?
 
 
 
 -- | assign the signame to the net it's connected to 
-assignSig modname signame comp = "Middle/Types.assignSig" <? do
-  workingSigs <- GComp.getSigsWithIdentNoFlatten comp signame
+assignSig modname signame net = "Middle/Types.assignSig" <? do
+  workingSigs <- Net.getSigsWithIdentNoFlatten net signame
   exploded <- concatMapM Sig.explode workingSigs
   
   let idxs = downFrom $ length exploded - 1
       indexedNames = zip exploded idxs
 
   matchedSigs <- filterM (\(sig, idx) -> Sig.hasIdent sig signame) indexedNames
-  compName <- GComp.name comp
+  netName <- Net.name net
 
-  let assigns = [SigAssign sig (SigIndex compName (fromIntegral idx))
+  let assigns = [SigAssign sig (SigIndex netName (fromIntegral idx))
                 | (sig, idx) <- matchedSigs]
   return assigns
 
-sharesInputP modname comp = "Middle.Types.sharesInputP" <? do
-  let ts = GComp.getTerminals comp
+sharesInputP modname net = "Middle.Types.sharesInputP" <? do
+  let ts = Net.getTerminals net
   drivers <- mapM (TopLevel.getInputTermDriver modname) ts
   nb "Drivers!!"
   list drivers
@@ -98,9 +98,9 @@ sharesInputP modname comp = "Middle.Types.sharesInputP" <? do
     else return True
 
 
-sigNameDirection modname comp = "Middle.Types.isSigNameDriver" <? do
-  -- does signames share a comp with a terminal that belongs to a submodules Input?
-  sharesInput <- sharesInputP modname comp  
+sigNameDirection modname net = "Middle.Types.isSigNameDriver" <? do
+  -- does signames share a net with a terminal that belongs to a submodules Input?
+  sharesInput <- sharesInputP modname net  
   nbf "sharesInput? {0}" [show sharesInput]
   return $ if sharesInput
            then In
@@ -108,13 +108,13 @@ sigNameDirection modname comp = "Middle.Types.isSigNameDriver" <? do
                 
 ----
 connectSigName modname sigName = "Middle/Types.connectSigName" <? do  
-  -- find components with signame
-  comps <- TopLevel.getComponentsWithName modname sigName
+  -- find nets with signame
+  nets <- TopLevel.getNetsWithName modname sigName
 
   nbf "connectSigName:sigName = {0}" [sigName]
-  dirs <- mapM (sigNameDirection modname) comps
-  -- for each component, locate the z-index of the signame  
-  assigns <- concatMapM (assignSig modname sigName) comps
+  dirs <- mapM (sigNameDirection modname) nets
+  -- for each net, locate the z-index of the signame  
+  assigns <- concatMapM (assignSig modname sigName) nets
   
   return [case dir of
             In -> flipAssign assn
@@ -127,36 +127,36 @@ genbits n | n == 0 = []
           | otherwise = 1 : (genbits next)
   where next = n `div` 2
 
-connectConstantComp modname comp = "Middle.Types/connectConstantComp" <? do
-  let quotedSigs = GComp.getQuotedSigs comp
-  compWidth <- GComp.width comp
-  compName <- GComp.name comp
+connectConstantNet modname net = "Middle.Types/connectConstantNet" <? do
+  let quotedSigs = Net.getQuotedSigs net
+  netWidth <- Net.width net
+  netName <- Net.name net
   case quotedSigs of
     [SigQuote val numBits] -> do
-      when (compWidth /= numBits) $ do
-        let msg = "width mismatch in signals component width: {0} and constant width: {1}"
-        die $ format msg [show compWidth, show numBits]
+      when (netWidth /= numBits) $ do
+        let msg = "width mismatch in signals net width: {0} and constant width: {1}"
+        die $ format msg [show netWidth, show numBits]
 
-      -- this is a twos complement representation.
+      -- this is a twos netlement representation.
       let bits = reverse $ take (fromInteger numBits) $ (genbits val) ++ repeat 0
           
-      nb "The targets are the comp replicated"
-      let tgts = map (SigIndex compName) $ reverse [0 .. compWidth - 1]
+      nb "The targets are the net replicated"
+      let tgts = map (SigIndex netName) $ reverse [0 .. netWidth - 1]
       let srcs = [SigSimple (format "'{0}'" [show b]) | b <- bits]
 
       return $ zipWith SigAssign srcs tgts
     [] -> return []
-    xs -> die $ "unhandled case in connectConstantComp: " ++ show xs
+    xs -> die $ "unhandled case in connectConstantNet: " ++ show xs
     
 ---------------------------------------------------------------------------------------------------
-replicateOneTerminal :: Integer -> Direction -> Terminal -> GComp -> J TermMap
-replicateOneTerminal numReplications dir term@(Terminal _ sig) comp =
+replicateOneTerminal :: Integer -> Direction -> Terminal -> Net -> J TermMap
+replicateOneTerminal numReplications dir term@(Terminal _ sig) net =
   "Middle/Types.replicateOneTerminal" <? do
-  compWidth <- GComp.width comp
-  compId <- GComp.name comp
+  netWidth <- Net.width net
+  netId <- Net.name net
   termWidth <- Part.width (TermC term)
-  nb $ format "CompWidth: {0}, compId: {1}, termWidth: {2}, repd: {3}" [ show compWidth
-                                                                       , show compId
+  nb $ format "NetWidth: {0}, netId: {1}, termWidth: {2}, repd: {3}" [ show netWidth
+                                                                       , show netId
                                                                        , show termWidth
                                                                        , show numReplications ]
   termSigs <- Sig.explode sig
@@ -165,28 +165,28 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp =
     Just termWidth ->
       let totalWidth = fromInteger $ termWidth * numReplications
           -- ^ interfunction comment.
-      in if compWidth == totalWidth
-            -- the component has wirewidth equal to the full
-            -- replication width, so the component will need to be
+      in if netWidth == totalWidth
+            -- the net has wirewidth equal to the full
+            -- replication width, so the net will need to be
             -- sliced in slices equal to the width of the terminal.
 
-         then do nb "case compWidth == totalWidth"
+         then do nb "case netWidth == totalWidth"
                  let singles = reverse [0 .. totalWidth - 1]
-                     srcs = map (SigIndex compId) singles
+                     srcs = map (SigIndex netId) singles
                      tmap = zipWith (TermAssoc In) srcs (cycle termSigs)
                  return $ case dir of
                             In  -> tmap
                             Out -> flipTermMap tmap
                      
-         else case compWidth < totalWidth of
+         else case netWidth < totalWidth of
                 True -> do
-                  nb "case compWidth < totalWidth"
-                  nb $ format "compWidth: {0}, totalWidth {1}" [show compWidth, show totalWidth]
-                  -- the component width is less than the total width
-                  -- of the replicated submodules. The component input
+                  nb "case netWidth < totalWidth"
+                  nb $ format "netWidth: {0}, totalWidth {1}" [show netWidth, show totalWidth]
+                  -- the net width is less than the total width
+                  -- of the replicated submodules. The net input
                   -- signal will have to be replicated to match the
                   -- width of the replicated submodules.
-                  let srcs = map (SigIndex compId) (reverse [0 .. compWidth -1])
+                  let srcs = map (SigIndex netId) (reverse [0 .. netWidth -1])
                       srcReplication = cycle srcs
                       tmap = take (fromIntegral totalWidth) (cycle $ zipWith (TermAssoc In)
                                                               (cycle srcs)
@@ -196,7 +196,7 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) comp =
                              Out -> flipTermMap tmap
                 ---                
                 False -> do
-                  nb "case compWidth > totalWidth"
+                  nb "case netWidth > totalWidth"
                   impossible "This can't happen if the JADE modules tests pass in JADE"                  
     y -> do nb $ "got: " ++ show y
             die $ "Couldn't determine width of terminal."
@@ -225,13 +225,13 @@ subModuleInstances modname submod@(SubModule name loc) = do
   m <- TopLevel.getModule name 
   
   inputTerms <- Module.getInputTerminals m loc
-  inputComps <- mapM (TopLevel.componentWithTerminal modname) inputTerms
+  inputNets <- mapM (TopLevel.netWithTerminal modname) inputTerms
  
   outputTerms <- Module.getOutputTerminals m loc
-  outputComps <- mapM (TopLevel.componentWithTerminal modname) outputTerms
+  outputNets <- mapM (TopLevel.netWithTerminal modname) outputTerms
 
-  inputTermMaps <- zipWithM (replicateOneTerminal repd In) inputTerms (map GComp.removeTerms inputComps)
-  outputTermMaps <- zipWithM (replicateOneTerminal repd Out) outputTerms (map GComp.removeTerms outputComps)
+  inputTermMaps <- zipWithM (replicateOneTerminal repd In) inputTerms (map Net.removeTerms inputNets)
+  outputTermMaps <- zipWithM (replicateOneTerminal repd Out) outputTerms (map Net.removeTerms outputNets)
 
   let itms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- inputTermMaps] :: [[TermMap]]
       otms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- outputTermMaps] :: [[TermMap]]
@@ -250,14 +250,14 @@ memUnitInstance modname memunit = "Middle/Types.memUnitInstance" <? do
   m <- TopLevel.getModule modname
   
   inputTerms <- MemUnit.getInputTerminals memunit
-  inputComps <- mapM (TopLevel.componentWithTerminal modname) inputTerms
+  inputNets <- mapM (TopLevel.netWithTerminal modname) inputTerms
 
   outputTerms <- MemUnit.getOutputTerminals memunit
-  outputComps <- mapM (TopLevel.componentWithTerminal modname) outputTerms
+  outputNets <- mapM (TopLevel.netWithTerminal modname) outputTerms
   
 
-  inputTermMaps <- zipWithM (replicateOneTerminal repd In) inputTerms (map GComp.removeTerms inputComps)
-  outputTermMaps <- zipWithM (replicateOneTerminal repd Out) outputTerms (map GComp.removeTerms outputComps)
+  inputTermMaps <- zipWithM (replicateOneTerminal repd In) inputTerms (map Net.removeTerms inputNets)
+  outputTermMaps <- zipWithM (replicateOneTerminal repd Out) outputTerms (map Net.removeTerms outputNets)
 
   let itms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- inputTermMaps] :: [[TermMap]]
       otms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- outputTermMaps] :: [[TermMap]]

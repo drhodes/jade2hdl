@@ -31,7 +31,7 @@ data Global = Global { globalTopLevel :: TopLevel
                      , globalMemo :: Memo
                      }
 
-data Memo = Memo { memoComps :: DM.Map String [GComp] }
+data Memo = Memo { memoComps :: DM.Map String [Net] }
 
 emptyMemo = Memo DM.empty
 
@@ -82,6 +82,8 @@ unimplemented = die "unimplemented."
 
 nb s = tell [s]
 nbf s xs = nb $ format s xs
+
+list x = nb $ DL.intercalate "\n" $ map show x
 
 bail :: J a
 bail = die "bailing!"
@@ -304,18 +306,17 @@ data Node = Node { nodeLocation :: (Integer, Integer)
                  , nodePart :: Part                   
                  } deriving (Eq, Generic, Show, Hashable, Ord)
 
-type GID = Integer 
-data GComp = GComp GID [Node] deriving (Show, Eq, Ord)
+type NetId = Integer 
+data Net = Net NetId [Node] deriving (Show, Eq, Ord)
 
 data Edge = Edge Node Node deriving (Generic, Show, Hashable, Ord, Eq)
 
-data UfInstruction = LinkEdge Edge
-                   | LinkNodes Node Node
+-- data UfInstruction = LinkEdge Edge
+--                    | LinkNodes Node Node
 
 data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    , store :: DM.Map a Int
                                    , curId :: Int
                                    } deriving (Show)
 
-list x = nb $ DL.intercalate "\n" $ map show x
 

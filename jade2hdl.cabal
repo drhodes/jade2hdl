@@ -24,7 +24,7 @@ library
                      , Jade.Sig
                      , Jade.UnionFindST
                      , Jade.Schematic
-                     , Jade.GComp
+                     , Jade.Net
                      , Jade.Part
                      , Jade.Module
                      , Jade.Wire

@@ -44,10 +44,10 @@ the tests as HDL tests.
 
  module.test        is a list pair, ["test", "the text of the test"].
  module.properties  is a map with key "name" to a simple key/val map.
- module.schematic   is a list of schematic components.
- module.icon        is a list of icon components
+ module.schematic   is a list of schematic nets.
+ module.icon        is a list of icon nets
 
- components in the schematic:
+ the schematic:
  Port(Location, SignalName)
  Module(ModuleName, Coord3(x, y, rot)
  Wire(Coord5(x, y, rot, dx, dy), SignalName) 

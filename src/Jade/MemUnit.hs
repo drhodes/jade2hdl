@@ -12,7 +12,7 @@ import qualified Jade.Decode as D
 import qualified Jade.Module as Module
 import qualified Jade.Part as Part
 import qualified Jade.Sig as Sig
-import qualified Jade.GComp as GComp
+import qualified Jade.Net as Net
 import qualified Jade.Schematic as Schem
 import qualified Jade.Jumper as Jumper
 import qualified Jade.Coord as Coord
