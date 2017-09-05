@@ -12,6 +12,7 @@ import qualified Data.List as DL
 import qualified Data.ByteString as DB
 import Jade.Util
 import Data.Hashable
+import Text.Format
 
 import Control.Monad.Except 
 import Control.Monad.Writer
@@ -26,7 +27,12 @@ import Control.Monad.State
 --         |               |      |     |                 |
 type J a = ExceptT String (StateT Memo (Writer [String])) a 
 
+data Global = Global { globalTopLevel :: TopLevel
+                     , globalMemo :: Memo
+                     }
+
 data Memo = Memo { memoComps :: DM.Map String [GComp] }
+
 emptyMemo = Memo DM.empty
 
 runX :: J a -> (Either String a, [String])
@@ -63,20 +69,25 @@ unimplemented :: J a
 unimplemented = die "unimplemented."
 
 nb s = tell [s]
+nbf s xs = nb $ format s xs
+
 bail :: J a
 bail = die "bailing!"
+bailWhen cond = when cond bail
 
 (?) x msg = x `catchError` (\e -> (throwError $ e ++ "\n" ++ "! " ++ msg))
 
 -- | for building nice stack traces.
 (<?) msg x = nb msg >> x ? msg
 
-
 ------------------------------------------------------------------
 -- Icon Types
 data Line = Line Coord5 deriving (Generic, Show, Eq, Hashable, Ord)
+
 data Terminal = Terminal Coord3 Sig deriving (Generic, Show, Eq, Hashable, Ord)
+
 data Box = Box Coord5 deriving (Generic, Show, Eq, Hashable, Ord)
+
 data Txt = Txt { txtLoc :: Coord3
                , txtText :: String
                , txtFont :: Maybe String

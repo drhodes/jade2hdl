@@ -30,7 +30,7 @@ import qualified System.IO as SIO
 spawnOneTest jadefile modname = do
   let autoTestPath = format "test-data/auto-vhdl/{0}/" [hashid modname]
       tbname = Module.testBenchName modname
-      prelude = decodeUtf8 $(embedFile "app-data/vhdl/prelude.vhdl")
+      --prelude = decodeUtf8 $(embedFile "app-data/vhdl/prelude.vhdl")
       outfile = autoTestPath ++ (hashid modname) ++ ".vhdl"
       
   SD.removePathForcibly autoTestPath
@@ -41,11 +41,12 @@ spawnOneTest jadefile modname = do
     nb $ "spawnOneTest: " ++ modname
     moduleCode <- Vhdl.mkAllMods topl modname
     testCode <- Vhdl.mkTestBench topl modname    
-    return $ TIO.writeFile outfile (T.concat [prelude, moduleCode, testCode])
+    return $ TIO.writeFile outfile (T.concat [moduleCode, testCode])
       
   let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }
-  let cmd1 = sh "ghdl -a -g --std=08 *.vhdl"
-      cmd2 = sh (format "ghdl -r --std=08 {0} --vcd={0}.vcd" [tbname])
+  let preludePath = "../../../app-data/vhdl/prelude.vhdl"
+      cmd1 = sh $ format "ghdl -a -g --std=08 {0} *.vhdl" [preludePath]
+      cmd2 = sh $ format "ghdl -r --std=08 {0} --vcd={0}.vcd" [tbname]
   
   (ecode, stdout, stderr) <- readCreateProcessWithExitCode cmd1 ""
   case ecode of

@@ -38,7 +38,7 @@ testTermDriverAnd23_Wire = do
                          inputTerms <- TopLevel.getInputTerminals topl submodule
                          result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
                          case result of
-                           [SigSimple "A",SigSimple "B"] -> return Pass
+                           [(Just (SigSimple "A")), (Just (SigSimple "B"))] -> return Pass
                            x -> return $ Fail $ runLog $ die $ "hmm, found: " ++ show x
   case result of
     Right x -> return x
@@ -75,7 +75,7 @@ testTopLevelGetInputs = do
 
                -- find which signal is driving the input terminal.
                driver <- TopLevel.getInputTermDriver topl modname (terms !! 1)
-               if driver == SigSimple "LdyPxAwJGq0vO_RESERVED_OUT"
+               if driver == (Just $ SigSimple "LdyPxAwJGq0vO_RESERVED_OUT")
                  then return Pass
                  else do nb $ show driver
                          die $ "driver `not equal to` SigSimple QxrKbYgWM4dLd_OUT"

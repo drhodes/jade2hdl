@@ -12,7 +12,6 @@ import qualified Data.Hashable as DH
 import qualified Web.Hashids as WH
 import qualified Data.ByteString.Char8 as B
 
-
 class (Show a) => Fmt a where
   fmt :: String -> a -> String
 
@@ -44,12 +43,9 @@ uniq (x:y:rest) = if x == y
                   then uniq (y:rest)
                   else x : (uniq (y:rest))
 
-
-
 chunk :: Integral t => t -> [a] -> [[a]]
 chunk n [] = []
 chunk n xs = take (fromIntegral n) xs : chunk (fromIntegral n) (drop (fromIntegral n) xs)
-
 
 strip x = let x1 = dropWhile DC.isSpace x
               x2 = dropWhile DC.isSpace (reverse x1)
@@ -57,29 +53,20 @@ strip x = let x1 = dropWhile DC.isSpace x
 
 quote x = ['"'] ++ x ++ ['"']
 
-
 bust :: [Int] -> [a] -> [[a]]
 bust _ [] = []
 bust (chunk:rest) xs = take chunk xs : (bust rest $ drop chunk xs)
 
-
 removeQuotes = filter (/= '"') 
 
 concatMapM f xs = concat `liftM` mapM f xs
-
 
 hashid :: Hashable a => a -> String
 hashid x =
   let ctx = WH.hashidsSimple "salt"
       in B.unpack $ WH.encode ctx . abs . DH.hash $ x
 
-
 slashesToScores str = [if x == '/' then '_' else x | x <- str]
-
-
-
-
-
 
 readHex :: Num b => Char -> Either String b
 readHex c = let wrap x = Right $ fromIntegral x
@@ -101,12 +88,12 @@ readHex c = let wrap x = Right $ fromIntegral x
   'E' -> wrap 0xE
   'F' -> wrap 0xF
   _ -> Left $ format "Couldn't parse '{0}' as a hex digit" [show c]
-
   
 ok :: a -> Either String a
 ok x = Right x
 
-
 contains a b = DL.isInfixOf b a
 
 downFrom n = [n, n-1 .. 0]
+
+filterOut f xs = filter (not . f) xs

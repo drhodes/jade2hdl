@@ -62,12 +62,18 @@ connectOneInput topl modname inSig = "Middle/Types.connectOneInput" <? do
     [signame] -> do
       -- find components with signame
       comps <- TopLevel.getComponentsWithName topl modname signame
-      -- for each component, locate the z-index of the signame
-      concatMapM (locateIndexes topl modname signame) comps
+      -- for each component, assign the signame
+      concatMapM (assignSig topl modname signame) comps
     xs -> unimplemented
 
--- | locate the z-indexes of the signame in a net
-locateIndexes topl modname signame comp = "Middle/Types.locateIdx" <? do
+
+-- is this comp connected to the output terminal of a submodule or
+-- an input terminal?
+
+
+
+-- | assign the signame to the net it's connected to 
+assignSig topl modname signame comp = "Middle/Types.assignSig" <? do
   workingSigs <- GComp.getSigsWithIdentNoFlatten comp signame
   exploded <- concatMapM Sig.explode workingSigs
   
@@ -76,9 +82,44 @@ locateIndexes topl modname signame comp = "Middle/Types.locateIdx" <? do
 
   matchedSigs <- filterM (\(sig, idx) -> Sig.hasIdent sig signame) indexedNames
   compName <- GComp.name comp
+
   let assigns = [SigAssign sig (SigIndex compName (fromIntegral idx))
                 | (sig, idx) <- matchedSigs]
   return assigns
+
+sharesInputP topl modname comp = "Middle.Types.sharesInputP" <? do
+  let ts = GComp.getTerminals comp
+  drivers <- mapM (TopLevel.getInputTermDriver topl modname) ts
+  nb "Drivers!!"
+  list drivers
+  
+  if length (filterOut (==Nothing) drivers) == 0
+    then return False
+    else return True
+
+
+sigNameDirection topl modname comp = "Middle.Types.isSigNameDriver" <? do
+  -- does signames share a comp with a terminal that belongs to a submodules Input?
+  sharesInput <- sharesInputP topl modname comp  
+  nbf "sharesInput? {0}" [show sharesInput]
+  return $ if sharesInput
+           then In
+           else Out
+                
+----
+connectSigName topl modname sigName = "Middle/Types.connectSigName" <? do  
+  -- find components with signame
+  comps <- TopLevel.getComponentsWithName topl modname sigName
+
+  nbf "connectSigName:sigName = {0}" [sigName]
+  dirs <- mapM (sigNameDirection topl modname) comps
+  -- for each component, locate the z-index of the signame  
+  assigns <- concatMapM (assignSig topl modname sigName) comps
+  
+  return [case dir of
+            In -> flipAssign assn
+            Out -> assn
+         | (assn, dir) <- zip assigns dirs]
 
   
 genbits n | n == 0 = []

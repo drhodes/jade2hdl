@@ -17,9 +17,10 @@ hasSig gcomp sig  = sig `elem` (getSigs gcomp)
 hasAnyTerm :: GComp -> Bool
 hasAnyTerm (GComp gid nodes) = or [True | Node _ (TermC _) <- nodes]
 
+getTerminals (GComp gid nodes) = [t | Node _ (TermC t) <- nodes]
+
 hasTerm :: GComp -> Terminal -> Bool
 hasTerm (GComp _ nodes) term1 = or [term1 == term2 | Node _ (TermC term2) <- nodes]
-
 
 getSigs :: GComp -> [Sig]
 getSigs (GComp _ nodes) =
@@ -40,7 +41,6 @@ getSigsWithIdentNoFlatten gcomp ident = "GComp.getSigsWithIdent" <? do
   -- find the signals in gcomp that shares the ident. There might be
   -- more than one!
   filterM (flip Sig.hasIdent ident) $ getSigs (removeTerms gcomp)
-
 
 getWires :: GComp -> [Wire]
 getWires (GComp _ nodes) = [w | (Node _ (WireC w)) <- nodes]
@@ -70,6 +70,3 @@ containsSigIdent :: GComp -> String -> J Bool
 containsSigIdent gcomp sigIdent = "GComp.containsSigIdent" <? do
   -- does this component contain a sig with name sigName?
   or `liftM` mapM (flip Part.containsIdentifier sigIdent) (parts gcomp)
-
-
-

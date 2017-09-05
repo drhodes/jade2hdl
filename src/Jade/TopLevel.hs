@@ -181,6 +181,7 @@ getInputTerminals topl (SubModule name offset) = do
   Module.getInputTerminals m offset
 
 -- |Get the graph component which contains the terminals.
+componentWithTerminal :: TopLevel -> [Char] -> Terminal -> J GComp
 componentWithTerminal topl modname term@(Terminal c3@(Coord3 x y _) _) =
   ("TopLevel.componentWithTerminal: " ++ modname) <? do
   comps <- components topl modname
@@ -208,8 +209,6 @@ terminals topl (SubModule modname offset) = "TopLevel.terminals" <? do
 terminals topl (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
   MemUnit.terminals memunit
 
-
-
 -- | Get the number of distinct nodes in the schematic
 numComponents :: TopLevel -> String -> J Int
 numComponents topl modname = "TopLevel.numComponents" <? do
@@ -235,9 +234,9 @@ getOutputs topl modname = "TopLevel.getOutputs" <? do
   Module.getOutputs mod ? msg
 
 -- | The assumption always is, that the jade module works and is
--- tested. With that in mind, then it's safely assumed that there is
--- one driving signal per component. This function finds the driving
--- signal for a given component.
+-- tested. With that in mind, then it's safe to assume that there is
+-- one driving signal (or 'SigConcat') per component. This
+-- function finds the driving signal for a given component.
 
 -- If a signal is in more than one component then it is a driving signal.
 
@@ -245,7 +244,7 @@ getOutputs topl modname = "TopLevel.getOutputs" <? do
 -- clearly indicate a set of driving signals. .output terminals of sub
 -- modules are also driving signals.  
 
-getInputTermDriver :: TopLevel -> String -> Terminal -> J Sig
+getInputTermDriver :: TopLevel -> String -> Terminal -> J (Maybe Sig)
 getInputTermDriver topl modname term = "TopLevel.getInputTermDriver" <? do
   m <- getModule topl modname
   GComp gid nodes <- componentWithTerminal topl modname term
@@ -268,7 +267,7 @@ getInputTermDriver topl modname term = "TopLevel.getInputTermDriver" <? do
       submods' <- mapM (subModuleWithOutputTerminal topl modname) terms
       let submods = Maybe.catMaybes . concat . concat $ submods'
       case submods of
-        [(Terminal coord sig, submod)] -> Sig.hashMangle (hashid submod) sig 
+        [(Terminal coord sig, submod)] -> Just `liftM` Sig.hashMangle (hashid submod) sig 
         [] -> "looking in component attached to terminal" <? do
           comp <- getComponentWithTerminal topl modname term
           nb "Does this component have a .input signal?"
@@ -278,15 +277,16 @@ getInputTermDriver topl modname term = "TopLevel.getInputTermDriver" <? do
           let drivers = filter (GComp.hasSig comp) inputSigs
           case drivers ++ quotedSigs of
             [sig] -> do nb $ "found sig: " ++ show sig
-                        return sig
-            [] -> do die $ "Couldn't find driving signal in a test script input, \
-                           \sub module output or in shared component: " ++ show comp
+                        return (Just sig)
+            [] -> do nb $ "Couldn't find driving signal in a test script input, \
+                          \sub module output or in shared component: " ++ show comp
+                     return Nothing
             _ -> impossible $ "More than one driver found in terminal component: " ++ show term
         xs -> impossible $ "Many submodules output to this terminal" ++ show xs
       
     _ -> let match = head partsMatchingInput
          in case Part.sig match of
-              Just sig -> return sig
+              Just sig -> return (Just sig)
               Nothing -> die $ "Impossible, no signal was found in this part: " ++ show match
 
 getComponentWithTerminal :: TopLevel -> String -> Terminal -> J GComp
@@ -323,7 +323,6 @@ sigConnectedToSubModuleP topl modname sig = do
 getCompsWithoutTerms :: TopLevel -> String -> J [GComp]
 getCompsWithoutTerms topl modname = "getCompsWithoutTerms" <?
   (fmap (filter (not . GComp.hasAnyTerm)) (components topl modname))
-
 
 replicationDepth topl modname submod  = "TopLevel.replicationDepth" <? do
   -- get the terminals of the submodule

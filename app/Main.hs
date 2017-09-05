@@ -10,8 +10,6 @@ data Example = Example { infile :: String
                        , enthusiasm :: Int
                        }
 
-
-
 targetOption :: Parser String
 targetOption = strOption $ mconcat [ long "target-lang"
                                    , short 't'
@@ -42,4 +40,3 @@ main = greet =<< execParser opts
 
 greet :: Example -> IO ()
 greet (Example h s n) = putStrLn $ "Hello, " ++ h ++ replicate n '!'
-greet _ = return ()
