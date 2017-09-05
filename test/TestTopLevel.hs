@@ -17,9 +17,9 @@ import Jade.Rawr.Types
 bendyWire1 :: IO TestState
 bendyWire1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/bendy-wire-1.json"
-  let result = runJ $ do
+  let result = runJ topl $ do
         let modname =  "/user/BendyWire1"
-        cs <- TopLevel.components topl modname
+        cs <- TopLevel.components modname
         case length cs of
           1 -> return "+"
           x -> die $ "hmm, found: " ++ show x
@@ -32,14 +32,15 @@ bendyWire1 = do
 testTermDriverAnd23_Wire :: IO TestState
 testTermDriverAnd23_Wire = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-  let result = runJ $ do let modname =  "/user/UseAND2_3"
-                         subs <- TopLevel.getSubModules topl modname
-                         let submodule@(SubModule subname subloc) = subs !! 0
-                         inputTerms <- TopLevel.getInputTerminals topl submodule
-                         result <- mapM (TopLevel.getInputTermDriver topl modname) inputTerms
-                         case result of
-                           [(Just (SigSimple "A")), (Just (SigSimple "B"))] -> return Pass
-                           x -> return $ Fail $ runLog $ die $ "hmm, found: " ++ show x
+  let result = runJ topl $ do
+        let modname =  "/user/UseAND2_3"
+        subs <- TopLevel.getSubModules modname
+        let submodule@(SubModule subname subloc) = subs !! 0
+        inputTerms <- TopLevel.getInputTerminals submodule
+        result <- mapM (TopLevel.getInputTermDriver modname) inputTerms
+        case result of
+          [(Just (SigSimple "A")), (Just (SigSimple "B"))] -> return Pass
+          x -> return $ Fail $ runLog topl $ die $ "hmm, found: " ++ show x
   case result of
     Right x -> return x
     Left msg -> return $ Fail msg
@@ -48,7 +49,7 @@ testGetComponentsWithName :: String -> String -> Int -> IO TestState
 testGetComponentsWithName modname signame exp = do
   Right topl <- Decode.decodeTopLevel $ "./test-data/" ++ modname ++ ".json"
   let modname' =  "/user/" ++ modname
-      cs = runJ $ TopLevel.getComponentsWithName topl modname' signame
+      cs = runJ topl $ TopLevel.getComponentsWithName modname' signame
   case cs of
     Left msg -> return $ Fail msg
     Right cs -> if length cs == exp
@@ -59,39 +60,39 @@ testTopLevelGetInputs :: IO TestState
 testTopLevelGetInputs = do
   let modname =  "/user/UseAND2_3"
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-  let func =do cs <- TopLevel.components topl modname
-               subs <- TopLevel.getSubModules topl modname
+  let func =do cs <- TopLevel.components modname
+               subs <- TopLevel.getSubModules modname
                -- pick a submodule with anonymous wires connected to
                -- two other submodule outputs
                let subm = subs !! 2
                -- get the input terminals of the chosen submodule.
-               terms <- TopLevel.getInputTerminals topl subm
+               terms <- TopLevel.getInputTerminals subm
                -- pick the first input terminal.
                let term = terms !! 0
                -- find the connected components to that input terminal.
-               connected <- TopLevel.componentWithTerminal topl modname term
+               connected <- TopLevel.componentWithTerminal modname term
 
                --return $ filter (/= (TermC term)) $ map nodePart connected
 
                -- find which signal is driving the input terminal.
-               driver <- TopLevel.getInputTermDriver topl modname (terms !! 1)
+               driver <- TopLevel.getInputTermDriver modname (terms !! 1)
                if driver == (Just $ SigSimple "LdyPxAwJGq0vO_RESERVED_OUT")
                  then return Pass
                  else do nb $ show driver
                          die $ "driver `not equal to` SigSimple QxrKbYgWM4dLd_OUT"
-  case runJ func of
+  case runJ topl func of
     Right x -> return x
-    Left msg -> return $ Fail $ runLog func
+    Left msg -> return $ Fail $ runLog topl func
                  
 testSigConnectedToSubModuleP1 :: IO TestState
 testSigConnectedToSubModuleP1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
-  let func = do Outputs outs <- TopLevel.getOutputs topl "/user/Jumper1"
-                eh <- TopLevel.sigConnectedToSubModuleP topl "/user/Jumper1" (outs !! 0)
+  let func = do Outputs outs <- TopLevel.getOutputs "/user/Jumper1"
+                eh <- TopLevel.sigConnectedToSubModuleP "/user/Jumper1" (outs !! 0)
                 if eh == False
                   then return Pass
                   else return $ Fail "no message"
-  return $ case runJ func of
+  return $ case runJ topl func of
              Right x -> x
              Left msg -> Fail msg
 
@@ -99,17 +100,17 @@ testSigConnectedToSubModuleP2 = do
   Right topl <- Decode.decodeTopLevel "./test-data/UseAND2_3.json"
   let func = do
         let modname =  "/user/UseAND2_3"
-        Outputs outs <- TopLevel.getOutputs topl modname
-        v <- mapM (TopLevel.sigConnectedToSubModuleP topl modname) outs
+        Outputs outs <- TopLevel.getOutputs modname
+        v <- mapM (TopLevel.sigConnectedToSubModuleP modname) outs
         if v == [True] then return Pass else return (Fail "no message")
-  return $ case runJ func of
+  return $ case runJ topl func of
              Right x -> x
              Left msg -> Fail msg
 
 testLoneJumper1 :: IO TestState
 testLoneJumper1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/LoneJumper1.json"
-  case runJ $ do TopLevel.components topl "/user/LoneJumper1" of
+  case runJ topl $ TopLevel.components "/user/LoneJumper1" of
     Right comps -> if (map GComp.getSigs comps) == [[]]
                    then return Pass
                    else return $ Fail $ "FAIL: unexpected result in testLoneJumper1"
@@ -123,9 +124,9 @@ testComponentUseAND2Rot90 = do
                  , [SigSimple "IN1",SigSimple "USEIN1"]
                  , [SigSimple "IN2",SigSimple "USEIN2"]]
 
-  let func = do comps <- TopLevel.components topl ("/user/" ++ modname)
+  let func = do comps <- TopLevel.components ("/user/" ++ modname)
                 return $ map GComp.getSigs comps
-  case runJ func of
+  case runJ topl func of
     Right x -> return Pass
     Left msg -> return $ Fail msg
 
@@ -144,7 +145,7 @@ testComponents :: String -> [[Sig]] -> IO TestState
 testComponents modname exp = do
   Right topl <- Decode.decodeTopLevel $ format "./test-data/{0}.json" [modname]
   let func = do
-        comps <- TopLevel.components topl $ format "/user/{0}" [modname]
+        comps <- TopLevel.components $ format "/user/{0}" [modname]
         let r1 = DL.sort exp
             r2 = DL.sort $ map GComp.getSigs comps
         if r1 == r2
@@ -152,10 +153,10 @@ testComponents modname exp = do
           else do expected exp (map GComp.getSigs comps)
                   list comps
                   return False
-  case runJ func of
+  case runJ topl func of
     Left msg -> return $ Fail msg
     Right True -> return Pass
-    Right False -> return $ Fail $ runLog func
+    Right False -> return $ Fail $ runLog topl func
 
 
 
@@ -177,33 +178,33 @@ testReplicationDepth modname expDepth = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   let func = do
         let parentModuleName = "/user/" ++ modname
-        subs <- TopLevel.getSubModules topl parentModuleName
+        subs <- TopLevel.getSubModules parentModuleName
         let sub = subs !! 0
-        d <- TopLevel.replicationDepth topl ("/user/" ++ modname) sub
+        d <- TopLevel.replicationDepth ("/user/" ++ modname) sub
         nb $ show d
         if (expDepth == d)
           then return Pass
           else do expected expDepth d
                   return $ Fail "hmmm."
         
-  case runJ func of
+  case runJ topl func of
     Right state -> return state
-    Left msg -> return $ Fail $ runLog func ++ msg
+    Left msg -> return $ Fail $ runLog topl func ++ msg
 
 testNumComponents2 modname numcomps = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   
   let func = do
-        comps <- TopLevel.components topl ("/user/" ++ modname)
+        comps <- TopLevel.components ("/user/" ++ modname)
         let wires = map Wire.ends (concat $ map GComp.getWires comps)                 
         return (length comps, comps)
         
-  case runJ func of
+  case runJ topl func of
     Right (n, comps) ->
       if n == numcomps
       then return Pass
       else return $ Fail $ unlines [ format "{2}: Expected {0}, got: {1}" [show numcomps, show n, modname]
-                                   , runLog func] 
+                                   , runLog topl func] 
     Left msg -> return $ Fail msg
 
 testTreeNumComponents = 
@@ -261,14 +262,14 @@ testTreeReplicationDepth =
 
 testGetWidthOfSigName modname signame expectedWidth = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
-  let func = do w <- TopLevel.getWidthOfSigName topl ("/user/" ++ modname) signame
+  let func = do w <- TopLevel.getWidthOfSigName ("/user/" ++ modname) signame
                 if w == expectedWidth
                   then return Pass
                   else return $ Fail $ format "Expected width {0}, got {1}" [show expectedWidth, show w]
                                      
-  case runJ func of
+  case runJ topl func of
     Right state -> return state
-    Left msg -> return $ Fail $ runLog func ++ msg
+    Left msg -> return $ Fail $ runLog topl func ++ msg
   
      
 testTreeGetWidthOfSigName = 
@@ -295,8 +296,8 @@ testTerminals1 = do
       contents = "0\n1"
       (numports, naddr, ndata) = (1,1,1)
       
-      func = TopLevel.terminals topl (SubMemUnit (MemUnit name loc contents numports naddr ndata))
-      cs = runJ func
+      func = TopLevel.terminals (SubMemUnit (MemUnit name loc contents numports naddr ndata))
+      cs = runJ topl func
       
       exp = [ Terminal (Coord3 {c3x = 0, c3y = 0, c3r = Rot0}) (SigSimple "ADDR_PORT1")
             , Terminal (Coord3 {c3x = 72, c3y = 0, c3r = Rot0}) (SigSimple "DATA_PORT1")
@@ -308,17 +309,17 @@ testTerminals1 = do
   case cs of
     Right cs -> if DL.sort cs == DL.sort exp
                 then return Pass
-                else return $ Fail $ runLog (func >> (expected exp cs))
+                else return $ Fail $ runLog topl (func >> (expected exp cs))
     Left msg -> return $ Fail msg
 
 portTest1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/port-test-1.json" 
   let modname =  "/user/PortTest1"
-      cs = runJ $ TopLevel.components topl modname
+      cs = runJ topl $ TopLevel.components modname
   case cs of
     Right cs -> case length cs of
                   1 -> return Pass
-                  x -> return $ Fail $ show (runLog $ die $ "hmm, found: " ++ show x)
+                  x -> return $ Fail $ show (runLog topl $ die $ "hmm, found: " ++ show x)
     Left msg -> return $ Fail msg
 
 
@@ -330,47 +331,50 @@ portTest1 = do
 
 checkJumper21components = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper21.json"
-  case runJ $ do TopLevel.components topl "/user/Jumper21" of
+  case runJ topl $ do TopLevel.components "/user/Jumper21" of
     Right comps -> print $ map GComp.getSigs comps
     Left msg -> fail msg
 
 checkComponents modname = do
   Right topl <- Decode.decodeTopLevel $ format "./test-data/{0}.json" [modname]
-  case runJ (TopLevel.components topl (format "/user/{0}" [modname])) of
+  case runJ topl (TopLevel.components (format "/user/{0}" [modname])) of
     Right comps -> mapM_ print $ map GComp.getSigs comps
     Left msg -> fail msg
 
 checkJumper41 = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper41.json"
-  putStrJ $ do
+  putStrJ topl $ do
     let modname =  "/user/Jumper41"
-    liftM show $ TopLevel.components topl modname
+    liftM show $ TopLevel.components modname
 
 checkDependencyOrder1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/CLA32.json"
-  printJ $ do let modname =  "/user/CLA32"
-              cs <- TopLevel.dependencyOrder topl modname
-              return cs 
+  printJ topl $ do
+    let modname =  "/user/CLA32"
+    cs <- TopLevel.dependencyOrder modname
+    return cs 
 
 buildUserAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-  printJ $ do let modname =  "/user/UseAND2_3"
-              cs <- TopLevel.components topl modname
-              return $ cs !! 4
+  printJ topl $ do
+    let modname =  "/user/UseAND2_3"
+    cs <- TopLevel.components modname
+    return $ cs !! 4
 
 buildUserAnd24 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-4.json"
-  putStrJ $ do let modname =  "/user/UseAND2_4"
-               cs <- TopLevel.components topl modname
-               let (GComp gid cs') = cs !! 5
-               return $ show $ map nodePart $ cs'
+  putStrJ topl $ do
+    let modname =  "/user/UseAND2_4"
+    cs <- TopLevel.components modname
+    let (GComp gid cs') = cs !! 5
+    return $ show $ map nodePart $ cs'
 
 checkTopLevelComponents = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
-  return $ TopLevel.components topl "/user/UseAND2"
+  return $ TopLevel.components "/user/UseAND2"
 
 checkTopLevelComponents1 :: IO (J Int)
 checkTopLevelComponents1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
-  return $ TopLevel.numComponents topl "/user/UseAND2"
+  return $ TopLevel.numComponents "/user/UseAND2"
 

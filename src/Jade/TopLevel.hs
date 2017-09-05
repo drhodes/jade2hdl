@@ -29,10 +29,11 @@ modules :: TopLevel -> [(String, Module)]
 modules (TopLevel m) = DM.toList m
 
 -- |Get a module from a TopLevel given a module name
-getModule :: TopLevel -> String -> J Module
-getModule (TopLevel m) name = "TopLevel.getModule" <? do
+getModule :: String -> J Module
+getModule name = "TopLevel.getModule" <? do  
   -- if name `startsWith` "/gate"
-  -- then return $ BuiltInModule name  
+  -- then return $ BuiltInModule name
+  TopLevel m <- getTop
   case DM.lookup name m of
     Just mod -> return mod{moduleName = name}
     Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
@@ -43,9 +44,9 @@ termToEdge t@(Terminal (Coord3 x y _) _) =
   let n = Node (x, y) (TermC t)
   in Edge n n
 
-getSubModules :: TopLevel -> String -> J [SubModule]
-getSubModules topl modname = "TopLevel.getSubModules" <? do
-  (Module _ schem _ _) <- getModule topl modname
+getSubModules :: String -> J [SubModule]
+getSubModules modname = "TopLevel.getSubModules" <? do
+  (Module _ schem _ _) <- getModule modname
   case schem of 
     Just schem -> return $ Schem.getSubModules schem
     Nothing -> die "No schematics found"
@@ -78,10 +79,10 @@ makeWire2WireEdge w1 w2 =
 
 terminalsOverlapP (Terminal (Coord3 x1 y1 _) _) (Terminal (Coord3 x2 y2 _)  _) = (x1,y1) == (x2,y2)
 
-getOverlappingTerminals :: TopLevel -> String -> J [(Terminal, Terminal)]
-getOverlappingTerminals topl modname = "TopLevel.collectOverlappingTerminals" <? do
-  allsubs <- getSubModules topl modname
-  ts <- concatMapM (terminals topl) allsubs
+getOverlappingTerminals :: String -> J [(Terminal, Terminal)]
+getOverlappingTerminals modname = "TopLevel.collectOverlappingTerminals" <? do
+  allsubs <- getSubModules modname
+  ts <- concatMapM terminals allsubs
   return $ DL.nub $ DL.sort [(min t1 t2, max t1 t2) | t1 <- ts, t2 <- ts, terminalsOverlapP t1 t2, t1 /= t2]
 
 connectOverlappingTerminals :: [(Terminal, Terminal)] -> J [Wire]
@@ -124,23 +125,23 @@ connectWiresWithSameSigName parts = "connectWiresWithSameSigName" <? do
                       wc2@(WireC w2) <- parts, (w1 /= w2) && (w1 `Wire.hasSameSig` w2)]
   return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | [WireC w1, WireC w2] <- pairs]
 
-components  :: TopLevel -> String -> J [GComp] 
-components topl modname = "TopLevel.components" <? do
+components  :: String -> J [GComp] 
+components modname = "TopLevel.components" <? do
   -- memoize
-  Memo memo <- get
-  case DM.lookup modname memo of
-    -- Already computed this component, so return in.
+  Memo table <- getMemo
+  case DM.lookup modname table of
+    -- Already computed this component, so return it.
     Just comps -> return comps
     -- Compute the component, insert it into the memo map, then return it.
-    Nothing -> do cs <- components' topl modname
-                  put (Memo (DM.insert modname cs memo))
+    Nothing -> do cs <- components' modname
+                  putMemo $ Memo (DM.insert modname cs table)
                   return cs
       
 
-components'  :: TopLevel -> String -> J [GComp] 
-components' topl modname = "TopLevel.components" <? do
-  (Module _ (Just schem@(Schematic parts)) _ _) <- getModule topl modname
-  terms <- sequence [terminals topl submod | submod <- Schem.getSubModules schem]
+components'  :: String -> J [GComp] 
+components' modname = "TopLevel.components" <? do
+  (Module _ (Just schem@(Schematic parts)) _ _) <- getModule modname
+  terms <- sequence [terminals submod | submod <- Schem.getSubModules schem]
   
   nb "check to see if ports are directly on terminals."
   
@@ -152,7 +153,7 @@ components' topl modname = "TopLevel.components" <? do
   ssnw <- connectWiresWithSameSigName parts 
   jumperWires <- mapM makeJumperWire jumpers
   portWires <- mapM makePortWire ports
-  ts <- getOverlappingTerminals topl modname
+  ts <- getOverlappingTerminals modname
   overlappingTermWires <- connectOverlappingTerminals ts
   
   let allWires = concat [wires, jumperWires, ssnw, portWires, overlappingTermWires]
@@ -166,25 +167,25 @@ components' topl modname = "TopLevel.components" <? do
 -- | VHDL requires that modules be instantiated in dependency order,
 
 
-dependencyOrder :: TopLevel -> String -> J [String]
-dependencyOrder topl modname = "TopLevel.dependencyOrder" <? 
+dependencyOrder :: String -> J [String]
+dependencyOrder modname = "TopLevel.dependencyOrder" <? 
   if not $ modname `startsWith` "/user/" then return []
-  else do m <- getModule topl modname
+  else do m <- getModule modname
           schem <- Module.getSchematic m
           let subnames = DL.nub [subname | (SubModule subname _) <- Schem.getSubModules schem]
-          children <- concatMapM (dependencyOrder topl) subnames
+          children <- concatMapM dependencyOrder subnames
           return $ filter (`startsWith` "/user") $ DL.nub $ children ++ subnames 
 
-getInputTerminals :: TopLevel -> SubModule -> J [Terminal]
-getInputTerminals topl (SubModule name offset) = do
-  m <- getModule topl name
+getInputTerminals :: SubModule -> J [Terminal]
+getInputTerminals (SubModule name offset) = do
+  m <- getModule name
   Module.getInputTerminals m offset
 
 -- |Get the graph component which contains the terminals.
-componentWithTerminal :: TopLevel -> [Char] -> Terminal -> J GComp
-componentWithTerminal topl modname term@(Terminal c3@(Coord3 x y _) _) =
+componentWithTerminal :: [Char] -> Terminal -> J GComp
+componentWithTerminal modname term@(Terminal c3@(Coord3 x y _) _) =
   ("TopLevel.componentWithTerminal: " ++ modname) <? do
-  comps <- components topl modname
+  comps <- components modname
   let pred (GComp gid set) = (Node (x, y) (TermC term)) `elem` set
       result = filter pred comps -- filter out components that don't contain term
   case length result of
@@ -200,36 +201,36 @@ componentWithTerminal topl modname term@(Terminal c3@(Coord3 x y _) _) =
 
 -- | Get a list of input and output terminals in a submodule offset by
 -- the position of the submodule
-terminals :: TopLevel -> SubModule -> J [Terminal]
-terminals topl (SubModule modname offset) = "TopLevel.terminals" <? do
+terminals :: SubModule -> J [Terminal]
+terminals (SubModule modname offset) = "TopLevel.terminals" <? do
   nb $ show ("TopLevel.terminals checks submodule: " ++ modname)
-  mod <- getModule topl modname
+  mod <- getModule modname
   Module.terminals mod offset
 
-terminals topl (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
+terminals (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
   MemUnit.terminals memunit
 
 -- | Get the number of distinct nodes in the schematic
-numComponents :: TopLevel -> String -> J Int
-numComponents topl modname = "TopLevel.numComponents" <? do
-  liftM length $ components topl modname ? "Couldn't get number of componenents"
+numComponents :: String -> J Int
+numComponents modname = "TopLevel.numComponents" <? do
+  liftM length $ components modname ? "Couldn't get number of componenents"
 
 -- | Get the input of a module. This requires tests to be defined in
 -- the module referenced, because .input directive of the test script
 -- indicate the target signals in the schematic
 
-getInputs :: TopLevel -> String -> J Inputs
-getInputs topl modname = "TopLevel.getInputs" <? do
+getInputs :: String -> J Inputs
+getInputs modname = "TopLevel.getInputs" <? do
   nb modname
-  getModule topl modname >>= Module.getInputs 
+  getModule modname >>= Module.getInputs 
 
 -- | Get the outputs of a module. This requires tests to be defined in
 -- the module referenced, because the .output directive of the test
 -- script indicate the source signals in the schematic
 
-getOutputs :: TopLevel -> String -> J Outputs
-getOutputs topl modname = "TopLevel.getOutputs" <? do
-  mod <- getModule topl modname
+getOutputs :: String -> J Outputs
+getOutputs modname = "TopLevel.getOutputs" <? do
+  mod <- getModule modname
   let msg = "TopLevel.getOutputs couldn't find outputs in module: " ++ modname
   Module.getOutputs mod ? msg
 
@@ -244,10 +245,10 @@ getOutputs topl modname = "TopLevel.getOutputs" <? do
 -- clearly indicate a set of driving signals. .output terminals of sub
 -- modules are also driving signals.  
 
-getInputTermDriver :: TopLevel -> String -> Terminal -> J (Maybe Sig)
-getInputTermDriver topl modname term = "TopLevel.getInputTermDriver" <? do
-  m <- getModule topl modname
-  GComp gid nodes <- componentWithTerminal topl modname term
+getInputTermDriver :: String -> Terminal -> J (Maybe Sig)
+getInputTermDriver modname term = "TopLevel.getInputTermDriver" <? do
+  m <- getModule modname
+  GComp gid nodes <- componentWithTerminal modname term
 
   let partList = let ps1 = map nodePart nodes
                      -- remove the source terminal
@@ -258,18 +259,18 @@ getInputTermDriver topl modname term = "TopLevel.getInputTermDriver" <? do
 
   -- check the test script, if any graph comp signals match the .input
   -- lines.  if so, then that's it.
-  (Inputs inputSigs) <- getInputs topl modname
+  (Inputs inputSigs) <- getInputs modname
   let partsMatchingInput = DL.nub [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
   
   case length partsMatchingInput of
     0 -> "no parts matching inputs" <? do
       let terms = [t | (TermC t) <- partList]
-      submods' <- mapM (subModuleWithOutputTerminal topl modname) terms
+      submods' <- mapM (subModuleWithOutputTerminal modname) terms
       let submods = Maybe.catMaybes . concat . concat $ submods'
       case submods of
         [(Terminal coord sig, submod)] -> Just `liftM` Sig.hashMangle (hashid submod) sig 
         [] -> "looking in component attached to terminal" <? do
-          comp <- getComponentWithTerminal topl modname term
+          comp <- getComponentWithTerminal modname term
           nb "Does this component have a .input signal?"
           let quotedSigs = GComp.getQuotedSigs comp
           nb $ "Found quoted signal: " ++ show quotedSigs
@@ -289,9 +290,9 @@ getInputTermDriver topl modname term = "TopLevel.getInputTermDriver" <? do
               Just sig -> return (Just sig)
               Nothing -> die $ "Impossible, no signal was found in this part: " ++ show match
 
-getComponentWithTerminal :: TopLevel -> String -> Terminal -> J GComp
-getComponentWithTerminal topl modname term  = "getComponentWithTerminal" <? do
-  comps <- components topl modname
+getComponentWithTerminal :: String -> Terminal -> J GComp
+getComponentWithTerminal modname term  = "getComponentWithTerminal" <? do
+  comps <- components modname
   let matches =  [c | c <- comps, GComp.hasTerm c term] 
   case matches of
     [c] -> do nb $ "found component with terminal: " ++ show term
@@ -299,37 +300,37 @@ getComponentWithTerminal topl modname term  = "getComponentWithTerminal" <? do
     [] -> die $ "No component found with terminal: " ++ show term
     _ -> impossible $ "More than one component found with terminal: " ++ show term
 
-subModuleWithOutputTerminal topl modname term = "subModuleWithOutputTerminal" <? do
-  allsubs <- getSubModules topl modname
+subModuleWithOutputTerminal modname term = "subModuleWithOutputTerminal" <? do
+  allsubs <- getSubModules modname
   forM allsubs $ \submod@(SubModule subname subloc) -> do
     -- for each submodule check to see if its terminals contain the terminal
-    m <- getModule topl subname
-    subterms <- terminals topl submod
+    m <- getModule subname
+    subterms <- terminals submod
     forM subterms $ \subterm -> do
       if (term == subterm)
         then return $ Just (term, submod)
         else return Nothing
 
-sigConnectedToSubModuleP :: TopLevel -> String -> Sig -> J Bool
-sigConnectedToSubModuleP topl modname sig = do
+sigConnectedToSubModuleP :: String -> Sig -> J Bool
+sigConnectedToSubModuleP modname sig = do
   nb "Check if an output signal is connected to a submodule."
   nb "If not, then code for that connection will need to be generated"
-  gcomps <- components topl modname  
+  gcomps <- components modname  
   nb "Find the components with signal name"
   let compsWithSig = filter (flip GComp.hasSig sig) gcomps
   nb "Of those components, do any have a terminal?"
   return $ or $ map GComp.hasAnyTerm compsWithSig
   
-getCompsWithoutTerms :: TopLevel -> String -> J [GComp]
-getCompsWithoutTerms topl modname = "getCompsWithoutTerms" <?
-  (fmap (filter (not . GComp.hasAnyTerm)) (components topl modname))
+getCompsWithoutTerms :: String -> J [GComp]
+getCompsWithoutTerms modname = "getCompsWithoutTerms" <?
+  (fmap (filter (not . GComp.hasAnyTerm)) (components modname))
 
-replicationDepth topl modname submod  = "TopLevel.replicationDepth" <? do
+replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
   -- get the terminals of the submodule
-  terms <- terminals topl submod
+  terms <- terminals submod
 
   let determineWidthFromTerm t = do
-        comp <- getComponentWithTerminal topl modname t
+        comp <- getComponentWithTerminal modname t
         nb "know the width of the terminals?"
         termWidth <- Part.width (TermC t)
         nb "remove terms from component and guess its width"
@@ -348,21 +349,21 @@ replicationDepth topl modname submod  = "TopLevel.replicationDepth" <? do
   guesses <- mapM determineWidthFromTerm terms
   return $ maximum guesses
   
-getComponentsWithName :: TopLevel -> String -> String -> J [GComp]
-getComponentsWithName topl modname signame = "TopLevel.getComponentsWithName" <? do
-  comps <- components topl modname  
+getComponentsWithName :: String -> String -> J [GComp]
+getComponentsWithName modname signame = "TopLevel.getComponentsWithName" <? do
+  comps <- components modname  
   filterM (flip GComp.containsSigIdent signame) comps
   
-getAllSigNames topl modname = do
-  comps <- components topl modname
+getAllSigNames modname = do
+  comps <- components modname
   let parts = (concat $ map GComp.parts comps)    
   results <- concatMapM Sig.getNames $ [x | Just x <- map Part.sig parts]
   return $ DL.nub results
 
 -- | Given a signal name scour all the components that contains the
 -- name for the total width of all signals with the name.
-getWidthOfSigName topl modname signame = do
-  comps <- getComponentsWithName topl modname signame
+getWidthOfSigName modname signame = do
+  comps <- getComponentsWithName modname signame
   sigs <- concatMapM (flip GComp.getSigsWithIdent signame) comps
   return $ sum $ map Sig.width (DL.nub sigs)
 

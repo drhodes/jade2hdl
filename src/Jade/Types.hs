@@ -21,11 +21,11 @@ import Control.Monad.State
 
 --         Exception handling.
 --         |               Global state for memoization.
---         |               |      State type, memoization lookup table
---         |               |      |     Log handling.
---         |               |      |     |                 return val.
---         |               |      |     |                 |
-type J a = ExceptT String (StateT Memo (Writer [String])) a 
+--         |               |      State type, global
+--         |               |      |      Log handling.
+--         |               |      |      |                  return val.
+--         |               |      |      |                  |
+type J a = ExceptT String (StateT Global (Writer [String])) a 
 
 data Global = Global { globalTopLevel :: TopLevel
                      , globalMemo :: Memo
@@ -35,29 +35,41 @@ data Memo = Memo { memoComps :: DM.Map String [GComp] }
 
 emptyMemo = Memo DM.empty
 
-runX :: J a -> (Either String a, [String])
-runX x = let stateV = runExceptT x
-             writerV = evalStateT stateV emptyMemo
-         in runWriter writerV
 
-runLog :: J a -> String
-runLog x = let log = snd $ runX x
-           in DL.intercalate "\n" ("Cool Story": uniq log)
+getMemo :: J Memo
+getMemo = globalMemo `liftM` get
 
-runJ :: J a -> Either String a
-runJ = fst . runX
+putMemo memo = do
+  Global x _ <- get
+  put $ Global x memo
 
-printJ x = case runJ x of
-             Left msg -> putStrLn msg
-             Right val -> putStrLn $ show val
+getTop :: J TopLevel
+getTop = globalTopLevel `liftM` get
 
-putStrJ x = case runJ x of
-              Left msg -> putStrLn msg
-              Right val -> putStr val
+globalInit topl = Global topl emptyMemo
 
-runJIO :: J (IO a) -> IO String
-runJIO x =
-  case runX x of
+runX :: TopLevel -> J a -> (Either String a, [String])
+runX topl x = let stateV = runExceptT x
+                  writerV = evalStateT stateV (globalInit topl)
+              in runWriter writerV
+
+runLog :: TopLevel -> J a -> String
+runLog topl x = let log = snd $ runX topl x
+                in DL.intercalate "\n" ("Cool Story": uniq log)
+
+runJ topl x = fst (runX topl x)
+
+printJ topl x = case runJ topl x of
+                  Left msg -> putStrLn msg
+                  Right val -> putStrLn $ show val
+
+putStrJ topl x = case runJ topl x of
+                   Left msg -> putStrLn msg
+                   Right val -> putStr val
+
+runJIO :: TopLevel -> J (IO a) -> IO String
+runJIO topl x =
+  case runX topl x of
     (Left msg, log) -> do return $ DL.intercalate "\n" ("Cool Story" : uniq log ++ [msg])
     (Right f, log) -> do f
                          return ""

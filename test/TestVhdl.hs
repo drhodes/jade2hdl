@@ -37,10 +37,10 @@ spawnOneTest jadefile modname = do
   SD.createDirectoryIfMissing False "test-data/auto-vhdl"
   SD.createDirectory autoTestPath
   Right topl <- Decode.decodeTopLevel jadefile
-  errlog <- runJIO $ do
+  errlog <- runJIO topl $ do
     nb $ "spawnOneTest: " ++ modname
-    moduleCode <- Vhdl.mkAllMods topl modname
-    testCode <- Vhdl.mkTestBench topl modname    
+    moduleCode <- Vhdl.mkAllMods modname
+    testCode <- Vhdl.mkTestBench modname    
     return $ TIO.writeFile outfile (T.concat [moduleCode, testCode])
       
   let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }
@@ -166,50 +166,50 @@ testTree2 =
 
 testDUT_UseAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"
-  runJIO $ "testDUT" <? do
+  runJIO topl $ "testDUT" <? do
     let modname = "/user/UseAND2_3"
-    m <- TopLevel.getModule topl modname 
+    m <- TopLevel.getModule modname 
     xs <- Vhdl.mkDUT m modname
     return (putStrLn xs)
 
 testGenVhdlUseAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"
-  runJIO $ "testGenVhdlUseAnd23" <? do
+  runJIO topl $ "testGenVhdlUseAnd23" <? do
     let modname = "/user/UseAND2_3"
-    liftM TIO.putStrLn $ Vhdl.mkCombinationalTest topl modname
+    liftM TIO.putStrLn $ Vhdl.mkCombinationalTest modname
 
 testGenMakeModuleUseAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"
-  runJIO $ "testGenVhdlUseAnd23" <? do
+  runJIO topl $ "testGenVhdlUseAnd23" <? do
     let modname = "/user/UseAND2_3"
-    liftM TIO.putStrLn $ Vhdl.mkModule topl modname
+    liftM TIO.putStrLn $ Vhdl.mkModule modname
 
 testGenMakeModuleAnd41 = do
   Right topl <- Decode.decodeTopLevel "./test-data/And41.json"
-  runJIO $ "testGenMakeModuleAnd41" <? do
+  runJIO topl $ "testGenMakeModuleAnd41" <? do
     let modname = "/user/And41"
-    liftM TIO.putStrLn $ Vhdl.mkModule topl modname
+    liftM TIO.putStrLn $ Vhdl.mkModule modname
 
 testGenMakeModuleAnd41SubMods = do
   Right topl <- Decode.decodeTopLevel "./test-data/And41.json"
-  runJIO $ "testGenMakeModuleAnd41" <? do
+  runJIO topl $ "testGenMakeModuleAnd41" <? do
     let modname = "/user/And41"
-    subs <- TopLevel.getSubModules topl modname
-    liftM print $ mapM (Vhdl.mkSubModuleInstance topl modname) subs
+    subs <- TopLevel.getSubModules modname
+    liftM print $ mapM (Vhdl.mkSubModuleInstance modname) subs
 
 testGenMakeModuleAnd41NodeDecls = do
   Right topl <- Decode.decodeTopLevel "./test-data/And41.json"
-  runJIO $ "testGenMakeModuleAnd41NodeDecls" <? do
+  runJIO topl $ "testGenMakeModuleAnd41NodeDecls" <? do
     let modname = "/user/And41"
-    liftM print $ Vhdl.mkNodeDecls topl modname
+    liftM print $ Vhdl.mkNodeDecls modname
 
 testGenMakeModule = do
   Right topl <- Decode.decodeTopLevel "./test-data/And41.json"
-  runJIO $ "testGenMakeModuleAnd41NodeDecls" <? do
+  runJIO topl $ "testGenMakeModuleAnd41NodeDecls" <? do
     let modname = "/user/And41"
         prelude = decodeUtf8 $(embedFile "app-data/vhdl/prelude.vhdl")
-    moduleCode <- Vhdl.mkModule topl modname
-    testCode <- Vhdl.mkTestBench topl modname 
+    moduleCode <- Vhdl.mkModule modname
+    testCode <- Vhdl.mkTestBench modname 
   
     return $ do
       let outfile = "test-data/vhdl/mod1/" ++ (hashid modname) ++ ".vhdl"
@@ -217,8 +217,8 @@ testGenMakeModule = do
 
 testConnectOutputJumper1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
-  runJIO $ "testConnectOutputJumper1" <? do
+  runJIO topl $ "testConnectOutputJumper1" <? do
     let modname = "/user/Jumper1"
-    liftM print $ Vhdl.connectOutput topl modname (SigSimple "vout")
+    liftM print $ Vhdl.connectOutput modname (SigSimple "vout")
 
 

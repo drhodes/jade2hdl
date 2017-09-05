@@ -14,7 +14,7 @@ import Jade.Rawr.Types
 testWireEnds modname expectedEnds = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   let result = "testWireEnds" <? do
-        Module _ schem _ _ <- TopLevel.getModule topl ("/user/" ++ modname)
+        Module _ schem _ _ <- TopLevel.getModule ("/user/" ++ modname)
         case schem of
           Nothing -> die $ "testWireEnds: No schematic found in module " ++ modname
           Just (Schematic parts) -> do
@@ -28,9 +28,9 @@ testWireEnds modname expectedEnds = do
                       expected expectedEnds ends
               else return ()
 
-  case runJ result of
+  case runJ topl result of
     Right _ -> passes
-    Left msg -> do putStrLn $ runLog result
+    Left msg -> do putStrLn $ runLog topl result
                    fail msg
 
 

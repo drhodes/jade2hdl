@@ -24,15 +24,15 @@ testIcon tname libname modname f = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
 
   let func = testName <? do
-        m <- TopLevel.getModule topl qualModName
+        m <- TopLevel.getModule qualModName
         case moduleIcon m of
           Nothing -> die $ "No icon found for module: " ++ qualModName
           Just icon -> f icon
-  case runJ func of
+  case runJ topl func of
     Right x -> do passes
                   return Pass
     Left msg -> do fails
-                   return $ Fail $ unlines [ msg, runLog func ]
+                   return $ Fail $ unlines [ msg, runLog topl func ]
                      
 testBoundingBox modname (BB x1 y1 x2 y2) = do
   testIcon "testBoundingBox" "/user/" modname $ \icon -> do

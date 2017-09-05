@@ -47,23 +47,23 @@ data ModOutput = ModOutput TermMap deriving (Show, Eq)
 
 flipAssign (SigAssign src tgt) = SigAssign tgt src
 
-connectOneOutput topl modname outSig = "Middle/Types.connectOneOutput" <? do
+connectOneOutput modname outSig = "Middle/Types.connectOneOutput" <? do
   nb "connectOneInput is reused here, the assignments are flipped around"
-  map flipAssign `liftM` connectOneInput topl modname outSig 
+  map flipAssign `liftM` connectOneInput modname outSig 
 
-connectOneInput :: TopLevel -> String -> Sig -> J [SigAssign]
-connectOneInput topl modname (SigConcat sigs) = "Middle/Types.connectOneInput@(SigConcat)" <? do
+connectOneInput :: String -> Sig -> J [SigAssign]
+connectOneInput modname (SigConcat sigs) = "Middle/Types.connectOneInput@(SigConcat)" <? do
   unimplemented
 
-connectOneInput topl modname inSig = "Middle/Types.connectOneInput" <? do  
+connectOneInput modname inSig = "Middle/Types.connectOneInput" <? do  
   inSigNames <- Sig.getNames inSig
   case inSigNames of
     [] -> die "No signames found"
     [signame] -> do
       -- find components with signame
-      comps <- TopLevel.getComponentsWithName topl modname signame
+      comps <- TopLevel.getComponentsWithName modname signame
       -- for each component, assign the signame
-      concatMapM (assignSig topl modname signame) comps
+      concatMapM (assignSig modname signame) comps
     xs -> unimplemented
 
 
@@ -73,7 +73,7 @@ connectOneInput topl modname inSig = "Middle/Types.connectOneInput" <? do
 
 
 -- | assign the signame to the net it's connected to 
-assignSig topl modname signame comp = "Middle/Types.assignSig" <? do
+assignSig modname signame comp = "Middle/Types.assignSig" <? do
   workingSigs <- GComp.getSigsWithIdentNoFlatten comp signame
   exploded <- concatMapM Sig.explode workingSigs
   
@@ -87,9 +87,9 @@ assignSig topl modname signame comp = "Middle/Types.assignSig" <? do
                 | (sig, idx) <- matchedSigs]
   return assigns
 
-sharesInputP topl modname comp = "Middle.Types.sharesInputP" <? do
+sharesInputP modname comp = "Middle.Types.sharesInputP" <? do
   let ts = GComp.getTerminals comp
-  drivers <- mapM (TopLevel.getInputTermDriver topl modname) ts
+  drivers <- mapM (TopLevel.getInputTermDriver modname) ts
   nb "Drivers!!"
   list drivers
   
@@ -98,23 +98,23 @@ sharesInputP topl modname comp = "Middle.Types.sharesInputP" <? do
     else return True
 
 
-sigNameDirection topl modname comp = "Middle.Types.isSigNameDriver" <? do
+sigNameDirection modname comp = "Middle.Types.isSigNameDriver" <? do
   -- does signames share a comp with a terminal that belongs to a submodules Input?
-  sharesInput <- sharesInputP topl modname comp  
+  sharesInput <- sharesInputP modname comp  
   nbf "sharesInput? {0}" [show sharesInput]
   return $ if sharesInput
            then In
            else Out
                 
 ----
-connectSigName topl modname sigName = "Middle/Types.connectSigName" <? do  
+connectSigName modname sigName = "Middle/Types.connectSigName" <? do  
   -- find components with signame
-  comps <- TopLevel.getComponentsWithName topl modname sigName
+  comps <- TopLevel.getComponentsWithName modname sigName
 
   nbf "connectSigName:sigName = {0}" [sigName]
-  dirs <- mapM (sigNameDirection topl modname) comps
+  dirs <- mapM (sigNameDirection modname) comps
   -- for each component, locate the z-index of the signame  
-  assigns <- concatMapM (assignSig topl modname sigName) comps
+  assigns <- concatMapM (assignSig modname sigName) comps
   
   return [case dir of
             In -> flipAssign assn
@@ -127,7 +127,7 @@ genbits n | n == 0 = []
           | otherwise = 1 : (genbits next)
   where next = n `div` 2
 
-connectConstantComp topl modname comp = "Middle.Types/connectConstantComp" <? do
+connectConstantComp modname comp = "Middle.Types/connectConstantComp" <? do
   let quotedSigs = GComp.getQuotedSigs comp
   compWidth <- GComp.width comp
   compName <- GComp.name comp
@@ -218,17 +218,17 @@ buildSubModuleReps inputTermMaps outputTermMaps submod zidx =
                            (map tail outputTermMaps) submod (zidx-1))
 
 --here.
-subModuleInstances :: TopLevel -> String -> SubModule -> J [SubModuleRep]
-subModuleInstances topl modname submod@(SubModule name loc) = do
+subModuleInstances :: String -> SubModule -> J [SubModuleRep]
+subModuleInstances modname submod@(SubModule name loc) = do
   nb "Middle.Types.subModuleInstances"
-  repd <- TopLevel.replicationDepth topl modname submod
-  m <- TopLevel.getModule topl name 
+  repd <- TopLevel.replicationDepth modname submod
+  m <- TopLevel.getModule name 
   
   inputTerms <- Module.getInputTerminals m loc
-  inputComps <- mapM (TopLevel.componentWithTerminal topl modname) inputTerms
+  inputComps <- mapM (TopLevel.componentWithTerminal modname) inputTerms
  
   outputTerms <- Module.getOutputTerminals m loc
-  outputComps <- mapM (TopLevel.componentWithTerminal topl modname) outputTerms
+  outputComps <- mapM (TopLevel.componentWithTerminal modname) outputTerms
 
   inputTermMaps <- zipWithM (replicateOneTerminal repd In) inputTerms (map GComp.removeTerms inputComps)
   outputTermMaps <- zipWithM (replicateOneTerminal repd Out) outputTerms (map GComp.removeTerms outputComps)
@@ -238,22 +238,22 @@ subModuleInstances topl modname submod@(SubModule name loc) = do
 
   buildSubModuleReps itms otms submod (repd - 1)
 
-subModuleInstances topl modname (SubMemUnit memunit) = do
+subModuleInstances modname (SubMemUnit memunit) = do
   nb "Middle.Types.subModuleInstances"
   die "This should not be called on SubMemUnit, instead call memUnitInstance"
   
 
-memUnitInstance :: TopLevel -> String -> MemUnit -> J SubModuleRep
-memUnitInstance topl modname memunit = "Middle/Types.memUnitInstance" <? do
+memUnitInstance :: String -> MemUnit -> J SubModuleRep
+memUnitInstance modname memunit = "Middle/Types.memUnitInstance" <? do
   let zidx = 0
       repd = 1
-  m <- TopLevel.getModule topl modname
+  m <- TopLevel.getModule modname
   
   inputTerms <- MemUnit.getInputTerminals memunit
-  inputComps <- mapM (TopLevel.componentWithTerminal topl modname) inputTerms
+  inputComps <- mapM (TopLevel.componentWithTerminal modname) inputTerms
 
   outputTerms <- MemUnit.getOutputTerminals memunit
-  outputComps <- mapM (TopLevel.componentWithTerminal topl modname) outputTerms
+  outputComps <- mapM (TopLevel.componentWithTerminal modname) outputTerms
   
 
   inputTermMaps <- zipWithM (replicateOneTerminal repd In) inputTerms (map GComp.removeTerms inputComps)

@@ -26,19 +26,19 @@ testSubModBoundingBox modname exp = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
 
   let func = do
-        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        sub <- liftM head $ TopLevel.getSubModules qualModName
         let (SubModule name c3) = sub
         nb $ format "offset coord: {0}" [show c3]
         nb $ show sub
-        m <- TopLevel.getModule topl name
+        m <- TopLevel.getModule name
         bb <- Module.boundingBox m c3
         if bb == exp
           then return ()
           else expected exp bb
           
-  case runJ func of
+  case runJ topl func of
     Right x -> return Pass
-    Left msg -> return $ Fail $ unlines [msg, runLog func]
+    Left msg -> return $ Fail $ unlines [msg, runLog topl func]
 
 
 testBuiltInIconBoundingBox :: String -> IO (Maybe BoundingBox)
@@ -47,23 +47,23 @@ testBuiltInIconBoundingBox modname = do
   Right topl <- Decode.decodeTopLevel (format "./app-data/gates.json" [modname])
 
   let func = do
-        m <- TopLevel.getModule topl qualModName
-        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        m <- TopLevel.getModule qualModName
+        sub <- liftM head $ TopLevel.getSubModules qualModName
         let (SubModule name c3) = sub
         nb $ show c3
-        m <- TopLevel.getModule topl name
+        m <- TopLevel.getModule name
         terms <- Module.terminals m c3
         nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
         let Just icon = moduleIcon m
         bb <- Icon.boundingBox icon
         return bb
         
-  case runJ func of
+  case runJ topl func of
     Right x -> do print x
-                  putStrLn $ runLog func
+                  putStrLn $ runLog topl func
                   return (Just x)
     Left msg -> do putStrLn msg
-                   putStrLn $ runLog func
+                   putStrLn $ runLog topl func
                    return Nothing
 
 testRotateUseAND2Rot90 :: IO [Terminal]
@@ -73,18 +73,18 @@ testRotateUseAND2Rot90 = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
 
   let func = do
-        m <- TopLevel.getModule topl qualModName
-        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        m <- TopLevel.getModule qualModName
+        sub <- liftM head $ TopLevel.getSubModules qualModName
         let (SubModule name c3) = sub
         nb $ show sub
-        m <- TopLevel.getModule topl name
+        m <- TopLevel.getModule name
         terms <- Module.terminals m c3
         return terms
 
   print $ [(16, -8), (8, 24), (24, 24)]
-  case runJ func of
+  case runJ topl func of
     Right x -> do print x
-                  putStrLn $ runLog func
+                  putStrLn $ runLog topl func
                   return x
     Left msg -> do putStrLn msg
                    return undefined
@@ -96,11 +96,11 @@ testIconBoundingBox5 = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
 
   let func = do
-        m <- TopLevel.getModule topl qualModName
-        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        m <- TopLevel.getModule qualModName
+        sub <- liftM head $ TopLevel.getSubModules qualModName
         let (SubModule name c3) = sub
         nb $ show c3
-        m <- TopLevel.getModule topl name
+        m <- TopLevel.getModule name
         terms <- Module.terminals m c3
         nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
         let Just icon = moduleIcon m
@@ -108,12 +108,12 @@ testIconBoundingBox5 = do
         return bb
   
   print $ [(16, -8), (8, 24), (24, 24)]
-  case runJ func of
+  case runJ topl func of
     Right x -> do print x
-                  putStrLn $ runLog func
+                  putStrLn $ runLog topl func
                   return (Just x)
     Left msg -> do putStrLn msg
-                   putStrLn $ runLog func
+                   putStrLn $ runLog topl func
                    return Nothing
 
 testIconBoundingBox5Rot90 :: IO (Maybe BoundingBox)
@@ -123,11 +123,11 @@ testIconBoundingBox5Rot90 = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
 
   let func = do
-        m <- TopLevel.getModule topl qualModName
-        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        m <- TopLevel.getModule qualModName
+        sub <- liftM head $ TopLevel.getSubModules qualModName
         let (SubModule name c3) = sub
         nb $ show c3
-        m <- TopLevel.getModule topl name
+        m <- TopLevel.getModule name
         terms <- Module.terminals m c3
         nb $ show $ map (\(Terminal c3 sig) -> (c3, sig)) terms
         nb $ show $ map (\(Terminal c3 sig) -> (Coord.c3ToPoint c3, sig)) terms
@@ -135,12 +135,12 @@ testIconBoundingBox5Rot90 = do
         bb <- Icon.boundingBox icon
         return bb
   
-  case runJ func of
+  case runJ topl func of
     Right x -> do print x
-                  putStrLn $ runLog func
+                  putStrLn $ runLog topl func
                   return (Just x)
     Left msg -> do putStrLn msg
-                   putStrLn $ runLog func
+                   putStrLn $ runLog topl func
                    return Nothing
 
 testIconBoundingBox6 :: IO (Maybe BoundingBox)
@@ -150,23 +150,23 @@ testIconBoundingBox6 = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
 
   let func = do
-        m <- TopLevel.getModule topl qualModName
-        sub <- liftM head $ TopLevel.getSubModules topl qualModName
+        m <- TopLevel.getModule qualModName
+        sub <- liftM head $ TopLevel.getSubModules qualModName
         let (SubModule name c3) = sub
         nb $ show c3
-        m <- TopLevel.getModule topl name
+        m <- TopLevel.getModule name
         terms <- Module.terminals m c3
         nb $ show $ map (\(Terminal c3 sig) -> (c3, sig)) terms
         let Just icon = moduleIcon m
         bb <- Icon.boundingBox icon
         return bb
   
-  case runJ func of
+  case runJ topl func of
     Right x -> do print x
-                  putStrLn $ runLog func
+                  putStrLn $ runLog topl func
                   return (Just x)
     Left msg -> do putStrLn msg
-                   putStrLn $ runLog func
+                   putStrLn $ runLog topl func
                    return Nothing
 
 hasTerminalsAt2 :: String -> [(Integer, Integer)] -> IO TestState
@@ -175,11 +175,11 @@ hasTerminalsAt2 modname locs = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   
   let func = "hasTerminalsAt2" <? do
-        topm <- TopLevel.getModule topl qualModName
-        sub <- head `liftM` TopLevel.getSubModules topl qualModName
+        topm <- TopLevel.getModule qualModName
+        sub <- head `liftM` TopLevel.getSubModules qualModName
         let (SubModule name c3) = sub        
         nb $ show sub
-        m@(Module _ _ _ maybeIcon) <- TopLevel.getModule topl name
+        m@(Module _ _ _ maybeIcon) <- TopLevel.getModule name
         bb <- case maybeIcon of
           (Just icon) -> do bb <- Icon.boundingBox icon
                             return bb
@@ -190,10 +190,10 @@ hasTerminalsAt2 modname locs = do
         expected locs locs'
         return $ DL.sort locs == DL.sort locs'
 
-  case runJ func of
+  case runJ topl func of
     Right True -> return Pass
     Right False -> return $ Fail $ unlines [ modname
-                                           , runLog func ]
+                                           , runLog topl func ]
     Left msg -> return $ Fail $ unlines [ modname
                                         , msg ]
 
