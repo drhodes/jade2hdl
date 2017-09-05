@@ -28,10 +28,8 @@ import Text.Format
 
 {- how to make the machine understand the protocols of 2 or 3 port
  memory.  Can idris know about this, can the protocol be described in
- the type system?
-
-
--} 
+ the type system? -}
+  
 -- | Get a list of input and output terminals in a memunit submodule
 
 terminals :: MemUnit -> J [Terminal]
@@ -47,14 +45,6 @@ isOutputTerm (Terminal _ s) = do
   return $ DL.isInfixOf "DATA_PORT" names 
 
 isInputTerm t = liftM not (isOutputTerm t)
-
--- centerOffset memunit =
---   let loc = memCoord3 memunit
---       numports = memNumPorts memunit
---   in case numports of
---     1 -> (0, 0)
---     2 -> (28, undefined)
---     3 -> (28, undefined)
 
 buildPort mem@(MemUnit name loc _ nports naddr ndata) portno = "MemUnit.buildPort" <? do
   let sigport name = format "{0}_PORT{1}" [name, show portno]

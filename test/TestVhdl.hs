@@ -69,13 +69,26 @@ spawnOneTest jadefile modname = do
                                                   , errlog 
                                                   , show err
                                                   ]
+
+testTree = TestTree "Vhdl" [ testTreeReplication
+                           , testTreeBuffer
+                           , testTreeMemUnit
+                           , testTree1
+                           , testTree2
+                           ]
                             
 testTreeBuffer =
   let node s = TestCase s (spawn (ModPath "./test-data" s))
   in TestTree "Buffers" $ map node [ "Buffer4"
                                    , "Buffer5"
-                                   , "Buffer6"
-                                   ]
+                                   , "Buffer6" ]
+
+testTreeMemUnit = let node s = TestCase s (spawn (ModPath "./test-data" s))
+            in TestTree "MemUnit" $ map node [ "MemUnit1"
+                                             , "MemUnitMoved1"
+                                             , "MemUnitRotate1"
+                                             , "MemUnitRotate2"
+                                             , "MemUnit2" ]
 
 testTree1 = let node s = TestCase s (spawn (ModPath "./test-data" s))
             in TestTree "One" $ map node [ "Jumper1"
@@ -112,11 +125,6 @@ testTree1 = let node s = TestCase s (spawn (ModPath "./test-data" s))
                                          , "CLA32"
                                          , "GarrInc4"
                                          , "AndStuff6"
-                                         , "MemUnit1"
-                                         , "MemUnitMoved1"
-                                         , "MemUnitRotate1"
-                                         , "MemUnitRotate2"
-                                         , "MemUnit2"
                                          , "zreg"
                                          , "zreg2"
                                          , "CycleIdentity1"
@@ -155,11 +163,6 @@ testTree2 =
                     , testcase "./test-data/SubmodAnd6.json" "/user/submod/and6"
                     ]
 
-testTree = TestTree "Vhdl" [ testTreeReplication
-                           , testTreeBuffer
-                           , testTree1
-                           , testTree2
-                           ]
 
 testDUT_UseAnd23 = do
   Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"

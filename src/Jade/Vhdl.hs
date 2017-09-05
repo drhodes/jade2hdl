@@ -4,32 +4,29 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 module Jade.Vhdl where
 
-import qualified Data.Map as DM
-import qualified Data.List as DL
-import Jade.Types
-import qualified Jade.Part as Part
-import qualified Jade.TopLevel as TopLevel
-import qualified Jade.Decode as Decode
-import qualified Jade.Module as Module
-import qualified Jade.UnionFindST as UnionFindST
-import qualified Jade.Sig as Sig
-import qualified Jade.GComp as GComp
-import qualified Jade.ModTest as ModTest
-import qualified Jade.Middle.Types as MT
-import qualified Jade.MemUnit as MemUnit
-
 import Control.Monad
+import Data.FileEmbed
+import Data.Text.Encoding
+import Jade.Types
 import Jade.Util
-import Text.Mustache.Compile (mustache)
 import Text.Format
 import Text.Mustache
-import Text.Mustache.Parser
-import Text.Mustache.Compile
-import Data.FileEmbed
-import qualified Data.Text as T
+import Text.Mustache.Compile (mustache)
+import qualified Data.List as DL
 import qualified Data.Map as DM
-import Data.Text.Encoding
+import qualified Data.Map as DM
+import qualified Data.Text as T
 import qualified Data.Text.IO as DT
+import qualified Jade.Decode as Decode
+import qualified Jade.GComp as GComp
+import qualified Jade.MemUnit as MemUnit
+import qualified Jade.Middle.Types as MT
+import qualified Jade.ModTest as ModTest
+import qualified Jade.Module as Module
+import qualified Jade.Part as Part
+import qualified Jade.Sig as Sig
+import qualified Jade.TopLevel as TopLevel
+import qualified Jade.UnionFindST as UnionFindST
 
 mkTestLine :: Module -> [Action] -> TestLine -> Integer -> J [String]
 mkTestLine _ [] _ _ = return []
@@ -164,15 +161,15 @@ mkCombinationalTest topl modname =
 ------------------------------------------------------------------
 --mkModule :: TopLevel -> String -> J Maybe String)
 
-renderPort dir (SigConcat _) = die "Vhdl.mkModule/renderPort doesn't support SigConcat"
-renderPort dir sig = do
+genPort dir (SigConcat _) = die "Vhdl.mkModule/genPort doesn't support SigConcat"
+genPort dir sig = do
   [name] <- Sig.getNames sig
   let w = Sig.width sig
   return $ format "{0}: {1} std_logic_vector({2} downto 0)" [ name, dir, show $ w - 1]
 
 genPorts ins outs = do
-  portIns <- mapM (renderPort "in") ins
-  portOuts <- mapM (renderPort "out") outs
+  portIns <- mapM (genPort "in") ins
+  portOuts <- mapM (genPort "out") outs
   return $ T.pack $ DL.intercalate ";\n" (concat [portIns, portOuts])
 
 mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
@@ -191,14 +188,14 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
   
   nodeDecls <- mkNodeDecls topl modname
   
-  nodeDeclsNotFromInput <- mkNodeDeclsNotFromInput topl modname  
-  keepers <- internalSigNames topl modname
+  -- nodeDeclsNotFromInput <- mkNodeDeclsNotFromInput topl modname  
+  -- keepers <- internalSigNames topl modname
   
-  internalAssigns <- concatMapM (MT.connectSigName topl modname) keepers
-  internalAssignsTxt <- withSemiColonNewLines `liftM` mapM mkTermAssign internalAssigns
+  -- internalAssigns <- concatMapM (MT.connectSigName topl modname) keepers
+  -- internalAssignsTxt <- withSemiColonNewLines `liftM` mapM mkTermAssign internalAssigns
 
-  nb "!! internalAssigns"
-  list internalAssigns
+  -- nb "!! internalAssigns"
+  -- list internalAssigns
 
   outMap <- mapM (connectOutput topl modname) outs
   outputWires <- T.intercalate (T.pack "\n") `liftM` (return outMap)
@@ -212,10 +209,10 @@ mkModule topl modname = ("Vhdl.mkModule: " ++ modname) <? do
       mapping = DM.fromList
         [ ("module-name", toMustache (Module.mangleModName modname))
         , ("ports", toMustache ports)
-        , ("node-declarations", toMustache (nodeDecls ++ nodeDeclsNotFromInput))
+        , ("node-declarations", toMustache (nodeDecls)) -- ++ nodeDeclsNotFromInput))
         , ("submodule-entity-instances", toMustache  (T.intercalate  (T.pack "\n") instances))
         , ("maybe-wire-input", toMustache inputWires) 
-        , ("maybe-internal-assignments", toMustache internalAssignsTxt)
+        --, ("maybe-internal-assignments", toMustache internalAssignsTxt)
         , ("maybe-wire-constants", toMustache constantWires)
         , ("maybe-wire-output", toMustache outputWires)
         ]
