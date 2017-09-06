@@ -36,7 +36,6 @@ mkTestLine m (act:actions) testline testnum = "Vhdl.mkTestLine" <? do
   let splitAssert [] xs = [xs]
       splitAssert widths xs = let n = fromIntegral $ head widths
                               in (take n xs) : (splitAssert (tail widths) (drop n xs))
-
   let Just modt = moduleTest m
   
   case act of
@@ -201,7 +200,7 @@ mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
 
   -- TODO this is where all the spaces are being inserted.
   constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant modname) nets
-
+  
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt
       mapping = DM.fromList

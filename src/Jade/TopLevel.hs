@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Jade.TopLevel where
 
+
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.List as DL
@@ -125,14 +126,14 @@ connectWiresWithSameSigName parts = "connectWiresWithSameSigName" <? do
                       wc2@(WireC w2) <- parts, (w1 /= w2) && (w1 `Wire.hasSameSig` w2)]
   return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | [WireC w1, WireC w2] <- pairs]
 
-nets  :: String -> J [Net] 
+nets :: String -> J [Net] 
 nets modname = "TopLevel.nets" <? do
   -- memoize
   Memo table <- getMemo
   case DM.lookup modname table of
-    -- Already netuted this net, so return it.
+    -- Already computed this net, so return it.
     Just nets -> return nets
-    -- Netute the net, insert it into the memo map, then return it.
+    -- Compute the net, insert it into the memo map, then return the net
     Nothing -> do cs <- nets' modname
                   putMemo $ Memo (DM.insert modname cs table)
                   return cs

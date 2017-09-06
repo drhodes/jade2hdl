@@ -43,7 +43,10 @@ uniq (x:y:rest) = if x == y
                   then uniq (y:rest)
                   else x : (uniq (y:rest))
 
+
+-- | break a list into *n* equally sized lists
 chunk :: Integral t => t -> [a] -> [[a]]
+--chunk 0 xs = [xs]
 chunk n [] = []
 chunk n xs = take (fromIntegral n) xs : chunk (fromIntegral n) (drop (fromIntegral n) xs)
 
@@ -52,6 +55,8 @@ strip x = let x1 = dropWhile DC.isSpace x
           in reverse x2
 
 quote x = ['"'] ++ x ++ ['"']
+
+
 
 bust :: [Int] -> [a] -> [[a]]
 bust _ [] = []
@@ -97,3 +102,6 @@ contains a b = DL.isInfixOf b a
 downFrom n = [n, n-1 .. 0]
 
 filterOut f xs = filter (not . f) xs
+
+evenlyDivides x y = let n = y `div` x
+                    in n * x == y

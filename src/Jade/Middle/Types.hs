@@ -137,7 +137,7 @@ connectConstantNet modname net = "Middle.Types/connectConstantNet" <? do
         let msg = "width mismatch in signals net width: {0} and constant width: {1}"
         die $ format msg [show netWidth, show numBits]
 
-      -- this is a twos netlement representation.
+      -- this is a twos complement representation.
       let bits = reverse $ take (fromInteger numBits) $ (genbits val) ++ repeat 0
           
       nb "The targets are the net replicated"
@@ -156,10 +156,12 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) net =
   netId <- Net.name net
   termWidth <- Part.width (TermC term)
   nb $ format "NetWidth: {0}, netId: {1}, termWidth: {2}, repd: {3}" [ show netWidth
-                                                                       , show netId
-                                                                       , show termWidth
-                                                                       , show numReplications ]
+                                                                     , show netId
+                                                                     , show termWidth
+                                                                     , show numReplications ]
   termSigs <- Sig.explode sig
+  bailWhen (length termSigs == 0)
+
   
   case termWidth of
     Just termWidth ->
@@ -169,16 +171,20 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) net =
             -- the net has wirewidth equal to the full
             -- replication width, so the net will need to be
             -- sliced in slices equal to the width of the terminal.
-
          then do nb "case netWidth == totalWidth"
-                 let singles = reverse [0 .. totalWidth - 1]
-                     srcs = map (SigIndex netId) singles
-                     tmap = zipWith (TermAssoc In) srcs (cycle termSigs)
-                 return $ case dir of
-                            In  -> tmap
-                            Out -> flipTermMap tmap
-                     
-         else case netWidth < totalWidth of
+                 let singles = map (SigIndex netId) $ downFrom (netWidth - 1)                     
+                     srcs = concat $ DL.transpose $ chunk termWidth singles
+                     tmap = take (fromInteger totalWidth) (zipWith (TermAssoc In)
+                                                            (cycle srcs)
+                                                            (cycle termSigs))
+                 output <- return $ case dir of
+                                      In -> tmap
+                                      Out -> flipTermMap tmap
+                 nb "!! term map"
+                 list output                 
+                 return output
+         else case netWidth < totalWidth of                
+                 -- problem in here.
                 True -> do
                   nb "case netWidth < totalWidth"
                   nb $ format "netWidth: {0}, totalWidth {1}" [show netWidth, show totalWidth]
@@ -186,11 +192,12 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) net =
                   -- of the replicated submodules. The net input
                   -- signal will have to be replicated to match the
                   -- width of the replicated submodules.
-                  let srcs = map (SigIndex netId) (reverse [0 .. netWidth -1])
-                      srcReplication = cycle srcs
+                  let singles = map (SigIndex netId) $ downFrom (netWidth - 1)
+                      srcs = concat $ DL.transpose $ chunk termWidth singles
                       tmap = take (fromIntegral totalWidth) (cycle $ zipWith (TermAssoc In)
                                                               (cycle srcs)
                                                               (cycle termSigs))
+                  
                   return $ case dir of
                              In -> tmap
                              Out -> flipTermMap tmap

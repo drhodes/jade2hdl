@@ -56,7 +56,8 @@ width net = "Net.width" <? do
                then return 1
                else return $ maximum $ map Sig.width sigs
       -- at least one wire width was specified by the user, so use that.
-      widths -> return $ maximum widths
+      widths -> let w = maximum widths in return $ if w < 1 then 1 else w
+           
 
 parts net = let (Net _ nodes) = removeTerms net
               in map nodePart nodes 

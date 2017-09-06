@@ -72,9 +72,10 @@ runJIO topl x =
   case runX topl x of
     (Left msg, log) -> do return $ DL.intercalate "\n" ("Cool Story" : uniq log ++ [msg])
     (Right f, log) -> do f
-                         return ""
+                         return $ DL.intercalate "\n" ("Cool Story" : uniq log)
 
 die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
+dief msg xs = die (format msg xs)
 impossible msg = die $ "The impossible happened: " ++ msg
 
 unimplemented :: J a

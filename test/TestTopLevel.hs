@@ -240,14 +240,13 @@ testTree = TestTree "TopLevel" [ testTreeNumNets
 testTreeGetNetsWithNameAll =
   let t modname signame exp = TestCase modname (testGetNetsWithName modname signame exp)
   in TestTree "getNetsWithName" [ t "RepAnd2" "IN2" 1
-                                      , t "RepAnd2" "IN1" 1
-                                      , t "RepAnd2" "OUT1" 1
-                                      , t "RepAnd2" "FARFENNUGEN" 0
-                                      , t "Jumper1" "A" 1
-                                      , t "Jumper1" "VOUT" 1
-                                      , t "BuiltInAnd4Messy" "VOUT" 1
-
-                                      ]
+                                , t "RepAnd2" "IN1" 1
+                                , t "RepAnd2" "OUT1" 1
+                                , t "RepAnd2" "FARFENNUGEN" 0
+                                , t "Jumper1" "A" 1
+                                , t "Jumper1" "VOUT" 1
+                                , t "BuiltInAnd4Messy" "VOUT" 1                                
+                                ]
 
 testTreeReplicationDepth =
   let t modname exp = TestCase modname (testReplicationDepth modname exp)
@@ -258,6 +257,7 @@ testTreeReplicationDepth =
                                     , t "RepAnd2" 2
                                     , t "RepAnd3" 4
                                     , t "RepAnd4" 4
+                                    , t "RepWonkyBuffer1" 2
                                     ]
 
 testGetWidthOfSigName modname signame expectedWidth = do
@@ -280,6 +280,8 @@ testTreeGetWidthOfSigName =
                                   , t "Rep1FA2" "B" 2
                                   , t "Rep1FA2" "CIN" 1
                                   , t "Rep1FA2" "COUT" 1
+                                  , t "Buffer7" "X" 1
+                                  , t "Buffer7" "OUT1" 3
                                   ]
 
 testTreeTerminals =

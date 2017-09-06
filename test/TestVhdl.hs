@@ -42,11 +42,12 @@ spawnOneTest jadefile modname = do
     moduleCode <- Vhdl.mkAllMods modname
     testCode <- Vhdl.mkTestBench modname    
     return $ TIO.writeFile outfile (T.concat [moduleCode, testCode])
-      
+    
   let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }
   let preludePath = "../../../app-data/vhdl/prelude.vhdl"
       cmd1 = sh $ format "ghdl -a -g --std=08 {0} *.vhdl" [preludePath]
       cmd2 = sh $ format "ghdl -r --std=08 {0} --vcd={0}.vcd" [tbname]
+
   
   (ecode, stdout, stderr) <- readCreateProcessWithExitCode cmd1 ""
   case ecode of
@@ -81,7 +82,9 @@ testTreeBuffer =
   let node s = TestCase s (spawn (ModPath "./test-data" s))
   in TestTree "Buffers" $ map node [ "Buffer4"
                                    , "Buffer5"
-                                   , "Buffer6" ]
+                                   , "Buffer6"
+                                   , "WonkyBuffer1"
+                                   ]
 
 testTreeMemUnit = let node s = TestCase s (spawn (ModPath "./test-data" s))
             in TestTree "MemUnit" $ map node [ "MemUnit1"
@@ -141,14 +144,15 @@ testTreeReplication =
   map node [ "RepAnd2"
            , "RepAnd3"
            , "RepAnd4"
-           , "Rep1FA2"
-           , "Rep1FA2"
-           , "Ripple32"
            , "Mux21Rep4"
            , "Mux21Rep32"
-           , "ZipReplication"
            , "Mux4Rep1"
-           , "Bool2"                                       
+           , "Buffer7"
+           --, "RepWonkyBuffer1"
+           --, "ZipReplication"
+           --, "Rep1FA2"
+           --, "Ripple32"
+           --, "Bool2"                                       
            ]
                
 spawn (ModPath path filename) =
