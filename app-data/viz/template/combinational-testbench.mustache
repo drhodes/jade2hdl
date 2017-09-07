@@ -1,0 +1,25 @@
+-- Combinational testbench. ---------------------------------------
+library STD;
+use STD.textio.all;                     -- basic I/O
+use STD.env.all;
+library IEEE;
+use IEEE.std_logic_1164.all;            -- basic logic types
+use IEEE.std_logic_textio.all;          -- I/O for logic types
+use ieee.numeric_std.all;  
+
+entity {{testbench-name}} is end entity {{testbench-name}};
+architecture behavior of {{testbench-name}} is
+
+  {{{signal-decls}}}
+
+begin
+
+  {{{dut}}}
+  process
+  begin
+    -------------------------------------------------------
+    {{{test-cases}}}
+
+    finish(0);
+  end process;
+end behavior;

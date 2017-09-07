@@ -37,6 +37,7 @@ library
                      , Jade.MemUnit
                      , Jade.Middle.Types
                      , Jade.Rawr.Types
+                     , Jade.Back.Viz
                      , TestModule
                      , TestUtil                    
   build-depends:       QuickCheck >= 2.9.2,
@@ -88,6 +89,7 @@ executable jade2hdl
                      , string-class >= 0.1.6.5
                      , transformers >= 0.5.2.0
                      , vector >= 0.11.0.0
+                     , text >= 1.2.2.1
   default-language:    Haskell2010
 
 test-suite jade2hdl-test

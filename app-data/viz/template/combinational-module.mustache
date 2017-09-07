@@ -1,0 +1,20 @@
+
+digraph {{module-name}} IS {
+        graph [fontsize=30 labelloc="t" label="" splines=true overlap=false rankdir = "LR"];
+        {{{ports}}};
+
+  // node declarations
+  {{{node-declarations}}}
+  // each submodule is wired up here.
+  {{{submodule-entity-instances}}}
+  // maybe-wire-input(s)
+  {{{maybe-wire-input}}}
+  // maybe-internal-assignment(s)
+  {{{maybe-internal-assignments}}}
+
+  // maybe-wire-constants(s)
+  {{{maybe-wire-constants}}}
+  // maybe-wire-output(s)
+  {{{maybe-wire-output}}}
+
+}
