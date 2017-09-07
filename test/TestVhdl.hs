@@ -47,7 +47,6 @@ spawnOneTest jadefile modname = do
   let preludePath = "../../../app-data/vhdl/prelude.vhdl"
       cmd1 = sh $ format "ghdl -a -g --std=08 {0} *.vhdl" [preludePath]
       cmd2 = sh $ format "ghdl -r --std=08 {0} --vcd={0}.vcd" [tbname]
-
   
   (ecode, stdout, stderr) <- readCreateProcessWithExitCode cmd1 ""
   case ecode of
@@ -148,13 +147,14 @@ testTreeReplication =
            , "Mux21Rep32"
            , "Mux4Rep1"
            , "Buffer7"
+           , "RepWonkyBuffer1Exp"
            --, "RepWonkyBuffer1"
            --, "ZipReplication"
            --, "Rep1FA2"
            --, "Ripple32"
            --, "Bool2"                                       
            ]
-               
+  
 spawn (ModPath path filename) =
   let testPath = path ++ "/" ++ filename ++ ".json"
       modname = "/user/" ++ filename
