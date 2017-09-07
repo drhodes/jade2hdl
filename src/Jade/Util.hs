@@ -44,7 +44,7 @@ uniq (x:y:rest) = if x == y
                   else x : (uniq (y:rest))
 
 
--- | break a list into *n* equally sized lists
+-- | break a list into a number of n-sized lists
 chunk :: Integral t => t -> [a] -> [[a]]
 --chunk 0 xs = [xs]
 chunk n [] = []

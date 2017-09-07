@@ -173,16 +173,13 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) net =
             -- sliced in slices equal to the width of the terminal.
          then do nb "case netWidth == totalWidth"
                  let singles = map (SigIndex netId) $ downFrom (netWidth - 1)                     
-                     srcs = concat $ DL.transpose $ chunk termWidth singles
+                     srcs = concat $ DL.transpose $ chunk numReplications singles
                      tmap = take (fromInteger totalWidth) (zipWith (TermAssoc In)
                                                             (cycle srcs)
                                                             (cycle termSigs))
-                 output <- return $ case dir of
-                                      In -> tmap
-                                      Out -> flipTermMap tmap
-                 nb "!! term map"
-                 list output                 
-                 return output
+                 return $ case dir of
+                            In -> tmap
+                            Out -> flipTermMap tmap
          else case netWidth < totalWidth of                
                  -- problem in here.
                 True -> do
@@ -193,7 +190,7 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) net =
                   -- signal will have to be replicated to match the
                   -- width of the replicated submodules.
                   let singles = map (SigIndex netId) $ downFrom (netWidth - 1)
-                      srcs = concat $ DL.transpose $ chunk termWidth singles
+                      srcs = concat $ DL.transpose $ chunk numReplications singles
                       tmap = take (fromIntegral totalWidth) (cycle $ zipWith (TermAssoc In)
                                                               (cycle srcs)
                                                               (cycle termSigs))

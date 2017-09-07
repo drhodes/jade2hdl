@@ -148,7 +148,7 @@ testTreeReplication =
            , "Mux4Rep1"
            , "Buffer7"
            , "RepWonkyBuffer1Exp"
-           --, "RepWonkyBuffer1"
+           , "RepWonkyBuffer1"
            --, "ZipReplication"
            --, "Rep1FA2"
            --, "Ripple32"
