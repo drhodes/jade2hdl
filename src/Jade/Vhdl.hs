@@ -14,7 +14,6 @@ import Text.Mustache
 import Text.Mustache.Compile (mustache)
 import qualified Data.List as DL
 import qualified Data.Map as DM
-import qualified Data.Map as DM
 import qualified Data.Text as T
 import qualified Data.Text.IO as DT
 import qualified Jade.Decode as Decode
@@ -31,7 +30,7 @@ import qualified Jade.UnionFindST as UnionFindST
 mkTestLine :: Module -> [Action] -> TestLine -> Integer -> J [String]
 mkTestLine _ [] _ _ = return []
 mkTestLine m (act:actions) testline testnum = "Vhdl.mkTestLine" <? do  
-  let recurse x = liftM (x++) (mkTestLine m actions testline testnum)
+  let recurse x = (x++) <$> mkTestLine m actions testline testnum
 
   let splitAssert [] xs = [xs]
       splitAssert widths xs = let n = fromIntegral $ head widths
@@ -184,22 +183,13 @@ mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
   ports <- genPorts ins outs
   
   nodeDecls <- mkNodeDecls modname
-  
-  -- nodeDeclsNotFromInput <- mkNodeDeclsNotFromInput topl modname  
-  -- keepers <- internalSigNames topl modname
-  
-  -- internalAssigns <- concatMapM (MT.connectSigName topl modname) keepers
-  -- internalAssignsTxt <- withSemiColonNewLines `liftM` mapM mkTermAssign internalAssigns
-
-  -- nb "!! internalAssigns"
-  -- list internalAssigns
 
   outMap <- mapM (connectOutput modname) outs
-  outputWires <- T.intercalate (T.pack "\n") `liftM` (return outMap)
+  outputWires <- T.intercalate (T.pack "\n") <$> (return outMap)
   inputWires <- connectAllInputs modname ins
 
   -- TODO this is where all the spaces are being inserted.
-  constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant modname) nets
+  constantWires <- T.intercalate (T.pack "\n") <$> mapM (connectConstant modname) nets
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt
@@ -209,7 +199,6 @@ mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
         , ("node-declarations", toMustache (nodeDecls)) -- ++ nodeDeclsNotFromInput))
         , ("submodule-entity-instances", toMustache  (T.intercalate  (T.pack "\n") instances))
         , ("maybe-wire-input", toMustache inputWires) 
-        --, ("maybe-internal-assignments", toMustache internalAssignsTxt)
         , ("maybe-wire-constants", toMustache constantWires)
         , ("maybe-wire-output", toMustache outputWires)
         ]
@@ -217,8 +206,8 @@ mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
 
 mkAllMods modname = "Vhdl.mkAllMods" <? do
   userModNames <- TopLevel.dependencyOrder modname
-  T.concat `liftM` mapM mkModule (userModNames ++ [modname])
-  
+  T.concat <$> mapM mkModule (userModNames ++ [modname])
+
 ------------------------------------------------------------------
 comma = T.pack ", \n"
 
@@ -285,7 +274,7 @@ mkSubModuleInstance modname submod@(SubModule name loc) =
                                   , ("port-map", toMustache portmap)
                                   ]
         return $ substitute template mapping
-  liftM (T.intercalate (T.pack "\n")) $ mapM mkOneInstance subModuleReps
+  T.intercalate (T.pack "\n") <$> mapM mkOneInstance subModuleReps
 
 mkSubModuleInstance modname mem@(SubMemUnit memunit) =
   "Jade.Vhdl.mkSubModuleInstance" <? do
@@ -373,7 +362,7 @@ withSemiColonNewLines txts = T.concat [T.append t (T.pack ";\n") | t <- txts]
 connectOutput :: String -> Sig -> J T.Text
 connectOutput modname outSig = "Vhdl.connectOutput" <? do
   assignMap <- MT.connectOneOutput modname outSig
-  withSemiColonNewLines `liftM` mapM mkTermAssign assignMap
+  withSemiColonNewLines <$> mapM mkTermAssign assignMap
 
 -- If input signals are not connected directly to a submodule output,
 -- then there is no structural input for that input.
@@ -381,9 +370,9 @@ connectAllInputs modname inSigs = "Vhdl.connectAllInputs" <? do
   nb "!! connectAllInputs.inSigs"
   list inSigs
   assignMap <- concatMapM (MT.connectOneInput modname) inSigs
-  withSemiColonNewLines `liftM` mapM mkTermAssign assignMap
+  withSemiColonNewLines <$> mapM mkTermAssign assignMap
   
 connectConstant :: String -> Net -> J T.Text
 connectConstant modname net = "Vhdl.connectConstant" <? do
   assignMap <- MT.connectConstantNet modname net
-  withSemiColonNewLines `liftM` mapM mkTermAssign assignMap
+  withSemiColonNewLines <$> mapM mkTermAssign assignMap

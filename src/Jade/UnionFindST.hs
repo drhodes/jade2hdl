@@ -20,32 +20,30 @@ data UnionFind s = UnionFind { ids :: STUArray s Int Int
 newUnionFind :: Int -> ST s (UnionFind s)
 newUnionFind n = liftM2 UnionFind (newListArray (0, n-1) [0..n-1]) (newArray (0, n-1) 1)
 
-find :: (UnionFind s) -> Int -> Int -> ST s Bool
+find :: UnionFind s -> Int -> Int -> ST s Bool
 find uf p q = liftM2 (==) (root uf p) (root uf q)
 
-root :: (UnionFind s) -> Int -> ST s Int
+root :: UnionFind s -> Int -> ST s Int
 root uf i = do
     id <- readArray (ids uf) i
-    if (id /= i)
+    if id /= i
         then do
             gpid <- readArray (ids uf) id
             writeArray (ids uf) i gpid
             root uf id
         else return i
 
-unite :: (UnionFind s) -> Int -> Int -> ST s ()
+unite :: UnionFind s -> Int -> Int -> ST s ()
 unite uf p q = do
     i <- root uf p
     j <- root uf q
     szi <- readArray (szs uf) i
     szj <- readArray (szs uf) j
-    if (szi < szj)
-        then do
-            writeArray (ids uf) i j
-            writeArray (szs uf) j (szi + szj)
-        else do
-            writeArray (ids uf) j i
-            writeArray (szs uf) i (szj + szi)
+    if szi < szj
+      then do writeArray (ids uf) i j
+              writeArray (szs uf) j (szi + szj)
+      else do writeArray (ids uf) j i
+              writeArray (szs uf) i (szj + szi)
             
 -- end of swipe from
 -- https://gist.github.com/kseo/8693028
@@ -65,7 +63,7 @@ collect :: UnionFind s -> [Int] -> ST s [[Int]]
 collect _ [] = return []
 collect uf (x:rest) = do
   (cnx, notcnx) <- partitionM (find uf x) rest
-  liftM (cnx:) (collect uf notcnx)
+  (cnx:) <$> collect uf notcnx
 
 components edges = runST $ do
   let nodes = DL.nub $ DL.sort $ concat [[n1, n2] | Edge n1 n2 <- edges]
@@ -90,6 +88,7 @@ nameComp (Net gid nodes) = "UnionFind.nameComp" <? do
       signals1 = [signal | WireC (Wire _ (Just signal)) <- parts]
       names = [n | Signal (Just (SigSimple n)) _ _ <- signals1] -- ++ signals2]
       genNameLen = 10
-  return $ if length names > 0
-           then head names
-           else take genNameLen $ "wire_" ++ show gid
+  return $ if null names
+           then take genNameLen $ "wire_" ++ show gid
+           else head names
+

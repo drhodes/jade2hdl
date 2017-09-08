@@ -64,7 +64,7 @@ bust (chunk:rest) xs = take chunk xs : (bust rest $ drop chunk xs)
 
 removeQuotes = filter (/= '"') 
 
-concatMapM f xs = concat `liftM` mapM f xs
+concatMapM f xs = concat <$> mapM f xs
 
 hashid :: Hashable a => a -> String
 hashid x =

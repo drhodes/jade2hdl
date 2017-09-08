@@ -19,7 +19,7 @@ sig part =
 
 containsIdentifier :: Part -> String -> J Bool
 containsIdentifier part ident = case sig part of
-                                  Just s -> liftM (ident `elem`) $ Sig.getNames s
+                                  Just s -> (ident `elem`) <$> Sig.getNames s
                                   Nothing -> return False
 
 hasSigName :: Part -> Bool
@@ -49,10 +49,10 @@ width part = do
   nb $ show part
   case part of 
     PortC (Port _ (Just s)) -> return $ Signal.width s
-    PortC (Port _ (Nothing)) -> return Nothing
+    PortC (Port _ Nothing) -> return Nothing
     WireC (Wire _ (Just s)) -> do
       nb $ "For this wire: " ++ show part
-      nb $ "Found width:   " ++ (show $ Signal.width s)
+      nb $ "Found width:   " ++ show $ Signal.width s
       return $ Signal.width s
     WireC (Wire _ Nothing) -> return $ Just 1
     TermC (Terminal _ s) -> return $ Just $ Sig.width s

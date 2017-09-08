@@ -214,7 +214,7 @@ terminals (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
 -- | Get the number of distinct nodes in the schematic
 numNets :: String -> J Int
 numNets modname = "TopLevel.numNets" <? do
-  liftM length $ nets modname ? "Couldn't get number of netonenents"
+  length <$> nets modname ? "Couldn't get number of netonenents"
 
 -- | Get the input of a module. This requires tests to be defined in
 -- the module referenced, because .input directive of the test script
@@ -269,7 +269,7 @@ getInputTermDriver modname term = "TopLevel.getInputTermDriver" <? do
       submods' <- mapM (subModuleWithOutputTerminal modname) terms
       let submods = Maybe.catMaybes . concat . concat $ submods'
       case submods of
-        [(Terminal coord sig, submod)] -> Just `liftM` Sig.hashMangle (hashid submod) sig 
+        [(Terminal coord sig, submod)] -> Just <$> Sig.hashMangle (hashid submod) sig 
         [] -> "looking in net attached to terminal" <? do
           net <- getNetWithTerminal modname term
           nb "Does this net have a .input signal?"

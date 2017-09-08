@@ -70,4 +70,4 @@ name net@(Net gid nodes) = "Net.name" <? do
 containsSigIdent :: Net -> String -> J Bool
 containsSigIdent net sigIdent = "Net.containsSigIdent" <? do
   -- does this net contain a sig with name sigName?
-  or `liftM` mapM (flip Part.containsIdentifier sigIdent) (parts net)
+  or <$> mapM (flip Part.containsIdentifier sigIdent) (parts net)

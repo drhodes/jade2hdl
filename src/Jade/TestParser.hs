@@ -67,13 +67,11 @@ sigRangeStep = do name <- symbol
 
 hex :: Parser Integer
 hex = do string "0"
-         n <- TPN.hexadecimal
-         return n
+         TPN.hexadecimal
            
 bin :: Parser Integer
 bin = do string "0b"
-         n <- TPN.binary
-         return n
+         TPN.binary
 
 number :: Parser Integer
 number = choice [try hex, try bin]

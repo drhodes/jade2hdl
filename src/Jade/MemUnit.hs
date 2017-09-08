@@ -41,10 +41,10 @@ getOutputTerminals memunit = terminals memunit >>= filterM isOutputTerm
 
 isOutputTerm :: Terminal -> J Bool
 isOutputTerm (Terminal _ s) = do
-  names <- concat `liftM` Sig.getNames s
+  names <- concat <$> Sig.getNames s
   return $ DL.isInfixOf "DATA_PORT" names 
 
-isInputTerm t = liftM not (isOutputTerm t)
+isInputTerm t = not <$> isOutputTerm t
 
 buildPort mem@(MemUnit name loc _ nports naddr ndata) portno = "MemUnit.buildPort" <? do
   let sigport name = format "{0}_PORT{1}" [name, show portno]

@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Jade.Types where
 
@@ -37,14 +36,14 @@ emptyMemo = Memo DM.empty
 
 
 getMemo :: J Memo
-getMemo = globalMemo `liftM` get
+getMemo = globalMemo <$> get
 
 putMemo memo = do
   Global x _ <- get
   put $ Global x memo
 
 getTop :: J TopLevel
-getTop = globalTopLevel `liftM` get
+getTop = globalTopLevel <$> get
 
 globalInit topl = Global topl emptyMemo
 
@@ -61,7 +60,7 @@ runJ topl x = fst (runX topl x)
 
 printJ topl x = case runJ topl x of
                   Left msg -> putStrLn msg
-                  Right val -> putStrLn $ show val
+                  Right val -> print val
 
 putStrJ topl x = case runJ topl x of
                    Left msg -> putStrLn msg
@@ -70,12 +69,12 @@ putStrJ topl x = case runJ topl x of
 runJIO :: TopLevel -> J (IO a) -> IO String
 runJIO topl x =
   case runX topl x of
-    (Left msg, log) -> do return $ DL.intercalate "\n" ("Cool Story" : uniq log ++ [msg])
-    (Right f, log) -> do f
-                         return $ DL.intercalate "\n" ("Cool Story" : uniq log)
+    (Left msg, log) -> return $ DL.intercalate "\n" ("Cool Story" : uniq log ++ [msg])
+    (Right f, log) -> f >> return (DL.intercalate "\n" ("Cool Story" : uniq log))
 
 die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
 dief msg xs = die (format msg xs)
+
 impossible msg = die $ "The impossible happened: " ++ msg
 
 unimplemented :: J a
@@ -85,12 +84,14 @@ nb s = tell [s]
 nbf s xs = nb $ format s xs
 
 list x = nb $ DL.intercalate "\n" $ map show x
+--lists s xs = nb s >> list xs
 
 bail :: J a
 bail = die "bailing!"
 bailWhen cond = when cond bail
 
-(?) x msg = x `catchError` (\e -> (throwError $ e ++ "\n" ++ "! " ++ msg))
+(?) x msg = let crash e = throwError $ e ++ "\n" ++ "! " ++ msg
+            in x `catchError` crash
 
 -- | for building nice stack traces.
 (<?) msg x = nb msg >> x ? msg

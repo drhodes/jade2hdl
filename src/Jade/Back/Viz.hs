@@ -82,11 +82,11 @@ mkModule modname = ("Viz.mkModule: " ++ modname) <? do
   nodeDecls <- mkNodeDecls modname
 
   outMap <- mapM (connectOutput modname) outs
-  outputWires <- T.intercalate (T.pack "\n") `liftM` (return outMap)
+  outputWires <- T.intercalate (T.pack "\n") <$> (return outMap)
   inputWires <- connectAllInputs modname ins
 
   -- TODO this is where all the spaces are being inserted.
-  constantWires <- T.intercalate (T.pack "\n") `liftM` mapM (connectConstant modname) nets
+  constantWires <- T.intercalate (T.pack "\n") <$> mapM (connectConstant modname) nets
   
   let txt = decodeUtf8 $(embedFile "app-data/viz/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt
@@ -165,7 +165,7 @@ mkSubModuleInstance modname submod@(SubModule name loc) =
                                   , ("port-map", toMustache portmap)
                                   ]
         return $ substitute template mapping
-  liftM (T.intercalate (T.pack "\n")) $ mapM mkOneInstance subModuleReps
+  T.intercalate (T.pack "\n") <$> mapM mkOneInstance subModuleReps
 
 mkSubModuleInstance modname mem@(SubMemUnit memunit) =
   "Jade.Viz.mkSubModuleInstance" <? do
@@ -253,7 +253,7 @@ withSemiColonNewLines txts = T.concat [T.append t (T.pack ";\n") | t <- txts]
 connectOutput :: String -> Sig -> J T.Text
 connectOutput modname outSig = "Viz.connectOutput" <? do
   assignMap <- MT.connectOneOutput modname outSig
-  withSemiColonNewLines `liftM` mapM mkTermAssign assignMap
+  withSemiColonNewLines <$> mapM mkTermAssign assignMap
 
 -- If input signals are not connected directly to a submodule output,
 -- then there is no structural input for that input.
@@ -261,16 +261,16 @@ connectAllInputs modname inSigs = "Viz.connectAllInputs" <? do
   nb "!! connectAllInputs.inSigs"
   list inSigs
   assignMap <- concatMapM (MT.connectOneInput modname) inSigs
-  withSemiColonNewLines `liftM` mapM mkTermAssign assignMap
+  withSemiColonNewLines <$> mapM mkTermAssign assignMap
   
 connectConstant :: String -> Net -> J T.Text
 connectConstant modname net = "Viz.connectConstant" <? do
   assignMap <- MT.connectConstantNet modname net
-  withSemiColonNewLines `liftM` mapM mkTermAssign assignMap
+  withSemiColonNewLines <$> mapM mkTermAssign assignMap
 
 
 ------------------------------------------------------------------
 mkAllMods modname = "Viz.mkAllMods" <? do
   userModNames <- TopLevel.dependencyOrder modname
-  T.concat `liftM` mapM mkModule (userModNames ++ [modname])
+  T.concat <$> mapM mkModule (userModNames ++ [modname])
   

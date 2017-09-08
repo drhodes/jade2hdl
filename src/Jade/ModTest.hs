@@ -16,7 +16,7 @@ ident = do start <- letter <|> char '_'
            return $ start : rest
 
 numval = choice [ try TPN.floating
-                , liftM fromIntegral $ try TPN.decimal 
+                , fromIntegral <$> try TPN.decimal 
                 ]
 
 strAndNum s =
@@ -29,7 +29,7 @@ strAndNum s =
 power :: Parser Power
 power = do string ".power"
            hspaces
-           liftM Power $ strAndNum "Vdd"
+           Power <$> strAndNum "Vdd"
 
 plotDef :: Parser PlotDef
 plotDef = do string ".plotdef"
@@ -111,17 +111,17 @@ mode = do string ".mode"
 actionAssert :: Parser Action
 actionAssert = do
   string "assert" >> spaces
-  liftM Assert ident
+  Assert <$> ident
 
 actionDeassert :: Parser Action
 actionDeassert = do
   string "deassert" >> spaces
-  liftM Deassert ident
+  Deassert <$> ident
 
 actionSample :: Parser Action
 actionSample = do
   string "sample" >> spaces
-  liftM Sample ident
+  Sample <$> ident
 
 duration :: Parser Duration
 duration = do
@@ -135,7 +135,7 @@ duration = do
 actionTran :: Parser Action
 actionTran = do
   string "tran" >> spaces
-  liftM Tran duration
+  Tran <$> duration
 
 actionSetSignal :: Parser Action
 actionSetSignal = do
@@ -277,7 +277,7 @@ acreteAll filename mt ((lineNum,line):rest) =
     Right asdf -> acreteAll filename asdf rest
     
 parseModTestFile filename = do
-  xs <- liftM lines (readFile filename)
+  xs <- lines <$> readFile filename
   let linePairs = zip [1..] xs
   return $ acreteAll filename defaultModTest linePairs
   

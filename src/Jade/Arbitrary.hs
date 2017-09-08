@@ -22,7 +22,7 @@ digit :: Gen Char
 digit = oneOf "0123456789"
 
 number :: Int -> Gen Integer
-number n = liftM read $ replicateM n digit
+number n = read <$> replicateM n digit
 
 instance Arbitrary Direction where
   arbitrary = oneOf [In, Out]
@@ -57,7 +57,7 @@ instance Arbitrary Signal where
   arbitrary = do
     sig <- arbitrary
     let w = show $ Sig.width sig
-    dir <- liftM Just arbitrary
+    dir <- Just <$> arbitrary
     return $ Signal (Just sig) (Just w) dir
 
 arb2 x = x <$> arbitrary <*> arbitrary    

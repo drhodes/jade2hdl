@@ -49,7 +49,7 @@ flipAssign (SigAssign src tgt) = SigAssign tgt src
 
 connectOneOutput modname outSig = "Middle/Types.connectOneOutput" <? do
   nb "connectOneInput is reused here, the assignments are flipped around"
-  map flipAssign `liftM` connectOneInput modname outSig 
+  map flipAssign <$> connectOneInput modname outSig 
 
 connectOneInput :: String -> Sig -> J [SigAssign]
 connectOneInput modname (SigConcat sigs) = "Middle/Types.connectOneInput@(SigConcat)" <? do
