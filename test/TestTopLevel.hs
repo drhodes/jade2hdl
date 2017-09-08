@@ -183,12 +183,11 @@ testReplicationDepth modname expDepth = do
         d <- TopLevel.replicationDepth ("/user/" ++ modname) sub
         nb $ show d
         if (expDepth == d)
-          then return Pass
-          else do expected expDepth d
-                  return $ Fail "hmmm."
+          then return ()
+          else die $ format "expected: {0}, got: {1}" [show expDepth, show d]
         
   case runJ topl func of
-    Right state -> return state
+    Right _ -> return Pass
     Left msg -> return $ Fail $ runLog topl func ++ msg
 
 testNumNets2 modname numcomps = do
@@ -258,6 +257,7 @@ testTreeReplicationDepth =
                                     , t "RepAnd3" 4
                                     , t "RepAnd4" 4
                                     , t "RepWonkyBuffer1" 2
+                                    , t "RangeStep2" 8
                                     ]
 
 testGetWidthOfSigName modname signame expectedWidth = do

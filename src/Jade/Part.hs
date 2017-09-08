@@ -52,7 +52,7 @@ width part = do
     PortC (Port _ Nothing) -> return Nothing
     WireC (Wire _ (Just s)) -> do
       nb $ "For this wire: " ++ show part
-      nb $ "Found width:   " ++ show $ Signal.width s
+      nb $ "Found width:   " ++ (show $ Signal.width s)
       return $ Signal.width s
     WireC (Wire _ Nothing) -> return $ Just 1
     TermC (Terminal _ s) -> return $ Just $ Sig.width s

@@ -131,7 +131,7 @@ width sig = case sig of
               SigHash _ n -> fromIntegral n
               SigRange _ from to -> fromIntegral $ from - to + 1
               SigRangeStep _ from to step ->
-                (fromIntegral from) - (fromIntegral to) + 1 `div` (fromIntegral step)
+                1 + (((fromIntegral from) - (fromIntegral to)) `div` (fromIntegral step))
               SigQuote _ w -> fromIntegral w
               SigConcat xs -> sum $ map width xs
               
