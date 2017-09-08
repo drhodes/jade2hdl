@@ -131,7 +131,7 @@ width sig = case sig of
               SigHash _ n -> fromIntegral n
               SigRange _ from to -> fromIntegral $ from - to + 1
               SigRangeStep _ from to step ->
-                (fromIntegral from) - (fromIntegral to) `div` (fromIntegral step)
+                (fromIntegral from) - (fromIntegral to) + 1 `div` (fromIntegral step)
               SigQuote _ w -> fromIntegral w
               SigConcat xs -> sum $ map width xs
               
@@ -152,10 +152,10 @@ getNames sig =
     SigSimple name -> return [name]
     SigRange name from to -> return [name] 
     SigIndex name _ -> return [name]
-    -- return $ format "{0}({1} downto {2})" [name, show from, show to]
     (SigQuote val width) -> return $ [format "SigQuote_{0}_{1}" [show val, show width]]
     SigConcat xs -> concatMapM getNames xs
-    x -> die $ "Sig.name doesn't support: " ++ show x
+    SigRangeStep n _ _ _ -> return [n]
+    x -> die $ "Sig.getNames doesn't support: " ++ show x
 
 
 hasIdent :: Sig -> String -> J Bool
@@ -173,7 +173,13 @@ explode sig = "Sig.explode" <?
                                                           else if x < y
                                                                then [y, y-1 .. x]
                                                                else [x, x-1 .. y]]
-    SigRangeStep name x y z -> die "explode doesn't handle SigRangeStep yet"
+    SigRangeStep name from to step -> do
+      let range = if from < to 
+                  then [from, from+step .. to] -- ascending
+                  else [from, from-step .. to] -- descengind
+      return $ map (SigIndex name) range
+
+      
     SigConcat xs -> concatMapM explode xs
     x -> die $ "Sig.explode doesn't support: " ++ show x
 

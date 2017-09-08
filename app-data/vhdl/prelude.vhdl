@@ -134,6 +134,23 @@ begin
   vout <= not (a and b and c and d);
 end architecture behavioral ;
 
+
+-- /gates/nor4 ------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity mod_gates_nor4 is
+  port (a : in std_logic_vector(0 downto 0);
+        b : in std_logic_vector(0 downto 0);
+        c : in std_logic_vector(0 downto 0);
+        d : in std_logic_vector(0 downto 0);
+        vout : out std_logic_vector(0 downto 0));
+end entity mod_gates_nor4 ;
+architecture behavioral of mod_gates_nor4 is
+begin
+  vout <= not (a or b or c or d);
+end architecture behavioral ;
+
 -- /gates/and3 ------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;

@@ -228,6 +228,11 @@ instance FromJSON MemUnit where
     
     return $ MemUnit name loc contents nports naddr ndata
 
+instance FromJSON Vdd where
+  parseJSON (Array v) = "Decode.Vdd" <?? do
+    c3 <- parseJSON $ v V.! 1
+    return $ Vdd c3
+
 instance FromJSON Jumper where
   parseJSON (Array v) = "Decode.Jumper" <?? do
     c3 <- parseJSON $ v V.! 1
@@ -241,6 +246,11 @@ instance FromJSON Part where
       "port" -> PortC <$> parseJSON v
       "jumper" -> JumperC <$> parseJSON v
       "memory" -> SubModuleC . SubMemUnit <$> parseJSON v
+      "vdd" -> do
+        Vdd (Coord3 x y r) <- parseJSON v
+        let signal = Just $ Signal (Just $ SigQuote 1 1) (Just 1) Nothing
+            w = Wire (Coord5 x y r 0 0) signal
+        return $ WireC w
       txt -> if txt `startsWith` "text"
              then return UnusedPart
              else do sub <- parseJSON v
@@ -263,7 +273,7 @@ instance FromJSON Module where
           Right mt -> return $ Module "" schem (Just mt) icon
           Left msg -> fail msg
       Nothing -> return $ Module "" schem Nothing icon
-
+-------------------------------------------------------------------------------
 instance FromJSON TopLevel where
   parseJSON (Array arr) = "Decode.TopLevel:Array" <?? do
     let msg = "Decode.TopLevel.parseJson fails because array not long enough: "
@@ -287,5 +297,7 @@ decodeTopLevel filename = do
         Right (TopLevel mods) -> do
           return $ Right $ TopLevel (DM.union gates mods)
         Left msg -> fail ("Decode.decodeTopLevel: " ++ msg)
-    Left msg -> fail $ msg ++ "\nDecode.decodeTopLevel fails to decode 'app-data/gates.json'"
+    Left msg -> do
+      let gatemsg = "\nDecode.decodeTopLevel fails to decode 'app-data/gates.json'"
+      fail $ msg ++ gatemsg
 

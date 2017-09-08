@@ -130,6 +130,8 @@ data ModPath = ModPath { modPath :: FilePath
                        , modFile :: String
                        } deriving (Show, Eq)
 
+data Vdd = Vdd Coord3 deriving (Generic, Show, Eq, Hashable, Ord)
+
 ------------------------------------------------------------------
 -- Schematic Types
 type ModuleName = String

@@ -70,7 +70,10 @@ spawnOneTest jadefile modname = do
                                                   , show err
                                                   ]
 
-testTree = TestTree "Vhdl" [ testTreeReplication
+
+testTree = TestTree "Vhdl" [ testTreeMisc
+                           , testTreeBeta
+                           , testTreeReplication
                            , testTreeBuffer
                            , testTreeMemUnit
                            , testTree1
@@ -84,6 +87,13 @@ testTreeBuffer =
                                    , "Buffer6"
                                    , "WonkyBuffer1"
                                    ]
+
+testTreeMisc =
+  let node s = TestCase s (spawn (ModPath "./test-data" s))
+  in TestTree "Misc" $ map node [ "Vdd"
+                                , "RangeStep1"
+                                ]
+
 
 testTreeMemUnit = let node s = TestCase s (spawn (ModPath "./test-data" s))
             in TestTree "MemUnit" $ map node [ "MemUnit1"
@@ -134,7 +144,7 @@ testTree1 = let node s = TestCase s (spawn (ModPath "./test-data" s))
                                          , "FA1"
                                          
                                          -- , "CycleCounter"
-                                         --, "GarrInc32"
+                                         -- , "GarrInc32"
                                          ]
 
 testTreeReplication =
@@ -149,11 +159,21 @@ testTreeReplication =
            , "Buffer7"
            , "RepWonkyBuffer1Exp"
            , "RepWonkyBuffer1"
-           --, "ZipReplication"
-           --, "Rep1FA2"
-           --, "Ripple32"
-           --, "Bool2"                                       
+           , "ZipReplication"
+           , "Bool2"                                       
+           -- , "Rep1FA2"
+           -- , "Ripple32"
            ]
+
+testTreeBeta = 
+  let node s = TestCase s (spawn (ModPath "./test-data" s))
+  in TestTree "Beta" $
+  map node [ "Bool2"
+           --, "Nor32Arith"
+           --, "Shift1"
+           ]
+
+
   
 spawn (ModPath path filename) =
   let testPath = path ++ "/" ++ filename ++ ".json"
