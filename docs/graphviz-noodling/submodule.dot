@@ -1,0 +1,65 @@
+graph G {
+    graph [overlap=false rankdir="UD"];
+    
+    subgraph cluster_mod_inputs {        
+        label = "mod_ins";
+        style=filled;
+        color=grey;
+        node [shape=circle,width=.1,label="",penwidth=0,style=filled,fillcolor="#222222",fixedsize=true];
+        x0 -- x1 -- x2 -- x3 -- x4 -- x5 -- x6 -- x7;
+    }
+
+    subgraph cluster_nor4_1 {
+        label = "nor4";
+        style=filled;
+        color=grey;
+        shape = "Mrecord";
+
+        
+        subgraph cluster_2 { 
+            label = "out";
+            style=filled;
+            color=white;
+            node [shape=circle,width=.1,label="",penwidth=0,style=filled,fillcolor="#222222",fixedsize=true];
+            nor4_o1_a0 -- nor4_o1_a1 -- nor4_o1_a2 -- nor4_o1_a3 [color=grey];
+        }
+        subgraph cluster_4 { 
+            label = "in";
+            style=filled;
+            color=white;
+            node [shape=circle,width=.1,label="",penwidth=0,style=filled,fillcolor="#222222",fixedsize=true];
+            nor4_i1_a0 -- nor4_i1_a1 -- nor4_i1_a2 -- nor4_i1_a3 [color=grey];
+        }
+    }
+
+    subgraph cluster_nor4_2 {
+        label = "nor4";
+        style=filled;
+        color=grey;
+        
+        subgraph cluster_22 { 
+            label = "out";
+            style=filled;
+            color=white;
+            node [shape=circle,width=.1,label="",penwidth=0,style=filled,fillcolor="#222222",fixedsize=true];
+            nor4_o1_a00 -- nor4_o1_a11 -- nor4_o1_a22 -- nor4_o1_a33 [color=grey];
+        }
+        subgraph cluster_42 { 
+            label = "in";
+            style=filled;
+            color=white;
+            node [shape=circle,width=.1,label="",penwidth=0,style=filled,fillcolor="#222222",fixedsize=true];
+            nor4_i1_a00 -- nor4_i1_a11 -- nor4_i1_a22 -- nor4_i1_a33 [color=grey];
+        }
+    }
+    
+    x0 -- nor4_i1_a0;
+    x1 -- nor4_i1_a1;
+    x2 -- nor4_i1_a2;
+    x3 -- nor4_i1_a3;
+    x4 -- nor4_i1_a00;
+    x5 -- nor4_i1_a11;
+    x6 -- nor4_i1_a22;
+    x7 -- nor4_i1_a33;
+    
+}   

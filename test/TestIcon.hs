@@ -29,10 +29,8 @@ testIcon tname libname modname f = do
           Nothing -> die $ "No icon found for module: " ++ qualModName
           Just icon -> f icon
   case runJ topl func of
-    Right x -> do passes
-                  return Pass
-    Left msg -> do fails
-                   return $ Fail $ unlines [ msg, runLog topl func ]
+    Right x -> do return Pass
+    Left msg -> do return $ Fail $ unlines [ msg, runLog topl func ]
                      
 testBoundingBox modname (BB x1 y1 x2 y2) = do
   testIcon "testBoundingBox" "/user/" modname $ \icon -> do

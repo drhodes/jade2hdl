@@ -88,10 +88,12 @@ testTree = TestTree "Vhdl" [ testTreeInnerSignal
 testTreeInnerSignal = tree "InnerSignal" [ "InnerSignal1"
                                          , "InnerSignal2"
                                          ]
-
            
-testTreeBeta = tree "Beta" [ "Bool2" 
-                           --, "Nor32Arith2"
+testTreeBeta = tree "Beta" [ "Bool2"
+                           , "Nor32Arith5"
+                           --, "Nor32Arith4"
+                           --, "Nor32Arith3"
+                           -- , "Nor32Arith2"
                            --, "Nor32Arith"
                            --, "Shift1"
                            ]

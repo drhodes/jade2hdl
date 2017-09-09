@@ -4,7 +4,7 @@
       report "TestNum {{testnum}}";
       report "expecting: {{{signal}}} = {{{show-expected}}}";
       report "got      : {{{signal}}} = " & {{{signal_to_string}}};
-      stop(-1);
+      finish(-1);
     else
       write(OUTPUT, "TEST {{testnum}}: PASSED" & LF);
     end if;

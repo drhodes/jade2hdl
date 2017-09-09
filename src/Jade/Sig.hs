@@ -129,9 +129,12 @@ width sig = case sig of
               SigSimple _ -> 1
               SigIndex _ _ -> 1
               SigHash _ n -> fromIntegral n
-              SigRange _ from to -> fromIntegral $ from - to + 1
-              SigRangeStep _ from to step ->
-                1 + (((fromIntegral from) - (fromIntegral to)) `div` (fromIntegral step))
+              SigRange _ from to -> fromIntegral $ abs (from - to) + 1
+              SigRangeStep name from to 0 -> width (SigRangeStep name from to 1)
+              SigRangeStep _ from to step -> let range = if from < to 
+                                                         then [from, from+step .. to]
+                                                         else [from, from-step .. to]
+                                             in fromIntegral $ length range
               SigQuote _ w -> fromIntegral w
               SigConcat xs -> sum $ map width xs
               

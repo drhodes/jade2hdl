@@ -29,7 +29,7 @@ testWireEnds modname expectedEnds = do
               else return ()
 
   case runJ topl result of
-    Right _ -> passes
+    Right _ -> return ()
     Left msg -> do putStrLn $ runLog topl result
                    fail msg
 
