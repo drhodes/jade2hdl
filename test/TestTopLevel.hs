@@ -158,21 +158,6 @@ testNets modname exp = do
     Right True -> return Pass
     Right False -> return $ Fail $ runLog topl func
 
-
-
--- testAll = withTest "TestTopLevel" $ do
---   testTermDriverAnd23 
---   testTermDriverAnd23_Wire
---   -- testTopLevelNets1 
---   -- testTopLevelNets2 
---   testTopLevelGetInputs
---   testSigConnectedToSubModuleP1 
---   testSigConnectedToSubModuleP2 
---   testLoneJumper1
---   testNetUseAND2Rot90 
-
-  --------------------------------------------
-  
 testReplicationDepth :: String -> Integer -> IO TestState
 testReplicationDepth modname expDepth = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
@@ -226,6 +211,7 @@ testTreeNumNets =
   , t "And2Ports4" 3
   , t "JumperPort1" 1
   , t "JumperPort2" 1
+  , t "Nor32Arith5" 6
   ] 
 
 testTree = TestTree "TopLevel" [ testTreeNumNets
@@ -266,7 +252,6 @@ testGetWidthOfSigName modname signame expectedWidth = do
                 if w == expectedWidth
                   then return Pass
                   else return $ Fail $ format "Expected width {0}, got {1}" [show expectedWidth, show w]
-                                     
   case runJ topl func of
     Right state -> return state
     Left msg -> return $ Fail $ runLog topl func ++ msg
@@ -288,7 +273,6 @@ testTreeTerminals =
   let t name f = TestCase name testTerminals1
   in TestTree "terminals" [ t "testTerminals1" testTerminals1
                           ]
-
 
 testTerminals1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/MemUnit1.json" 
@@ -323,10 +307,6 @@ portTest1 = do
                   1 -> return Pass
                   x -> return $ Fail $ show (runLog topl $ die $ "hmm, found: " ++ show x)
     Left msg -> return $ Fail msg
-
-
-
-
 
 ------------------------------------------------------------------
 -- CHECKS

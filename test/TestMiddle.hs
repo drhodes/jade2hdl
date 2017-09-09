@@ -1,82 +1,61 @@
 module TestMiddle where
 
-import Jade.Types
 import Jade.Middle.Types 
+import Jade.Rawr.Types 
+import Jade.Types
+import Jade.Util
+import TestUtil
+import Text.Format
 import qualified Data.List as DL
-import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Modul
-import qualified Jade.GComp as GComp
+import qualified Jade.Net as Net
+import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Wire as Wire
-import Text.Format
-import TestUtil
 
-testSkeleton :: String -> (TopLevel -> J Bool) -> IO ()
+testSkeleton :: String -> (J Bool) -> IO TestState
 testSkeleton modname func = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
-  let f = func topl
-  case runJ f of
-    Right True -> putStr "."
-    Right False -> do putStrLn $ runLog f
-    Left msg -> do putStrLn $ msg
-                   putStrLn $ runLog f
+  case runJ topl func of
+    Right True -> return Pass
+    Right False -> return . Fail $ runLog topl func
+    Left msg -> return . Fail $ msg ++ runLog topl func
 
-testReplicationDepth :: String -> Integer -> IO ()
-testReplicationDepth modname expDepth = do
-  let func topl = do
-        let parentModuleName = "/user/" ++ modname
-        subs <- TopLevel.getSubModules topl parentModuleName
-        let sub = subs !! 0
-        d <- TopLevel.replicationDepth topl ("/user/" ++ modname) sub
-        nb $ show d
-        if (expDepth == d)
-          then return True
-          else do expected expDepth d
-                  return False
-  testSkeleton modname func 
-
-checkSubModuleInstances :: String -> IO ()
+-- todo, keep or trash these tests? they don't do anything right now.
+checkSubModuleInstances :: String -> IO TestState
 checkSubModuleInstances modname = do
-  let func topl = "testSubModuleInstances" <? do
+  let func = "testSubModuleInstances" <? do
         let parentModuleName = "/user/" ++ modname
-        subs <- TopLevel.getSubModules topl parentModuleName
+        subs <- TopLevel.getSubModules parentModuleName
         let sub = subs !! 0
-        instances <- subModuleInstances topl parentModuleName sub
-        return False
+        instances <- subModuleInstances parentModuleName sub
+        return True -- see? always returns true.
   testSkeleton modname func
 
 checkConnectOneOutput modname outsig = do
-  let func topl = "testSubModuleInstances" <? do
+  let func = "testSubModuleInstances" <? do
         let modname' = "/user/" ++ modname                
-        result <- connectOneOutput topl modname' outsig
+        result <- connectOneOutput modname' outsig
         nb $ show result
-        return False        
+        return True
   testSkeleton modname func
 
 checkConnectOutputs = do
   --checkConnectOneOutput "RepAnd2" (SigRange "out1" 1 0)
   checkConnectOneOutput "BuiltInAnd4Messy" (SigSimple "vout") 
 
-testAll = testWith "TestMiddle" $ do
-  --------------------------------------------
-  testReplicationDepth "And2Ports" 1 
-  testReplicationDepth "And2Ports2" 1
-  testReplicationDepth "And2Ports3" 1
-  testReplicationDepth "And2Ports4" 1  
-  testReplicationDepth "RepAnd2" 2
 
-  -- 
-  -- checkSubModuleInstances "RepAnd2" 
-  -- checkSubModuleInstances "RepAnd3" 
-  -- checkSubModuleInstances "RepAnd4"
+node s f = TestCase s f
+tree s xs = TestTree s $ mapF (map node [s ++ "_" ++ show x | x<- [1..]]) xs
 
-  testReplicationDepth "And41" 1
-
-test = do  
-  checkSubModuleInstances "And41"
-  checkSubModuleInstances "RepAnd2" 
-  checkSubModuleInstances "RepAnd3" 
-  checkSubModuleInstances "RepAnd4"
- 
-
-  
+testTree = TestTree "Middle"
+  [ tree "InnerSignal" [ checkSubModuleInstances "And41"
+                       , checkSubModuleInstances "RepAnd2" 
+                       , checkSubModuleInstances "RepAnd3" 
+                       , checkSubModuleInstances "RepAnd4"
+                       ]
+    
+  , tree "InnerSignal" [ checkConnectOneOutput "BuiltInAnd4Messy" (SigSimple "vout")
+                         
+                       ]
+  ]

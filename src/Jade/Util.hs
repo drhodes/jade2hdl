@@ -105,3 +105,7 @@ filterOut f xs = filter (not . f) xs
 
 evenlyDivides x y = let n = y `div` x
                     in n * x == y
+
+mapF [] _ = []
+mapF _ [] = []
+mapF (f:fs) (x:xs) = (f x):(mapF fs xs)

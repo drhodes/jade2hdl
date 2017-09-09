@@ -17,12 +17,14 @@ import Jade.Rawr.Types
 import Jade.Util
 
 --------------------------------------------------------------------------------
+testSigWidth :: Monad m => Sig -> Integer -> m TestState
 testSigWidth sig expectedWidth = do
   let w = Sig.width sig
   if w == expectedWidth
     then return Pass
     else return (Fail (fmt "expected {0}, got {1}, sig: {2}" (expectedWidth, w, sig)))
                
+testTreeSigWidth :: TestTree
 testTreeSigWidth = 
   let t sig exp = TestCase "sigwidth" (testSigWidth sig exp)
   in TestTree "width" $ [ t (SigSimple "asdf") 1
