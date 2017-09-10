@@ -27,14 +27,19 @@ import qualified Jade.Sig as Sig
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.UnionFindST as UnionFindST
 
+
+splitAssert _ [] = []
+splitAssert [] xs = [xs]
+splitAssert widths xs =
+  let n = fromIntegral $ head widths
+  in (take n xs) : (splitAssert (tail widths) (drop n xs))
+
+
 mkTestLine :: Module -> [Action] -> TestLine -> Integer -> J [String]
 mkTestLine _ [] _ _ = return []
 mkTestLine m (act:actions) testline testnum = "Vhdl.mkTestLine" <? do  
   let recurse x = (x++) <$> mkTestLine m actions testline testnum
 
-  let splitAssert [] xs = [xs]
-      splitAssert widths xs = let n = fromIntegral $ head widths
-                              in (take n xs) : (splitAssert (tail widths) (drop n xs))
   let Just modt = moduleTest m
   
   case act of
@@ -61,8 +66,10 @@ mkTestLine m (act:actions) testline testnum = "Vhdl.mkTestLine" <? do
           c = case comment of
                 Just s -> "// " ++ s
                 Nothing -> "// no comment"
+
+      nbf "(exps, {0})" [show exps]
       os <- concatMapM Sig.getNames outs      
-      txt <- sequence [testCaseIfBlock testnum o e c | (o, e) <- zip os exps]
+      txt <- sequence [testCaseIfBlock testnum o e c | (o, e) <- zip os (filter (not . null) exps)]
       recurse $ map T.unpack txt
 
     SetSignal (SigSimple name) x -> case x of
@@ -100,9 +107,9 @@ sigAssert :: String -> [BinVal] -> String
 sigAssert x bv = format "{0} <= {1};" [x, quote $ map binValToChar bv]
 
 portAssoc :: Sig -> J String
-portAssoc (SigConcat _) = die "Vhdl.portAssoc doesn't support SigConcat"
+--portAssoc (SigConcat _) = die "Vhdl.portAssoc doesn't support SigConcat"
 portAssoc sig = "Vhdl.portAssoc" <? do
-  [name] <- Sig.getNames sig
+  [name] <- uniq <$> Sig.getNames sig
   let w = Sig.width sig - 1
   return $ format "{0}({1} downto 0) => {0}({1} downto 0)" [name,show w]
 
@@ -123,9 +130,9 @@ mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
   
   if null sigs
     then return $ "-- no signal decls"
-    else let f (SigConcat _) = die "mkSignalDecls doesn't support SigConcat"
+    else let --f (SigConcat _) = die "mkSignalDecls doesn't support SigConcat"
              f sig = do
-               [name] <- Sig.getNames sig
+               [name] <- uniq <$> Sig.getNames sig
                let width = Sig.width sig
                    initialVal = quote $ take (fromIntegral width) (repeat 'U')
                    fmtargs = [name, show (width - 1), initialVal]
@@ -157,9 +164,9 @@ mkCombinationalTest modname =
   mkTestBench modname
 
 ------------------------------------------------------------------
-genPort dir (SigConcat _) = die "Vhdl.mkModule/genPort doesn't support SigConcat"
+--genPort dir (SigConcat _) = die "Vhdl.mkModule/genPort doesn't support SigConcat"
 genPort dir sig = do
-  [name] <- Sig.getNames sig
+  [name] <- uniq <$> Sig.getNames sig
   let w = Sig.width sig
   return $ format "{0}: {1} std_logic_vector({2} downto 0)" [ name, dir, show $ w - 1]
 

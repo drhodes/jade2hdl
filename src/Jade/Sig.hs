@@ -45,7 +45,8 @@ sigIndex = do
   char '['
   idx <- many1 digit
   char ']'
-  return $ SigIndex name (read idx)
+  return $ SigConcat [SigIndex name (read idx)]
+  
 
 -- := sig[start:stop]   expands to sig[start],sig[start+step],...,sig[end]
 sigRange :: Parser Sig
@@ -56,7 +57,9 @@ sigRange = do
   char ':'
   to <- many1 digit
   char ']'
-  return $ SigRange name (read from) (read to)
+  case runX emptyTopl $ explode (SigRange name (read from) (read to)) of
+    (Left msg, log) -> fail $ msg ++ (concat log)
+    (Right xs, _) -> return $ SigConcat xs
 
 
 -- := sig[start:stop:step]   expands to sig[start],sig[start+step],...,sig[end]
@@ -70,7 +73,9 @@ sigRangeStep = do name <- symbol
                   char ':'
                   step <- many1 digit
                   char ']'
-                  return $ SigRangeStep name (read from) (read to) (read step)
+                  case runX emptyTopl $ explode $ SigRangeStep name (read from) (read to) (read step) of
+                    (Left msg, log) -> fail $ msg ++ (concat log)
+                    (Right xs, _) -> return $ SigConcat xs
 
 hex :: Parser Integer
 hex = do string "0"

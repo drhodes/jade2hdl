@@ -35,6 +35,7 @@ flipTermMap xs = map flipTermAssoc xs
 
 type TermMap = [TermAssoc] 
 
+
 -- replicated submodule.
 data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
                                    -- ^ all inputs for this slice of the 
@@ -53,7 +54,7 @@ connectOneOutput modname outSig = "Middle/Types.connectOneOutput" <? do
 
 connectOneInput :: String -> Sig -> J [SigAssign]
 connectOneInput modname (SigConcat sigs) = "Middle/Types.connectOneInput@(SigConcat)" <? do
-  unimplemented
+  concatMapM (connectOneInput modname) sigs
 
 connectOneInput modname inSig = "Middle/Types.connectOneInput" <? do  
   inSigNames <- Sig.getNames inSig
@@ -161,49 +162,29 @@ replicateOneTerminal numReplications dir term@(Terminal _ sig) net =
                                                                      , show numReplications ]
   termSigs <- Sig.explode sig
   bailWhen (length termSigs == 0)
-
   
   case termWidth of
     Just termWidth ->
       let totalWidth = fromInteger $ termWidth * numReplications
-          -- ^ interfunction comment.
-      in if netWidth == totalWidth
-            -- the net has wirewidth equal to the full
-            -- replication width, so the net will need to be
-            -- sliced in slices equal to the width of the terminal.
-         then do nb "case netWidth == totalWidth"
-                 let singles = map (SigIndex netId) $ downFrom (netWidth - 1)                     
-                     srcs = concat $ DL.transpose $ chunk numReplications singles
-                     tmap = take (fromInteger totalWidth) (zipWith (TermAssoc In)
-                                                            (cycle srcs)
-                                                            (cycle termSigs))
-                 return $ case dir of
-                            In -> tmap
-                            Out -> flipTermMap tmap
-         else case netWidth < totalWidth of                
-                 -- problem in here.
-                True -> do
-                  nb "case netWidth < totalWidth"
-                  nb $ format "netWidth: {0}, totalWidth {1}" [show netWidth, show totalWidth]
-                  -- the net width is less than the total width
-                  -- of the replicated submodules. The net input
-                  -- signal will have to be replicated to match the
-                  -- width of the replicated submodules.
-                  let singles = map (SigIndex netId) $ downFrom (netWidth - 1)
-                      srcs = concat $ DL.transpose $ chunk numReplications singles
-                      tmap = take (fromIntegral totalWidth) (cycle $ zipWith (TermAssoc In)
-                                                              (cycle srcs)
-                                                              (cycle termSigs))
-                  
-                  return $ case dir of
-                             In -> tmap
-                             Out -> flipTermMap tmap
-                ---                
-                False -> do
-                  nb "case netWidth > totalWidth"
-                  impossible "This can't happen if the JADE modules tests pass in JADE"                  
-    y -> do nb $ "got: " ++ show y
-            die $ "Couldn't determine width of terminal."
+      in case compare netWidth totalWidth of
+        GT -> do {
+          ; nb "case netWidth > totalWidth"
+          ; impossible "This can't happen if the JADE modules tests pass in JADE"
+          }
+        _ -> do {
+          ; nb "case netWidth <= totalWidth"
+          ; let singles = map (SigIndex netId) $ downFrom (netWidth - 1)                     
+                srcs = concat $ DL.transpose $ chunk numReplications singles
+                tmap = take (fromInteger totalWidth) (zipWith (TermAssoc In)
+                                                      (cycle srcs)
+                                                      (cycle termSigs))
+          ; return $ case dir of
+              In -> tmap
+              Out -> flipTermMap tmap
+          }
+
+    Nothing -> die $ "Couldn't determine width of terminal."
+
 
 oneOfEach xs =  
   if 0 `elem` (map length xs)

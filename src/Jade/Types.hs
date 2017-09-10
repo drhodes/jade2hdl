@@ -33,7 +33,7 @@ data Global = Global { globalTopLevel :: TopLevel
 data Memo = Memo { memoComps :: DM.Map String [Net] }
 
 emptyMemo = Memo DM.empty
-
+emptyTopl = TopLevel DM.empty
 
 getMemo :: J Memo
 getMemo = globalMemo <$> get

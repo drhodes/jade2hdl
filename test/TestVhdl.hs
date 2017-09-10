@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+q{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PartialTypeSignatures #-}

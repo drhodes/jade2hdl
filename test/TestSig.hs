@@ -34,7 +34,20 @@ testTreeSigWidth =
                         , t (SigRangeStep "" 28 0 4) 8
                         , t (SigRangeStep "" 0 0 0) 1
                         ] ++ [t (SigRangeStep "" i 0 1) (i+1) | i <- [0 .. 12]]
-                        
+
+
+-- testExplode :: Monad m => Sig -> Integer -> m TestState
+-- testExplode sig expectedWidth = do
+--   case runJ emptyTopl (Sig.explode sig) of
+--     (Right xs, _) -> return Pass
+--     (Left msg, log) -> return $ Fail $ msg ++ log
+
+
+-- testTreeExplode :: TestTree
+-- testTreeExplode = TestTree "Explode"
+--   [ testExplode (SigIndex "X" 0) 1
+--   ]
+     
 testTree = TestTree "Sig" [ testTreeSigWidth
                           ]
 
