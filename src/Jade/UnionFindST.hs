@@ -68,7 +68,6 @@ collect uf (x:rest) = do
 components edges = runST $ do
   let nodes = DL.nub $ DL.sort $ concat [[n1, n2] | Edge n1 n2 <- edges]
       table = DM.fromList $ zip nodes [0..]
-      elbat = DM.fromList $ zip [0..] nodes
   uf <- newUnionFind 100000
 
   let tie (Edge n1 n2) =
@@ -86,7 +85,7 @@ nameComp :: Net -> J String
 nameComp (Net gid nodes) = "UnionFind.nameComp" <? do
   let parts = map nodePart nodes
       signals1 = [signal | WireC (Wire _ (Just signal)) <- parts]
-      names = [n | Signal (Just (SigSimple n)) _ _ <- signals1] -- ++ signals2]
+      names = [n | Signal (Just (Bundle [ValIndex n 0])) _ _ <- signals1] -- ++ signals2]
       genNameLen = 10
   return $ if null names
            then take genNameLen $ "wire_" ++ show gid

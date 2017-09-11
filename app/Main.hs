@@ -8,6 +8,8 @@ import qualified Jade.Back.Viz as Viz
 import qualified Jade.Decode as Decode
 import qualified Data.Text.IO as TIO
 
+
+{-
 data Opts = Opts { infile :: String
                  , topLevelMod :: String
                  , viz :: Bool
@@ -76,3 +78,6 @@ generateViz opts = when (viz opts) $ do
   case dotSrc of
     Left msg -> putStrLn msg
     Right src -> TIO.putStrLn src
+-}
+
+main = print "refactoring"

@@ -9,6 +9,7 @@ import Text.Format
 import Control.Monad
 import Jade.Util
 import Data.Char as DC
+
 {-
 signal names need to be parsed.
 
@@ -32,24 +33,23 @@ symbol = do
 
 
 -- := sig#count         replicate sig specified number of times 
-sigHash :: Parser Sig
+sigHash :: Parser ValBundle
 sigHash = do name <- symbol
              char '#'
              n <- many1 digit -- this may start with zero!
-             return $ SigHash name (read n)
+             return $ runExplode $ SigHash name (read n)
 
 -- := sig[idx] 
-sigIndex :: Parser Sig
+sigIndex :: Parser ValBundle
 sigIndex = do
   name <- symbol
   char '['
   idx <- many1 digit
   char ']'
-  return $ SigConcat [SigIndex name (read idx)]
-  
+  return $ runExplode $ SigIndex name (read idx)
 
 -- := sig[start:stop]   expands to sig[start],sig[start+step],...,sig[end]
-sigRange :: Parser Sig
+sigRange :: Parser ValBundle
 sigRange = do
   name <- symbol
   char '['
@@ -57,14 +57,17 @@ sigRange = do
   char ':'
   to <- many1 digit
   char ']'
-  case runX emptyTopl $ explode (SigRange name (read from) (read to)) of
-    (Left msg, log) -> fail $ msg ++ (concat log)
-    (Right xs, _) -> return $ SigConcat xs
+  return $ runExplode (SigRange name (read from) (read to)) 
+
+    
+runExplode s = case runX emptyTopl $ explode s of
+                 (Left msg, log) -> fail $ msg ++ (concat log)
+                 (Right xs, _) -> xs
 
 
 -- := sig[start:stop:step]   expands to sig[start],sig[start+step],...,sig[end]
 --sigRangeStep
-sigRangeStep :: Parser Sig
+sigRangeStep :: Parser ValBundle
 sigRangeStep = do name <- symbol
                   char '['
                   from <- many1 digit
@@ -73,9 +76,7 @@ sigRangeStep = do name <- symbol
                   char ':'
                   step <- many1 digit
                   char ']'
-                  case runX emptyTopl $ explode $ SigRangeStep name (read from) (read to) (read step) of
-                    (Left msg, log) -> fail $ msg ++ (concat log)
-                    (Right xs, _) -> return $ SigConcat xs
+                  return $ runExplode $ SigRangeStep name (read from) (read to) (read step)
 
 hex :: Parser Integer
 hex = do string "0"
@@ -97,37 +98,38 @@ number = choice [ try hex
                 ]
   
 -- := number'size // generate appropriate list of vdd, gnd to represent number
-sigQuote :: Parser Sig
+sigQuote :: Parser ValBundle
 sigQuote = do val <- number
               char '\''
               width <- many1 digit
-              return $ SigQuote val (read width)
+              return $ runExplode (SigQuote val (read width))
 
-sigSimple :: Parser Sig
+sigSimple :: Parser ValBundle
 sigSimple = do s <- symbol
-               return $ SigSimple s
+               return $ runExplode (SigSimple s)
 
+oneBundle :: Parser ValBundle
+oneBundle = choice $ map try [ sigQuote
+                             , sigHash
+                             , sigRange
+                             , sigRangeStep
+                             , sigIndex
+                             , sigSimple
+                             ] 
 
-oneSig = choice $ map try [ sigQuote
-                          , sigHash
-                          , sigRange
-                          , sigRangeStep
-                          , sigIndex
-                          , sigSimple
-                          ] 
-
-sigConcat :: Parser Sig
-sigConcat = do x <- oneSig
+sigConcat :: Parser ValBundle
+sigConcat = do x <- oneBundle
                xs <- many1 $ do hspaces
                                 char ','
                                 hspaces
-                                oneSig
-               return $ SigConcat (x:xs)
+                                oneBundle
+               return $ mconcat (x:xs)
 
-sig = choice $ map try [ sigConcat, oneSig ]
+sigBundle :: Parser ValBundle
+sigBundle = choice $ map try [ sigConcat, oneBundle ]
 
-parseSig :: String -> Either ParseError Sig
-parseSig s = parse sig "signal" s
+parseSig :: String -> Either ParseError ValBundle
+parseSig s = parse sigBundle "signal" s
 
 width :: Sig -> Integer
 width sig = case sig of
@@ -141,8 +143,8 @@ width sig = case sig of
                                                          else [from, from-step .. to]
                                              in fromIntegral $ length range
               SigQuote _ w -> fromIntegral w
-              SigConcat xs -> sum $ map width xs
-              
+
+
 hashMangle :: String -> Sig -> J Sig
 hashMangle s sig =
   let f x = s ++ "_" ++ x
@@ -154,30 +156,26 @@ hashMangle s sig =
     SigRangeStep name x y z -> return $ SigRangeStep (f name) x y z
     x -> die $ "hashMangle doesn't support: " ++ show x
 
-getNames :: Sig -> J [String]
-getNames sig =
+getName :: Sig -> J String
+getName sig =
   case sig of
-    SigSimple name -> return [name]
-    SigRange name from to -> return [name] 
-    SigIndex name _ -> return [name]
-    (SigQuote val width) -> return $ [format "SigQuote_{0}_{1}" [show val, show width]]
-    SigConcat xs -> concatMapM getNames xs
-    SigRangeStep n _ _ _ -> return [n]
+    SigSimple name -> return name
+    SigRange name from to -> return name
+    SigIndex name _ -> return name
+    SigQuote val width -> return $ format "SigQuote_{0}_{1}" [show val, show width]
+    SigRangeStep n _ _ _ -> return n
     x -> die $ "Sig.getNames doesn't support: " ++ show x
 
-
 hasIdent :: Sig -> String -> J Bool
-hasIdent sig ident = "Sig.hasIdent" <? do
-  ns <- getNames sig
-  return $ ident `elem` ns
+hasIdent sig ident = (== ident) <$> getName sig
 
-explode :: Sig -> J [Sig]
-explode sig = "Sig.explode" <?
-  case sig of 
-    SigSimple name -> return $ [SigIndex name 0]
-    SigIndex name x -> return $ [SigIndex name x]
+explode :: Sig -> J ValBundle
+explode sig = "Sig.explode" <? do
+  result <- case sig of 
+    SigSimple name -> return $ [ValIndex name 0]
+    SigIndex name x -> return $ [ValIndex name x]
     SigHash name x -> die "explode doesn't handle SigHash yet"
-    SigRange name x y -> return $ [SigIndex name i | i <- if x == y then [x]
+    SigRange name x y -> return $ [ValIndex name i | i <- if x == y then [x]
                                                           else if x < y
                                                                then [y, y-1 .. x]
                                                                else [x, x-1 .. y]]
@@ -185,13 +183,28 @@ explode sig = "Sig.explode" <?
       let range = if from < to 
                   then [from, from+step .. to] -- ascending
                   else [from, from-step .. to] -- descengind
-      return $ map (SigIndex name) range
+      return $ map (ValIndex name) range
 
-      
-    SigConcat xs -> concatMapM explode xs
-    x -> die $ "Sig.explode doesn't support: " ++ show x
+    SigQuote val width -> do
+      -- need to convert val to twos complement and make a bundle
+      return $ map Lit $ twosComplement val width
+
+  return $ Bundle result
+
+genbits n | n == 0 = []
+          | n `mod` 2 == 0 = L : (genbits next)
+          | otherwise = H : (genbits next)
+  where next = n `div` 2
+
+twosComplement val numBits = reverse $ take (fromInteger numBits) $ (genbits val) ++ repeat L
+        
+isQuotedSig (SigQuote _ _) = True
+isQuotedSig _ = False
+
+isIndexSig (SigIndex _ _) = True
+isIndexSig _ = False
+
 
 
 flatten :: Sig -> J [Sig]
-flatten (SigConcat xs) = return xs
 flatten x = return [x]

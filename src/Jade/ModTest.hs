@@ -6,6 +6,7 @@ import Text.Parsec
 import Jade.Types
 import qualified Numeric as N
 import qualified Jade.Sig as Sig
+import qualified Jade.Bundle as Bundle
 import Control.Monad
 import Jade.Util
 import qualified Data.List as DL
@@ -34,15 +35,15 @@ power = do string ".power"
 plotDef :: Parser PlotDef
 plotDef = do string ".plotdef"
              hspaces
-             sig <- Sig.sig
+             sig <- Sig.sigBundle
              labels <- many1 $ try (hspaces >> (many1 alphaNum <|> string "?"))
              return $ PlotDef sig labels
 
 simplePlot :: Parser PlotStyle
 simplePlot = do string ".plot"
                 hspaces
-                sig <- Sig.sig
-                return $ SimplePlot sig
+                SimplePlot <$> Sig.sigBundle
+
 
 basePlot :: Parser PlotStyle
 basePlot = do string ".plot"
@@ -50,7 +51,7 @@ basePlot = do string ".plot"
               base <- oneOf "XDB"
               char '('
               hspaces
-              sig <- Sig.sig
+              sig <- Sig.sigBundle
               hspaces
               char ')'
               return $ case base of
@@ -64,7 +65,7 @@ plotDefStyle = do string ".plot"
                   name <- ident
                   char '('
                   hspaces
-                  sig <- Sig.sig
+                  sig <- Sig.sigBundle
                   hspaces 
                   char ')'
                   return $ PlotDefStyle name sig
@@ -86,7 +87,7 @@ inputs :: Parser Inputs
 inputs = do string ".group"
             hspaces
             string "inputs"
-            ins <- many1 $ try (hspaces >> Sig.sig)
+            ins <- many1 $ try (hspaces >> Sig.sigBundle)
             return $ Inputs ins
 
 outputs :: Parser Outputs
@@ -94,7 +95,7 @@ outputs = do string ".group"
              hspaces
              string "outputs"
              hspaces
-             outs <- many1 $ try (hspaces >> Sig.sig)
+             outs <- many1 $ try (hspaces >> Sig.sigBundle)
              return $ Outputs outs
 
 mode :: Parser Mode
@@ -139,7 +140,7 @@ actionTran = do
 
 actionSetSignal :: Parser Action
 actionSetSignal = do
-  sigName <- Sig.sig
+  sigName <- Sig.sigBundle
   spaces
   string "="
   spaces 
@@ -289,7 +290,7 @@ parseModTestString s =
 
 assertBitVals modt (TestLine bvs _) = do
   let Just (Inputs inSigs) = modInputs modt
-      inWidths = map Sig.width inSigs
+      inWidths = map Bundle.width inSigs
       totalInWidth = sum inWidths
   return $ take (fromIntegral totalInWidth) bvs
 
@@ -297,17 +298,18 @@ sampleBitVals modt testline@(TestLine bvs _) = do
   assertBvs <- assertBitVals modt testline
   return $ drop (length assertBvs) bvs
 
+setSignals :: ModTest -> [ValBundle]
 setSignals modt =
   case modCycleLine modt of
-    Just (CycleLine actions) -> DL.nub [sig | SetSignal sig _ <- actions]
+    Just (CycleLine actions) -> DL.nub [bndl | SetSignal bndl _ <- actions]
     Nothing -> []
   
-testLineSignals :: ModTest -> TestLine -> Either String [(Sig, [BinVal])]
+testLineSignals :: ModTest -> TestLine -> Either String [(ValBundle, [BinVal])]
 testLineSignals modt testline@(TestLine bvs _) = do
   let Just (Inputs inSigs) = modInputs modt
       Just (Outputs outSigs) = modOutputs modt
-      inWidths = map Sig.width inSigs
-      outWidths = map Sig.width outSigs
+      inWidths = map Bundle.width inSigs
+      outWidths = map Bundle.width outSigs
   asserts <- assertBitVals modt testline
   samples <- sampleBitVals modt testline
 

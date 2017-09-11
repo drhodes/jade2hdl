@@ -24,7 +24,7 @@ terminals mod p@(Coord3 mx my mr) = "Module.testTerms:" <? do
   icon <- getIcon mod
            
   let rotateTerm (Terminal (Coord3 tx ty tr) sig) =
-        let tv@(Coord3 dx dy _) = Coord.rotate (Coord3 tx ty Rot0) mr 0 0
+        let (Coord3 dx dy _) = Coord.rotate (Coord3 tx ty Rot0) mr 0 0
         in Terminal (Coord3 (mx + dx) (my + dy) (Coord.composeRot mr tr)) sig
   
   return $ [rotateTerm t | IconTerm t <- iconParts icon]
@@ -61,7 +61,7 @@ getInputs m = "Module.getInputs" <? do
   case moduleTest m of
     Just mod ->
       case modInputs mod of
-        Just (Inputs ins) -> return $ Inputs $ ins ++ (setSignals m)
+        Just (Inputs ins) -> return $ Inputs $ ins ++ setSignals m
         Nothing -> do nb $ format "Is there a test script in module: {0}?" [moduleName m]
                       die $ "Module.getInputs couldn't find inputs in module: " ++ (moduleName m)
     Nothing ->  die $ "Module.getInputs could not find test script in module: " ++ (moduleName m)
@@ -75,8 +75,6 @@ getInputsNoSetSigs m = "Module.getInputsNoSetSigs" <? do
         Nothing -> die $ "Module.getInputs couldn't find inputs in module: " ++ (moduleName m)
     Nothing ->  die $ "Module.getInputs could not find test script in module: " ++ (moduleName m)
 
-
-
 getOutputs :: Module -> J Outputs
 getOutputs m = "Module.getOutputs" <? do
   case moduleTest m of
@@ -86,22 +84,6 @@ getOutputs m = "Module.getOutputs" <? do
         Nothing -> die "Module.getOutputs couldn't find outputs"
     Nothing ->  die "Module.getOutputs could not find test script"
 
-inputsHaveSig :: Module -> Sig -> J Bool
-inputsHaveSig mod sig = "Module.inputsHaveSig" <? do
-  (Inputs ins) <- getInputs mod
-  return $ sig `elem` ins
-
-outputsHaveSig :: Module -> Sig -> J Bool
-outputsHaveSig mod sig = "outputsHaveSig" <? do
-  (Outputs outs) <- getOutputs mod
-  return $ sig `elem` outs
-
-partInInputs :: Module -> Part -> J Bool
-partInInputs mod net = "Module.partInInputs" <? do
-  case Part.sig net of 
-    Just s -> inputsHaveSig mod s
-    Nothing -> return False
-
 cycleLine :: Module -> J CycleLine
 cycleLine m = "Module.cycleLine" <? do
   case moduleTest m of
@@ -110,12 +92,10 @@ cycleLine m = "Module.cycleLine" <? do
       Nothing -> die "Not cycle line found in this module test"
       Just cl -> return cl
 
-setSignals :: Module -> [Sig]
 setSignals m =
   case moduleTest m of
     Just mt -> ModTest.setSignals mt
     Nothing -> []
-    -- setSignals <- Module.getSetSignals topl modname
 
 testLines :: Module -> J [TestLine]
 testLines m = "Module.testLines" <? do

@@ -41,9 +41,7 @@ checkConnectOneOutput modname outsig = do
   testSkeleton modname func
 
 checkConnectOutputs = do
-  --checkConnectOneOutput "RepAnd2" (SigRange "out1" 1 0)
-  checkConnectOneOutput "BuiltInAnd4Messy" (SigSimple "vout") 
-
+  checkConnectOneOutput "BuiltInAnd4Messy" (Bundle [ValIndex "vout" 0])
 
 node s f = TestCase s f
 tree s xs = TestTree s $ mapF (map node [s ++ "_" ++ show x | x<- [1..]]) xs
@@ -55,7 +53,7 @@ testTree = TestTree "Middle"
                        , checkSubModuleInstances "RepAnd4"
                        ]
     
-  , tree "InnerSignal" [ checkConnectOneOutput "BuiltInAnd4Messy" (SigSimple "vout")
+  , tree "InnerSignal" [ checkConnectOneOutput "BuiltInAnd4Messy" (Bundle [ValIndex "vout" 0])
                          
                        ]
   ]

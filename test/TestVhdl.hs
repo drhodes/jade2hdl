@@ -1,4 +1,4 @@
-q{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PartialTypeSignatures #-}
@@ -76,11 +76,11 @@ tree s xs = TestTree s $ map node xs
 
 
 testTree = TestTree "Vhdl" [ testTreeInnerSignal
-                           , testTreeMisc
-                           , testTreeBeta
-                           , testTreeReplication
+                           --, testTreeMisc
                            , testTreeBuffer
-                           , testTreeMemUnit
+                           , testTreeReplication
+                           , testTreeBeta
+                           , testTreeMemUnit 
                            , testTree1
                            , testTree2
                            ]
@@ -104,7 +104,7 @@ testTreeBuffer = tree "Buffer" [ "Buffer4"
                                , "WonkyBuffer1"
                                ]
                  
-testTreeMisc = tree "Misc" [ "Vdd"
+testTreeMiscx = tree "Misc" [ "Vdd"
                            , "RangeStep1"
                            , "RangeStep2"
                            ]
@@ -241,10 +241,10 @@ testGenMakeModule = do
       let outfile = "test-data/vhdl/mod1/" ++ (hashid modname) ++ ".vhdl"
       TIO.writeFile outfile (T.concat [ prelude, moduleCode, testCode ])
 
-testConnectOutputJumper1 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
-  runJIO topl $ "testConnectOutputJumper1" <? do
-    let modname = "/user/Jumper1"
-    liftM print $ Vhdl.connectOutput modname (SigSimple "vout")
+-- testConnectOutputJumper1 = do
+--   Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
+--   runJIO topl $ "testConnectOutputJumper1" <? do
+--     let modname = "/user/Jumper1"
+--     liftM print $ Vhdl.connectOutput modname (SigSimple "vout")
 
 

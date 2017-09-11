@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 module Jade.Middle.Types where
 
@@ -15,16 +14,17 @@ import qualified Jade.Net as Net
 import qualified Jade.Module as Module
 import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Part as Part
-import qualified Jade.Sig as Sig
+import qualified Jade.Val as Val
 import qualified Jade.TopLevel as TopLevel
+import qualified Jade.Bundle as Bundle
 
 data TermAssoc = TermAssoc { taDir :: Direction
-                           , taSrc :: Sig
-                           , taTgt :: Sig
+                           , taSrc :: Val
+                           , taTgt :: Val
                            } deriving (Show, Eq)
 
-data SigAssign = SigAssign { sigAssignSrc :: Sig
-                           , sigAssignTgt :: Sig
+data ValAssign = ValAssign { sigAssignSrc :: Val
+                           , sigAssignTgt :: Val
                            } deriving (Show, Eq)
 
 flipDir In = Out
@@ -33,165 +33,103 @@ flipDir Out = In
 flipTermAssoc (TermAssoc dir src tgt) = TermAssoc (flipDir dir) tgt src
 flipTermMap xs = map flipTermAssoc xs
 
-type TermMap = [TermAssoc] 
-
+type TermMap = [TermAssoc]
 
 -- replicated submodule.
 data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
                                    -- ^ all inputs for this slice of the 
                                  , smrTermMapOutput :: [TermMap]
                                  , smrSubModule :: SubModule
-                                 , smrZIndex :: Integer
+                                 , smrZIndex :: Int
                                  } deriving (Show, Eq)
 
 data ModOutput = ModOutput TermMap deriving (Show, Eq)
 
-flipAssign (SigAssign src tgt) = SigAssign tgt src
+flipAssign (ValAssign src tgt) = ValAssign tgt src
 
+connectOneOutput :: String -> ValBundle -> J [ValAssign]
 connectOneOutput modname outSig = "Middle/Types.connectOneOutput" <? do
   nb "connectOneInput is reused here, the assignments are flipped around"
-  map flipAssign <$> connectOneInput modname outSig 
+  map flipAssign <$> connectOneInputBundle modname outSig 
 
-connectOneInput :: String -> Sig -> J [SigAssign]
-connectOneInput modname (SigConcat sigs) = "Middle/Types.connectOneInput@(SigConcat)" <? do
-  concatMapM (connectOneInput modname) sigs
-
-connectOneInput modname inSig = "Middle/Types.connectOneInput" <? do  
-  inSigNames <- Sig.getNames inSig
-  case inSigNames of
-    [] -> die "No signames found"
-    [signame] -> do
+connectOneInputBundle :: String -> ValBundle -> J [ValAssign]
+connectOneInputBundle modname inputBundle = "Middle/Types.connectOneInputBundle" <? do
+  list $ Bundle.getVals inputBundle
+  case uniq $ Bundle.getNames inputBundle of
+    [] -> dief "No input name found for this input bundle {0}" [show inputBundle]
+    [inputName] -> do
       -- find nets with signame
-      nets <- TopLevel.getNetsWithName modname signame
+      nets <- TopLevel.getNetsWithName modname inputName
+      nbf "EE NETS: found {0}" [show $ length nets] -- not it
       -- for each net, assign the signame
-      concatMapM (assignSig modname signame) nets
-    xs -> unimplemented
-
-
+      concatMapM (assignSig modname inputName) nets
+    xs -> impossible "A Jade module input has more than one name?? Can't happen"
+  
 -- is this net connected to the output terminal of a submodule or
 -- an input terminal?
 
+-- | assign the valname to the net it's connected to 
+assignSig :: String -> String -> Net -> J [ValAssign]
+assignSig modname valname net = "Middle/Types.assignSig" <? do
+  workingSigs <- Net.getValsWithIdent net valname
+  nb "FF Working Sigs"
+  list workingSigs
+  let idxs = downFrom $ length workingSigs - 1
+      indexedNames = zip workingSigs idxs
 
-
--- | assign the signame to the net it's connected to 
-assignSig modname signame net = "Middle/Types.assignSig" <? do
-  workingSigs <- Net.getSigsWithIdentNoFlatten net signame
-  exploded <- concatMapM Sig.explode workingSigs
-  
-  let idxs = downFrom $ length exploded - 1
-      indexedNames = zip exploded idxs
-
-  matchedSigs <- filterM (\(sig, idx) -> Sig.hasIdent sig signame) indexedNames
+  let matchedVals = filter (\(val, idx) -> Val.hasIdent val valname) indexedNames
   netName <- Net.name net
 
-  let assigns = [SigAssign sig (SigIndex netName (fromIntegral idx))
-                | (sig, idx) <- matchedSigs]
+  let assigns = [ValAssign val (ValIndex netName (fromIntegral idx))
+                | (val, idx) <- matchedVals]
   return assigns
 
-sharesInputP modname net = "Middle.Types.sharesInputP" <? do
-  let ts = Net.getTerminals net
-  drivers <- mapM (TopLevel.getInputTermDriver modname) ts
-  nb "Drivers!!"
-  list drivers
-  
-  if length (filterOut (==Nothing) drivers) == 0
-    then return False
-    else return True
-
-
-sigNameDirection modname net = "Middle.Types.isSigNameDriver" <? do
-  -- does signames share a net with a terminal that belongs to a submodules Input?
-  sharesInput <- sharesInputP modname net  
-  nbf "sharesInput? {0}" [show sharesInput]
-  return $ if sharesInput
-           then In
-           else Out
-                
-----
-connectSigName modname sigName = "Middle/Types.connectSigName" <? do  
-  -- find nets with signame
-  nets <- TopLevel.getNetsWithName modname sigName
-
-  nbf "connectSigName:sigName = {0}" [sigName]
-  dirs <- mapM (sigNameDirection modname) nets
-  -- for each net, locate the z-index of the signame  
-  assigns <- concatMapM (assignSig modname sigName) nets
-  
-  return [case dir of
-            In -> flipAssign assn
-            Out -> assn
-         | (assn, dir) <- zip assigns dirs]
-
-  
-genbits n | n == 0 = []
-          | n `mod` 2 == 0 = 0 : (genbits next)
-          | otherwise = 1 : (genbits next)
-  where next = n `div` 2
-
 connectConstantNet modname net = "Middle.Types/connectConstantNet" <? do
-  let quotedSigs = Net.getQuotedSigs net
-  netWidth <- Net.width net
-  netName <- Net.name net
-  case quotedSigs of
-    [SigQuote val numBits] -> do
-      when (netWidth /= numBits) $ do
-        let msg = "width mismatch in signals net width: {0} and constant width: {1}"
-        die $ format msg [show netWidth, show numBits]
-
-      -- this is a twos complement representation.
-      let bits = reverse $ take (fromInteger numBits) $ (genbits val) ++ repeat 0
-          
-      nb "The targets are the net replicated"
-      let tgts = map (SigIndex netName) $ reverse [0 .. netWidth - 1]
-      let srcs = [SigSimple (format "'{0}'" [show b]) | b <- bits]
-
-      return $ zipWith SigAssign srcs tgts
-    [] -> return []
-    xs -> die $ "unhandled case in connectConstantNet: " ++ show xs
-    
+  unimplemented
 ---------------------------------------------------------------------------------------------------
-replicateOneTerminal :: Integer -> Direction -> Terminal -> Net -> J TermMap
-replicateOneTerminal numReplications dir term@(Terminal _ sig) net =
+replicateOneTerminal :: Int -> Direction -> Terminal -> Net -> J TermMap
+replicateOneTerminal numReplications dir term@(Terminal _ bndl) net =
   "Middle/Types.replicateOneTerminal" <? do
-  netWidth <- Net.width net
+  netWidth' <- Net.width net
   netId <- Net.name net
-  termWidth <- Part.width (TermC term)
-  nb $ format "NetWidth: {0}, netId: {1}, termWidth: {2}, repd: {3}" [ show netWidth
+  let termWidth = Bundle.width bndl 
+  nb $ format "NetWidth: {0}, netId: {1}, termWidth: {2}, repd: {3}" [ show netWidth'
                                                                      , show netId
                                                                      , show termWidth
                                                                      , show numReplications ]
-  termSigs <- Sig.explode sig
-  bailWhen (length termSigs == 0)
+
+  netWidth <- case netWidth' of
+    Nothing -> die "net has no width!"
+    Just w -> return (fromIntegral w :: Int)
+    
+  let Bundle termSigs = bndl
   
-  case termWidth of
-    Just termWidth ->
-      let totalWidth = fromInteger $ termWidth * numReplications
-      in case compare netWidth totalWidth of
-        GT -> do {
-          ; nb "case netWidth > totalWidth"
-          ; impossible "This can't happen if the JADE modules tests pass in JADE"
-          }
-        _ -> do {
-          ; nb "case netWidth <= totalWidth"
-          ; let singles = map (SigIndex netId) $ downFrom (netWidth - 1)                     
-                srcs = concat $ DL.transpose $ chunk numReplications singles
-                tmap = take (fromInteger totalWidth) (zipWith (TermAssoc In)
-                                                      (cycle srcs)
-                                                      (cycle termSigs))
-          ; return $ case dir of
-              In -> tmap
-              Out -> flipTermMap tmap
-          }
+  let totalWidth = fromIntegral (termWidth * numReplications) :: Int
+  case compare netWidth totalWidth of
+    GT -> do {
+      ; nb "case netWidth > totalWidth"
+      ; impossible "This can't happen if the JADE modules tests pass in JADE"
+      }
+    _ -> do {
+      ; nb "case netWidth <= totalWidth"
+      ; let singles = map (ValIndex netId) $ downFrom (fromIntegral (netWidth - 1))
+            srcs = concat $ DL.transpose $ chunk numReplications singles
 
-    Nothing -> die $ "Couldn't determine width of terminal."
-
+      ; safeSrcs <- safeCycle srcs
+      ; safeTerms <- safeCycle termSigs
+            
+      ; let tmap = take totalWidth (zipWith (TermAssoc In) safeSrcs safeTerms)
+      ; return $ case dir of
+                   In -> tmap
+                   Out -> flipTermMap tmap
+      }
 
 oneOfEach xs =  
   if 0 `elem` (map length xs)
   then ([], [])
   else (map head xs, map tail xs)
 
-buildSubModuleReps :: [[TermMap]] -> [[TermMap]] -> SubModule -> Integer -> J [SubModuleRep]
+buildSubModuleReps :: [[TermMap]] -> [[TermMap]] -> SubModule -> Int -> J [SubModuleRep]
 buildSubModuleReps inputTermMaps outputTermMaps submod zidx =
   "Middle/Types.buildSubModuleRep" <? do
   if zidx < 0 then return []
@@ -202,7 +140,6 @@ buildSubModuleReps inputTermMaps outputTermMaps submod zidx =
                            (map tail inputTermMaps)
                            (map tail outputTermMaps) submod (zidx-1))
 
---here.
 subModuleInstances :: String -> SubModule -> J [SubModuleRep]
 subModuleInstances modname submod@(SubModule name loc) = do
   nb "Middle.Types.subModuleInstances"
@@ -230,8 +167,7 @@ subModuleInstances modname (SubMemUnit memunit) = do
 
 memUnitInstance :: String -> MemUnit -> J SubModuleRep
 memUnitInstance modname memunit = "Middle/Types.memUnitInstance" <? do
-  let zidx = 0
-      repd = 1
+  let repd = 1
   m <- TopLevel.getModule modname
   
   inputTerms <- MemUnit.getInputTerminals memunit
@@ -239,17 +175,53 @@ memUnitInstance modname memunit = "Middle/Types.memUnitInstance" <? do
 
   outputTerms <- MemUnit.getOutputTerminals memunit
   outputNets <- mapM (TopLevel.netWithTerminal modname) outputTerms
-  
 
   inputTermMaps <- zipWithM (replicateOneTerminal repd In) inputTerms (map Net.removeTerms inputNets)
   outputTermMaps <- zipWithM (replicateOneTerminal repd Out) outputTerms (map Net.removeTerms outputNets)
 
   let itms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- inputTermMaps] :: [[TermMap]]
       otms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- outputTermMaps] :: [[TermMap]]
-
   
   rep <- buildSubModuleReps itms otms (SubMemUnit memunit) 0
   when (length rep /= 1) (impossible "This should contain one memunit representation")
   return $ head rep
 
   
+
+
+
+-- sharesInputP modname net = "Middle.Types.sharesInputP" <? do
+--   let ts = Net.getTerminals net
+--   drivers <- mapM (TopLevel.getInputTermDriver modname) ts
+--   nb "Drivers!!"
+--   list drivers
+  
+--   if length (filterOut (==Nothing) drivers) == 0
+--     then return False
+--     else return True
+
+
+-- sigNameDirection modname net = "Middle.Types.isSigNameDriver" <? do
+--   -- does signames share a net with a terminal that belongs to a submodules Input?
+--   sharesInput <- sharesInputP modname net  
+--   nbf "sharesInput? {0}" [show sharesInput]
+--   return $ if sharesInput
+--            then In
+--            else Out
+                
+----
+{-
+connectSigName modname sigName = "Middle/Types.connectSigName" <? do  
+  -- find nets with signame
+  nets <- TopLevel.getNetsWithName modname sigName
+
+  nbf "connectSigName:sigName = {0}" [sigName]
+  dirs <- mapM (sigNameDirection modname) nets
+  -- for each net, locate the z-index of the signame  
+  assigns <- concatMapM (assignSig modname sigName) nets
+  
+  return [case dir of
+            In -> flipAssign assn
+            Out -> assn
+         | (assn, dir) <- zip assigns dirs]
+-}

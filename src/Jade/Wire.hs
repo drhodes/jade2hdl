@@ -20,7 +20,7 @@ hasSameSig (Wire _ Nothing) _ = False
 hasSameSig _ (Wire _ Nothing) = False
 hasSameSig (Wire _ s1) (Wire _ s2) = s1 == s2
 
-width :: Wire -> Maybe Integer
+width :: Wire -> Maybe Int
 width (Wire _ (Just signal)) = Signal.width signal
 width _ = Just 1
 

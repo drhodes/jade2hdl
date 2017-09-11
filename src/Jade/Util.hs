@@ -99,6 +99,8 @@ ok x = Right x
 
 contains a b = DL.isInfixOf b a
 
+downFrom 0 = [0]
+downFrom 1 = [1, 0]
 downFrom n = [n, n-1 .. 0]
 
 filterOut f xs = filter (not . f) xs
@@ -109,3 +111,7 @@ evenlyDivides x y = let n = y `div` x
 mapF [] _ = []
 mapF _ [] = []
 mapF (f:fs) (x:xs) = (f x):(mapF fs xs)
+
+
+
+  

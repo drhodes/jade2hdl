@@ -27,6 +27,7 @@ import qualified Data.String.Class as DSC
 import qualified Data.Vector as V
 import qualified Jade.ModTest as MT
 import qualified Jade.Sig as Sig
+import qualified Jade.Bundle as Bundle
 import qualified System.Environment as SE
 import qualified Text.Read as TR
 
@@ -76,9 +77,11 @@ instance FromJSON Signal where
       Nothing -> return $ Signal Nothing width dir
       Just s -> case Sig.parseSig s of
                   Right sig -> do
-                    let w' = case w of Nothing -> Just $ Sig.width sig
+                    let w' = case w of Nothing -> Just $ Bundle.width sig
                                        Just str -> TR.readMaybe str
-                    return $ Signal (Just sig) w' dir
+                    case w' of
+                      (Just w'') -> return $ Signal (Just sig) (Just (fromIntegral w'')) dir
+                      Nothing -> fail "Not sure what's going on here"
                   Left msg -> fail (show msg ++ "\n" ++ s)
 
 instance FromJSON Coord3 where
@@ -248,7 +251,7 @@ instance FromJSON Part where
       "memory" -> SubModuleC . SubMemUnit <$> parseJSON v
       "vdd" -> do
         Vdd (Coord3 x y r) <- parseJSON v
-        let signal = Just $ Signal (Just $ SigQuote 1 1) (Just 1) Nothing
+        let signal = Just $ Signal (Just $ Bundle [Lit H]) (Just 1) Nothing
             w = Wire (Coord5 x y r 0 0) signal
         return $ WireC w
       txt -> if txt `startsWith` "text"

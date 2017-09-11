@@ -4,7 +4,7 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 
 module Jade.Back.Viz where
-
+{-
 import Control.Monad
 import Data.FileEmbed
 import Data.Text.Encoding
@@ -274,3 +274,4 @@ mkAllMods modname = "Viz.mkAllMods" <? do
   userModNames <- TopLevel.dependencyOrder modname
   T.concat <$> mapM mkModule (userModNames ++ [modname])
   
+-}

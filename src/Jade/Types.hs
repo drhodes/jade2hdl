@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveTraversable #-}
 
 module Jade.Types where
 
@@ -100,7 +101,7 @@ bailWhen cond = when cond bail
 -- Icon Types
 data Line = Line Coord5 deriving (Generic, Show, Eq, Hashable, Ord)
 
-data Terminal = Terminal Coord3 Sig deriving (Generic, Show, Eq, Hashable, Ord)
+data Terminal = Terminal Coord3 ValBundle deriving (Generic, Show, Eq, Hashable, Ord)
 
 data Box = Box Coord5 deriving (Generic, Show, Eq, Hashable, Ord)
 
@@ -148,17 +149,36 @@ data SigType = OneSig Sig
              | ManySig [Sig]
              deriving (Show, Eq, Generic, Hashable, Ord)
 
+data Bundle a = Bundle [a] deriving (Show, Eq, Generic, Hashable, Ord)
+
+instance Functor Bundle where
+  fmap f (Bundle xs) = Bundle (map f xs) 
+instance Applicative Bundle where
+  pure x = Bundle [x]
+  (<*>) (Bundle fs) (Bundle xs) = Bundle (fs <*> xs)
+instance Monad Bundle where
+  (>>=) (Bundle xs) f = Bundle $ concat [ys | Bundle ys <- map f xs]
+instance Monoid (Bundle a) where
+  mconcat bs = Bundle $ concat [x | Bundle x <- bs]
+  mappend (Bundle x) (Bundle y) = Bundle (x ++ y)
+  mempty = Bundle []
+
 data Sig = SigSimple String
          | SigIndex String Integer
          | SigHash String Integer
          | SigRange String Integer Integer
          | SigRangeStep String Integer Integer Integer
          | SigQuote Integer Integer
-         | SigConcat [Sig]
          deriving (Show, Eq, Generic, Hashable, Ord)
 
-data Signal = Signal { signalName :: Maybe Sig
-                     , signalWidth :: Maybe Integer
+data Val = ValIndex String Integer
+         | Lit BinVal 
+         deriving (Show, Eq, Generic, Hashable, Ord)
+         
+type ValBundle = Bundle Val
+
+data Signal = Signal { signalName :: Maybe ValBundle
+                     , signalWidth :: Maybe Int
                      , signalDirection :: Maybe Direction
                      } deriving (Show, Eq, Generic, Hashable, Ord)
 
@@ -261,8 +281,8 @@ data Thresholds = Thresholds { thVol :: Double
                              , thVoh :: Double
                              } deriving (Generic, Show, Eq, Hashable, Ord)
 
-data Inputs = Inputs [Sig] deriving (Generic, Show, Eq, Hashable, Ord)
-data Outputs = Outputs [Sig] deriving (Generic, Show, Eq, Hashable, Ord)
+data Inputs = Inputs [ValBundle] deriving (Generic, Show, Eq, Hashable, Ord)
+data Outputs = Outputs [ValBundle] deriving (Generic, Show, Eq, Hashable, Ord)
 
 data Mode = Device | Gate deriving (Generic, Show, Eq, Hashable, Ord)
 
@@ -274,7 +294,7 @@ data Action = Assert String
             | Deassert String
             | Sample String
             | Tran Duration
-            | SetSignal Sig Double
+            | SetSignal ValBundle Double
               deriving (Generic, Show, Eq, Hashable, Ord)
 
 data CycleLine = CycleLine [Action] deriving (Generic, Show, Eq, Hashable, Ord)
@@ -285,13 +305,13 @@ data TestLine = TestLine { testLineBinVals :: [BinVal]
                          , testLineComment :: Maybe String
                          } deriving (Generic, Show, Eq, Hashable, Ord)
 
-data PlotDef = PlotDef Sig [String] deriving (Generic, Show, Eq, Hashable, Ord)
+data PlotDef = PlotDef ValBundle [String] deriving (Generic, Show, Eq, Hashable, Ord)
 
-data PlotStyle = BinStyle Sig
-               | HexStyle Sig
-               | DecStyle Sig
-               | SimplePlot Sig
-               | PlotDefStyle String Sig
+data PlotStyle = BinStyle ValBundle
+               | HexStyle ValBundle
+               | DecStyle ValBundle
+               | SimplePlot ValBundle
+               | PlotDefStyle String ValBundle
                  deriving (Generic, Show, Eq, Hashable, Ord)
 
 data ModTest = ModTest { modPower :: Maybe Power
@@ -310,13 +330,11 @@ data Node = Node { nodeLocation :: (Integer, Integer)
                  , nodePart :: Part                   
                  } deriving (Eq, Generic, Show, Hashable, Ord)
 
-type NetId = Integer 
+type NetId = Integer
+
 data Net = Net NetId [Node] deriving (Show, Eq, Ord)
 
 data Edge = Edge Node Node deriving (Generic, Show, Hashable, Ord, Eq)
-
--- data UfInstruction = LinkEdge Edge
---                    | LinkNodes Node Node
 
 data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    , store :: DM.Map a Int
@@ -324,3 +342,7 @@ data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    } deriving (Show)
 
 
+
+
+safeCycle [] = "Jade/Types.safeCycle" <? die "empty list"
+safeCycle xs = return $ cycle xs

@@ -19,6 +19,7 @@ import qualified Jade.Schematic as Schem
 import qualified Jade.Jumper as Jumper
 import qualified Jade.Coord as Coord
 import qualified Jade.MemUnit as MemUnit
+import qualified Jade.Bundle as Bundle
 import Jade.Types
 import Jade.Util
 import Control.Monad
@@ -137,7 +138,6 @@ nets modname = "TopLevel.nets" <? do
     Nothing -> do cs <- nets' modname
                   putMemo $ Memo (DM.insert modname cs table)
                   return cs
-      
 
 nets'  :: String -> J [Net] 
 nets' modname = "TopLevel.nets" <? do
@@ -187,13 +187,10 @@ netWithTerminal :: [Char] -> Terminal -> J Net
 netWithTerminal modname term@(Terminal c3@(Coord3 x y _) _) =
   ("TopLevel.netWithTerminal: " ++ modname) <? do
   nets <- nets modname
-  let pred (Net gid set) = (Node (x, y) (TermC term)) `elem` set
-      result = filter pred nets -- filter out nets that don't contain term
+  let result = filter (flip Net.hasTerm term) nets   
   case length result of
-    0 -> do
-      nb $ show $ map Net.getSigs nets
-      die $ concat [ " No net found in module: ", modname
-                   , " that has a terminal: ", show term ]
+    0 -> die $ concat [ " No net found in module: ", modname
+                      , " that has a terminal: ", show term ]
     1 -> return $ head result
     x -> die $ concat [ show x, " nets found in module: ", modname
                       , " that has a terminal: ", show term, "."                     
@@ -222,7 +219,6 @@ numNets modname = "TopLevel.numNets" <? do
 
 getInputs :: String -> J Inputs
 getInputs modname = "TopLevel.getInputs" <? do
-  nb modname
   getModule modname >>= Module.getInputs 
 
 -- | Get the outputs of a module. This requires tests to be defined in
@@ -237,31 +233,34 @@ getOutputs modname = "TopLevel.getOutputs" <? do
 
 -- | The assumption always is, that the jade module works and is
 -- tested. With that in mind, then it's safe to assume that there is
--- one driving signal (or 'SigConcat') per net. This
+-- one driving signal per net. This
 -- function finds the driving signal for a given net.
 
 -- If a signal is in more than one net then it is a driving signal.
 
 -- | What signals are driving? .input signals from the test script
--- clearly indicate a set of driving signals. .output terminals of sub
--- modules are also driving signals.  
+-- indicate a set of driving signals. OUTPUT terminals of sub modules
+-- are also driving signals. 
 
-getInputTermDriver :: String -> Terminal -> J (Maybe Sig)
+--getInputTermDriver :: String -> Terminal -> J (Maybe Sig)
 getInputTermDriver modname term = "TopLevel.getInputTermDriver" <? do
   m <- getModule modname
   Net gid nodes <- netWithTerminal modname term
 
-  let partList = let ps1 = map nodePart nodes
-                     -- remove the source terminal
-                     ps2 = DL.delete (TermC term) ps1
-                     -- remove parts with no signal name
-                     ps3 = filter Part.hasSigName ps2
-                 in ps3
-
+  -- get all parts that aren't 'term' and all parts that have a signalname
+  let ps1 = map nodePart nodes
+      -- remove the source terminal
+      ps2 = DL.delete (TermC term) ps1
+      
+  let partList = filter Part.hasAnySigName ps2
+  
   -- check the test script, if any graph net signals match the .input
   -- lines.  if so, then that's it.
-  (Inputs inputSigs) <- getInputs modname
-  let partsMatchingInput = DL.nub [p | sig <- inputSigs, p <- partList, Part.sig p == Just sig]
+  Inputs inputBundles <- getInputs modname
+  let partsMatchingInput = DL.nub [p | bndl <- inputBundles
+                                     , p <- partList
+                                     , Part.bundle p == bndl
+                                     ]
   
   case length partsMatchingInput of
     0 -> "no parts matching inputs" <? do
@@ -269,14 +268,23 @@ getInputTermDriver modname term = "TopLevel.getInputTermDriver" <? do
       submods' <- mapM (subModuleWithOutputTerminal modname) terms
       let submods = Maybe.catMaybes . concat . concat $ submods'
       case submods of
-        [(Terminal coord sig, submod)] -> Just <$> Sig.hashMangle (hashid submod) sig 
+        [(Terminal coord bndl, submod)] -> undefined -- Just <$> Bundle.hashMangle (hashid submod) bndl
         [] -> "looking in net attached to terminal" <? do
           net <- getNetWithTerminal modname term
+    
+
+          
           nb "Does this net have a .input signal?"
-          let quotedSigs = Net.getQuotedSigs net
+          
+          nb $ "Checking input signals: "
+          list inputBundles
+          let drivers = filter (Net.hasVal net) (concat $ map Bundle.getVals inputBundles)
+          
+
+          
+          let quotedSigs = Net.getLitVals net
           nb $ "Found quoted signal: " ++ show quotedSigs
-          nb $ "Checking input signals: " ++ show inputSigs
-          let drivers = filter (Net.hasSig net) inputSigs
+
           case drivers ++ quotedSigs of
             [sig] -> do nb $ "found sig: " ++ show sig
                         return (Just sig)
@@ -287,18 +295,18 @@ getInputTermDriver modname term = "TopLevel.getInputTermDriver" <? do
         xs -> impossible $ "Many submodules output to this terminal" ++ show xs
       
     _ -> let match = head partsMatchingInput
-         in case Part.sig match of
-              Just sig -> return (Just sig)
-              Nothing -> die $ "Impossible, no signal was found in this part: " ++ show match
+         in case Part.bundle match of
+              Bundle [] -> die $ "Impossible, no signal was found in this part: " ++ show match
+              x -> undefined -- return x
 
 getNetWithTerminal :: String -> Terminal -> J Net
 getNetWithTerminal modname term  = "getNetWithTerminal" <? do
-  nets <- nets modname
-  let matches =  [c | c <- nets, Net.hasTerm c term] 
+  allNets <- nets modname
+  let matches =  [c | c <- allNets, Net.hasTerm c term] 
   case matches of
+    [] -> die $ "No net found with terminal: " ++ show term
     [c] -> do nb $ "found net with terminal: " ++ show term
               return c
-    [] -> die $ "No net found with terminal: " ++ show term
     _ -> impossible $ "More than one net found with terminal: " ++ show term
 
 subModuleWithOutputTerminal modname term = "subModuleWithOutputTerminal" <? do
@@ -312,20 +320,21 @@ subModuleWithOutputTerminal modname term = "subModuleWithOutputTerminal" <? do
         then return $ Just (term, submod)
         else return Nothing
 
-sigConnectedToSubModuleP :: String -> Sig -> J Bool
-sigConnectedToSubModuleP modname sig = do
-  nb "Check if an output signal is connected to a submodule."
+valConnectedToSubModuleP :: String -> Val -> J Bool
+valConnectedToSubModuleP modname val = do
+  nb "Check if an output valnal is connected to a submodule."
   nb "If not, then code for that connection will need to be generated"
   nets <- nets modname  
-  nb "Find the nets with signal name"
-  let netsWithSig = filter (flip Net.hasSig sig) nets
+  nb "Find the nets with valnal name"
+  let netsWithVal = filter (flip Net.hasVal val) nets
   nb "Of those nets, do any have a terminal?"
-  return $ or $ map Net.hasAnyTerm netsWithSig
+  return $ or $ map Net.hasAnyTerm netsWithVal
   
 getNetsWithoutTerms :: String -> J [Net]
 getNetsWithoutTerms modname = "getNetsWithoutTerms" <?
-  (fmap (filter (not . Net.hasAnyTerm)) (nets modname))
+  (filter (not . Net.hasAnyTerm) <$> nets modname)
 
+replicationDepth :: String -> SubModule -> J Int
 replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
   -- get the terminals of the submodule
   terms <- terminals submod
@@ -336,14 +345,11 @@ replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
         termWidth <- Part.width (TermC t)
         nb "remove terms from net and guess its width"
         cw <- Net.width (Net.removeTerms net)
-        nb $ "The net sigs are: {0}" ++ show (Net.getSigs net)
         case (termWidth, cw) of
-          (Just tw, cw) -> do
+          (Just tw, Just cw) -> do
             nb "found guesses for terminal width and net width"
             nb $ show (tw, cw)
             return $ cw `div` tw
-          -- (_, _) -> do
-          --   die $ "net width couldn't be determined"
           (_, _) -> return 1 -- die $ "Couldn't find guess for terminal width nor net width."
 
   -- if the width of a net is undeclared, this may mean that
@@ -352,20 +358,22 @@ replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
   
 getNetsWithName :: String -> String -> J [Net]
 getNetsWithName modname signame = "TopLevel.getNetsWithName" <? do
-  nets <- nets modname  
-  filterM (flip Net.containsSigIdent signame) nets
+  ns <- nets modname
+  filterM (flip Net.containsIdent signame) ns
   
 getAllSigNames modname = do
   nets <- nets modname
   let parts = (concat $ map Net.parts nets)    
-  results <- concatMapM Sig.getNames $ [x | Just x <- map Part.sig parts]
+  let results = concatMapM Part.getNames parts
   return $ DL.nub results
 
--- | Given a signal name scour all the nets that contains the
--- name for the total width of all signals with the name.
-getWidthOfSigName modname signame = do
-  nets <- getNetsWithName modname signame
-  sigs <- concatMapM (flip Net.getSigsWithIdent signame) nets
-  return $ sum $ map Sig.width (DL.nub sigs)
+-- | Given a valnal name scour all the nets that contains the
+-- name for the total width of all valnals with the name.
+getWidthOfValName :: String -> String -> J Int
+getWidthOfValName modname valname = do
+  nets <- getNetsWithName modname valname
+  vals <- concatMapM (flip Net.getValsWithIdent valname) nets
+  list vals
+  return $ length (DL.nub vals)
 
 
