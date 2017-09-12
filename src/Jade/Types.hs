@@ -171,10 +171,13 @@ data Sig = SigSimple String
          | SigQuote Integer Integer
          deriving (Show, Eq, Generic, Hashable, Ord)
 
+
+-- TODO consider this phantom type.
+-- data Val a = ValIndex String Integer
 data Val = ValIndex String Integer
          | Lit BinVal 
          deriving (Show, Eq, Generic, Hashable, Ord)
-         
+
 type ValBundle = Bundle Val
 
 data Signal = Signal { signalName :: Maybe ValBundle
@@ -327,7 +330,7 @@ data ModTest = ModTest { modPower :: Maybe Power
 
 ------------------------------------------------------------------
 data Node = Node { nodeLocation :: (Integer, Integer)
-                 , nodePart :: Part                   
+                 , nodePart :: Part 
                  } deriving (Eq, Generic, Show, Hashable, Ord)
 
 type NetId = Integer

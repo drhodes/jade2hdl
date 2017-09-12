@@ -12,6 +12,9 @@ import Data.Maybe
 import Control.Monad
 import Jade.Util
 
+-- | About Net.  A Net has an ID and a collection of nodes that  
+
+
 hasAnyTerm :: Net -> Bool
 hasAnyTerm (Net gid nodes) = or [True | Node _ (TermC _) <- nodes]
 
@@ -29,6 +32,12 @@ getValsWithIdent (Net _ nodes) ident = "Net.getSigsWithIdent" <? do
   -- to cause any problems...
   return $ DL.nub $ concat $ map (flip Node.getValsWithIdent ident) nodes
 
+nodes (Net _ nodes) = nodes
+
+getBundlesWithName :: Net -> String -> [ValBundle]
+getBundlesWithName net name =
+  DL.nub $ catMaybes $ map (flip Node.getBundleWithName name) (nodes $ removeTerms net)
+
 getWires :: Net -> [Wire]
 getWires (Net _ nodes) = [w | (Node _ (WireC w)) <- nodes]
 
@@ -37,11 +46,22 @@ hasVal (Net _ nodes) val = or $ map (flip Node.hasVal val) nodes
 
 removeTerms (Net gid nodes) = Net gid (filterOut Node.isTerm nodes)
 
-width (Net _ nodes) = "Net.width" <? do
-  maximum <$> mapM Node.width nodes
+
+width :: Net -> J Int
+width (Net _ nodes) = "Net.width" <?
+  do w <- maximum <$> mapM Node.width nodes
+     case w of
+       Just w -> return w
+       Nothing -> die "Got nothing for width? How does that happen?"
 
 parts net = let (Net _ nodes) = removeTerms net
             in map nodePart nodes 
+
+getBundle :: Net -> J ValBundle 
+getBundle net = do w <- width net
+                   n <- name net
+                   return $ Bundle $ map (ValIndex n) $ downFrom (fromIntegral (w-1))
+
   
 name :: Net -> J String
 name net@(Net gid nodes) = "Net.name" <? do
@@ -50,4 +70,4 @@ name net@(Net gid nodes) = "Net.name" <? do
 
 containsIdent :: Net -> String -> J Bool
 containsIdent net ident = "Net.containsSigIdent" <? do
-cd   return $ or $ map (flip Part.containsIdentifier ident) (parts net)
+  return $ or $ map (flip Part.containsIdentifier ident) (parts net)

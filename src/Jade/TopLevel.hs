@@ -94,7 +94,6 @@ connectOverlappingTerminals termPairs = "TopLevel.connectOverlappingTerminals" <
 processEdges :: [Wire] -> [Part] -> J [Edge]
 processEdges wires parts = "TopLevel.processEdges" <? do
   nb "with all wires, make an edge from ones that share a point with a part"
-  let wireEdges = map Wire.toEdge wires
   partEdges <- sequence [makePartEdge w p | w <- wires, p <- parts]
   
   let Just edges = sequence $ filter Maybe.isJust partEdges
@@ -346,7 +345,7 @@ replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
         nb "remove terms from net and guess its width"
         cw <- Net.width (Net.removeTerms net)
         case (termWidth, cw) of
-          (Just tw, Just cw) -> do
+          (Just tw, cw) -> do
             nb "found guesses for terminal width and net width"
             nb $ show (tw, cw)
             return $ cw `div` tw

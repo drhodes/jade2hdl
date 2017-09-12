@@ -204,7 +204,7 @@ mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
   nodeDecls <- mkNodeDecls modname
   outMap <- mapM (connectOutput modname) outs
   outputWires <- T.intercalate (T.pack "\n") <$> (return outMap)
-  inputWires <- connectAllInputs modname ins
+  inputWires <- assignAllInputs modname ins
 
   -- TODO this is where all the spaces are being inserted.
   --constantWires <- T.intercalate (T.pack "\n") <$> mapM (connectConstant modname) nets
@@ -311,10 +311,8 @@ mkSubModuleInstance modname mem@(SubMemUnit memunit) =
 mkNetName net = "Vhdl.mkNetName" <? do        
   n <- Net.name net -- get the net name
   w <- Net.width net -- get the width
-  case w of
-    Nothing -> die "no idea why this could happen"
-    Just w -> do let temp = "signal {0} : std_logic_vector({1} downto 0);"
-                 return $ format temp [n, show (w - 1)] -- one less because of zero indexing.
+  let temp = "signal {0} : std_logic_vector({1} downto 0);"
+  return $ format temp [n, show (w - 1)] -- one less because of zero indexing.
 
 -- get all node names needed for wiring.
 -- no input names.
@@ -360,17 +358,15 @@ withSemiColonNewLines txts = T.concat [T.append t (T.pack ";\n") | t <- txts]
 
 -- If output signals are not connected directly to a submodule output,
 -- then there is no structural output to that output.
--- connectOutput :: String -> Sig -> J T.Text
-connectOutput modname outSig = "Vhdl.connectOutput" <? do
-  assignMap <- MT.connectOneOutput modname outSig
+connectOutput modname outBundle = "Vhdl.connectOutput" <? do
+  assignMap <- MT.assignOutputBundle modname outBundle
   withSemiColonNewLines <$> mapM mkTermAssign assignMap
 
 -- If input signals are not connected directly to a submodule output,
 -- then there is no structural input for that input.
-connectAllInputs :: String -> [ValBundle] -> J T.Text
-connectAllInputs modname modInputBundles = "Vhdl.connectAllInputs" <? do
-  nb "!! connectAllInputs.inSigs"
-  assignMap <- concatMapM (MT.connectOneInputBundle modname) modInputBundles
+assignAllInputs :: String -> [ValBundle] -> J T.Text
+assignAllInputs modname modInputBundles = "Vhdl.assignAllInputs" <? do
+  assignMap <- concatMapM (MT.assignInputBundle modname) modInputBundles
   nb "EE assignMap" >> list assignMap
   withSemiColonNewLines <$> mapM mkTermAssign assignMap
   

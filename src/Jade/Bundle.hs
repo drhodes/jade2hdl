@@ -29,5 +29,8 @@ getValsWithIdent (Bundle vals) ident = [v | v <- vals, v `Val.hasIdent` ident]
 hasAnyValName :: Bundle Val -> Bool
 hasAnyValName b = null $ getNames b
 
+
+hasName b name = name `elem` getNames b
+
 hasVal :: Eq a => Bundle a -> a -> Bool
 hasVal (Bundle xs) val = or $ map (==val) xs

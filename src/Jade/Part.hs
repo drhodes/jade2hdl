@@ -17,6 +17,10 @@ bundle part =
     TermC (Terminal _ s) -> s  
     x -> error $ "Part.sig: Not implemented for: " ++ show x
 
+getBundleWithIdent part ident = if Bundle.hasName (bundle part) ident
+                                then Just $ bundle part
+                                else Nothing 
+
 
 getLitVals part = Bundle.getLitVals (bundle part)
 

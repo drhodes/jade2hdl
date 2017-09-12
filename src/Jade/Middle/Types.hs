@@ -47,20 +47,21 @@ data ModOutput = ModOutput TermMap deriving (Show, Eq)
 
 flipAssign (ValAssign src tgt) = ValAssign tgt src
 
-connectOneOutput :: String -> ValBundle -> J [ValAssign]
-connectOneOutput modname outSig = "Middle/Types.connectOneOutput" <? do
-  nb "connectOneInput is reused here, the assignments are flipped around"
-  map flipAssign <$> connectOneInputBundle modname outSig 
+assignOutputBundle :: String -> ValBundle -> J [ValAssign]
+assignOutputBundle modname outSig = "Middle/Types.assignOneOutput" <? do
+  nb "assignOneInput is reused here, the assignments are flipped around"
+  map flipAssign <$> assignInputBundle modname outSig 
 
-connectOneInputBundle :: String -> ValBundle -> J [ValAssign]
-connectOneInputBundle modname inputBundle = "Middle/Types.connectOneInputBundle" <? do
-  list $ Bundle.getVals inputBundle
+-- | take .input(s) then find the nets they belong to and assign them.
+assignInputBundle :: String -> ValBundle -> J [ValAssign]
+assignInputBundle modname inputBundle = "Middle/Types.assignOneInputBundle" <? do
   case uniq $ Bundle.getNames inputBundle of
     [] -> dief "No input name found for this input bundle {0}" [show inputBundle]
     [inputName] -> do
       -- find nets with signame
       nets <- TopLevel.getNetsWithName modname inputName
-      nbf "EE NETS: found {0}" [show $ length nets] -- not it
+      nbf "EE NETS: found {0}" [show $ length nets]
+      nbf "NET: {0}" [show nets]
       -- for each net, assign the signame
       concatMapM (assignSig modname inputName) nets
     xs -> impossible "A Jade module input has more than one name?? Can't happen"
@@ -71,36 +72,43 @@ connectOneInputBundle modname inputBundle = "Middle/Types.connectOneInputBundle"
 -- | assign the valname to the net it's connected to 
 assignSig :: String -> String -> Net -> J [ValAssign]
 assignSig modname valname net = "Middle/Types.assignSig" <? do
-  workingSigs <- Net.getValsWithIdent net valname
-  nb "FF Working Sigs"
-  list workingSigs
-  let idxs = downFrom $ length workingSigs - 1
-      indexedNames = zip workingSigs idxs
+  let bundles = DL.nub $ Net.getBundlesWithName net valname
+  when (length bundles /= 1) $ die "why is there more than one bundle here?"
+  let valBundle = head bundles
+  
+  netBundle <- Net.getBundle net
+  return $ pickNetValsWithName valname valBundle netBundle
 
-  let matchedVals = filter (\(val, idx) -> Val.hasIdent val valname) indexedNames
-  netName <- Net.name net
+pickNetValsWithName valname (Bundle inVals) (Bundle netVals) =
+  [ValAssign v1 v2 | (v1@(ValIndex n1 _), v2) <- zip inVals netVals, n1 == valname]
 
-  let assigns = [ValAssign val (ValIndex netName (fromIntegral idx))
-                | (val, idx) <- matchedVals]
-  return assigns
 
-connectConstantNet modname net = "Middle.Types/connectConstantNet" <? do
-  unimplemented
+  -- workingSigs <- Net.getValsWithIdent net valname
+  -- nb "FF Working Sigs"
+  -- list workingSigs
+  -- let idxs = downFrom $ length workingSigs - 1
+  --     indexedNames = zip workingSigs idxs
+
+  -- let matchedVals = filter (\(val, idx) -> Val.hasIdent val valname) indexedNames
+  -- netName <- Net.name net
+
+  -- let assigns = [ValAssign val (ValIndex netName (fromIntegral idx)) | (val, idx) <- matchedVals]
+  -- return assigns
+
+connectConstantNet modname net = "Middle.Types/connectConstantNet" <? do unimplemented
+  
 ---------------------------------------------------------------------------------------------------
 replicateOneTerminal :: Int -> Direction -> Terminal -> Net -> J TermMap
 replicateOneTerminal numReplications dir term@(Terminal _ bndl) net =
   "Middle/Types.replicateOneTerminal" <? do
-  netWidth' <- Net.width net
+  netWidth <- fromIntegral <$> Net.width net
   netId <- Net.name net
   let termWidth = Bundle.width bndl 
-  nb $ format "NetWidth: {0}, netId: {1}, termWidth: {2}, repd: {3}" [ show netWidth'
+  nb $ format "NetWidth: {0}, netId: {1}, termWidth: {2}, repd: {3}" [ show netWidth
                                                                      , show netId
                                                                      , show termWidth
                                                                      , show numReplications ]
 
-  netWidth <- case netWidth' of
-    Nothing -> die "net has no width!"
-    Just w -> return (fromIntegral w :: Int)
     
   let Bundle termSigs = bndl
   
