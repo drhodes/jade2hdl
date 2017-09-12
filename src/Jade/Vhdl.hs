@@ -207,7 +207,7 @@ mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
   inputWires <- assignAllInputs modname ins
 
   -- TODO this is where all the spaces are being inserted.
-  --constantWires <- T.intercalate (T.pack "\n") <$> mapM (connectConstant modname) nets
+  constantWires <- T.intercalate (T.pack "\n") <$> mapM (connectConstant modname) nets
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt
@@ -217,7 +217,7 @@ mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
         , ("node-declarations", toMustache (nodeDecls)) -- ++ nodeDeclsNotFromInput))
         , ("submodule-entity-instances", toMustache  (T.intercalate  (T.pack "\n") instances))
         , ("maybe-wire-input", toMustache inputWires) 
-        --, ("maybe-wire-constants", toMustache constantWires)
+        , ("maybe-wire-constants", toMustache constantWires)
         , ("maybe-wire-output", toMustache outputWires)
         ]
   return $ substitute temp mapping
@@ -372,7 +372,8 @@ assignAllInputs modname modInputBundles = "Vhdl.assignAllInputs" <? do
   
 connectConstant :: String -> Net -> J T.Text
 connectConstant modname net = "Vhdl.connectConstant" <? do
-  assignMap <- MT.connectConstantNet modname net
+  assignMap <- MT.assignConstantNet net
+  nb "TT assignMap" >> list assignMap
   withSemiColonNewLines <$> mapM mkTermAssign assignMap
 
 

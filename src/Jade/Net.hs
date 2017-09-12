@@ -38,6 +38,11 @@ getBundlesWithName :: Net -> String -> [ValBundle]
 getBundlesWithName net name =
   DL.nub $ catMaybes $ map (flip Node.getBundleWithName name) (nodes $ removeTerms net)
 
+getBundlesWithLits :: Net -> [ValBundle]
+getBundlesWithLits net =
+  DL.nub $ catMaybes $ map Node.getBundleWithLit (nodes $ removeTerms net)
+
+
 getWires :: Net -> [Wire]
 getWires (Net _ nodes) = [w | (Node _ (WireC w)) <- nodes]
 

@@ -20,6 +20,9 @@ bundle part =
 getBundleWithIdent part ident = if Bundle.hasName (bundle part) ident
                                 then Just $ bundle part
                                 else Nothing 
+getBundleWithLit part = if Bundle.hasLit (bundle part)
+                        then Just $ bundle part
+                        else Nothing
 
 
 getLitVals part = Bundle.getLitVals (bundle part)

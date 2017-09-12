@@ -95,9 +95,22 @@ pickNetValsWithName valname (Bundle inVals) (Bundle netVals) =
   -- let assigns = [ValAssign val (ValIndex netName (fromIntegral idx)) | (val, idx) <- matchedVals]
   -- return assigns
 
-connectConstantNet modname net = "Middle.Types/connectConstantNet" <? do unimplemented
+assignConstantNet :: Net -> J [ValAssign]
+assignConstantNet net = "Middle.Types/connectConstantNet" <? do 
+  let bundles = Net.getBundlesWithLits net
+  if length bundles == 0 then
+    return []
+    else do when (length bundles /= 1) $ die "why is there more than one bundle here?"
+            let valBundle = head bundles 
+            nbf "valBundle: {0}" [show valBundle]
+            netBundle <- Net.getBundle net
+            nbf "netBundle: {0}" [show netBundle]
+            return $ pickNetValsWithLit valBundle netBundle
+
+pickNetValsWithLit :: Bundle Val -> Bundle Val -> [ValAssign]
+pickNetValsWithLit (Bundle inVals) (Bundle netVals) =
+  [ValAssign v1 v2 | (v1@(Lit n1), v2) <- zip inVals netVals, Val.isLit v1]
   
----------------------------------------------------------------------------------------------------
 replicateOneTerminal :: Int -> Direction -> Terminal -> Net -> J TermMap
 replicateOneTerminal numReplications dir term@(Terminal _ bndl) net =
   "Middle/Types.replicateOneTerminal" <? do

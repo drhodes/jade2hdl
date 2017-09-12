@@ -31,6 +31,7 @@ hasAnyValName b = null $ getNames b
 
 
 hasName b name = name `elem` getNames b
+hasLit = not . null . getLitVals 
 
 hasVal :: Eq a => Bundle a -> a -> Bool
 hasVal (Bundle xs) val = or $ map (==val) xs

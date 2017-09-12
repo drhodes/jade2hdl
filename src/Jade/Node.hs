@@ -18,6 +18,7 @@ getValsWithIdent :: Node -> String -> [Val]
 getValsWithIdent (Node _ part) ident = Part.getValsWithIdent part ident
 
 getBundleWithName (Node _ part) ident = Part.getBundleWithIdent part ident
+getBundleWithLit (Node _ part) = Part.getBundleWithLit part 
 
 width (Node _ part) = Part.width part
 hasVal (Node _ part) sig = Part.hasVal part sig
