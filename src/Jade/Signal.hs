@@ -19,3 +19,9 @@ getNames _ = return []
 
 getBundle (Signal (Just b) _ _) = b
 getBundle (Signal Nothing _ _) = mempty
+
+
+explode (Signal (Just bundle) _ dir) =
+  let subsignal x = Signal (Just $ Bundle [x]) (Just 1) dir
+  in map subsignal (Bundle.getVals bundle)
+explode s = [s]

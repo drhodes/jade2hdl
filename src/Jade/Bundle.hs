@@ -4,6 +4,7 @@ module Jade.Bundle where
 import Jade.Types
 import Control.Monad
 import Data.Maybe
+import qualified Data.List as DL
 import qualified Jade.Sig as Sig
 import qualified Jade.Val as Val
 
@@ -11,6 +12,8 @@ import qualified Jade.Val as Val
 
 containsIdentifier :: Bundle Val -> String -> Bool
 containsIdentifier (Bundle xs) ident = or $ map (flip Val.hasIdent ident) xs
+
+intersection (Bundle xs) (Bundle ys) = Bundle $ xs `DL.intersect` ys
 
 width :: Bundle a -> Int
 width (Bundle xs) = length xs

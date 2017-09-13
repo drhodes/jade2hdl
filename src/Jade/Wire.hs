@@ -24,6 +24,19 @@ width :: Wire -> Maybe Int
 width (Wire _ (Just signal)) = Signal.width signal
 width _ = Just 1
 
+getBundle (Wire _ (Just signal)) = Signal.getBundle signal
+getBundle _ = Bundle []
+
+explode (Wire c (Just signal)) = [Wire c (Just subsig) | subsig <- Signal.explode signal]
+explode w = [w]
+
+
+
+-- get the intersection of two wire bundles.
+--valIntersection w1 w2 = getBundle w1 `Bundle.intersection` getBundle w2
+
+
+
 new (x1, y1) (x2, y2) =
   let dx = x2 - x1
       dy = y2 - y1

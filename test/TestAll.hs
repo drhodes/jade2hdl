@@ -20,13 +20,14 @@ main = do
   --testem [ TW.testAll ]
     
   JRT.runTree [] $ JRT.TestTree "T"
-           [ TS.testTree
+           [ --
+             TS.testTree
            , TD.testTree
            , TI.testTree
            , TM.testTree
-           , TestMiddle.testTree
+           -- , TestMiddle.testTree
            , TTL.testTree
-           , TV.testTree
+           -- , TV.testTree
            ]    
   putStrLn ""
   

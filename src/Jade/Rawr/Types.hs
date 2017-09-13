@@ -49,7 +49,7 @@ runTree' c tp (TestTree s trees) = do
       leaves = filter isTestCase trees :: [TestTree]
       notLeaves = filter (not . isTestCase) trees
 
-  xs <- concat <$> (sequence $ parMap (runLeaf tp) leaves)
+  xs <- concat <$> (sequence $ parMap (runLeaf (tp ++ [s])) leaves)
    
   ys <- join <$> sequence  [runTree' c (tp ++ [s]) t | (c, t) <- zip nums notLeaves]
   return $ xs ++ ys

@@ -88,53 +88,53 @@ testTopLevelGetInputs = do
     Right x -> return x
     Left msg -> return $ Fail $ runLog topl func
 
-{-               
-testSigConnectedToSubModuleP1 :: IO TestState
-testSigConnectedToSubModuleP1 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
-  let func = do Outputs outs <- TopLevel.getOutputs "/user/Jumper1"
-                eh <- TopLevel.sigConnectedToSubModuleP "/user/Jumper1" (outs !! 0)
-                if eh == False
-                  then return Pass
-                  else return $ Fail "no message"
-  return $ case runJ topl func of
-             Right x -> x
-             Left msg -> Fail msg
+-- testSigConnectedToSubModuleP1 :: IO TestState
+-- testSigConnectedToSubModuleP1 = do
+--   Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
+--   let func = do Outputs outs <- TopLevel.getOutputs "/user/Jumper1"
+                
+--                 eh <- TopLevel.valConnectedToSubModuleP "/user/Jumper1" undefined -- (outs !! 0)
+--                 if eh == False
+--                   then return Pass
+--                   else return $ Fail "no message"
+--   return $ case runJ topl func of
+--              Right x -> x
+--              Left msg -> Fail msg
 
-testSigConnectedToSubModuleP2 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/UseAND2_3.json"
-  let func = do
-        let modname =  "/user/UseAND2_3"
-        Outputs outs <- TopLevel.getOutputs modname
-        v <- mapM (TopLevel.sigConnectedToSubModuleP modname) outs
-        if v == [True] then return Pass else return (Fail "no message")
-  return $ case runJ topl func of
-             Right x -> x
-             Left msg -> Fail msg
+-- testSigConnectedToSubModuleP2 = do
+--   Right topl <- Decode.decodeTopLevel "./test-data/UseAND2_3.json"
+--   let func = do
+--         let modname =  "/user/UseAND2_3"
+--         Outputs outs <- TopLevel.getOutputs modname
+--         v <- mapM (TopLevel.sigConnectedToSubModuleP modname) outs
+--         if v == [True] then return Pass else return (Fail "no message")
+--   return $ case runJ topl func of
+--              Right x -> x
+--              Left msg -> Fail msg
 
-testLoneJumper1 :: IO TestState
-testLoneJumper1 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/LoneJumper1.json"
-  case runJ topl $ TopLevel.nets "/user/LoneJumper1" of
-    Right comps -> if (map Net.getSigs comps) == [[]]
-                   then return Pass
-                   else return $ Fail $ "FAIL: unexpected result in testLoneJumper1"
-    Left msg -> return $ Fail msg
+-- testLoneJumper1 :: IO TestState
+-- testLoneJumper1 = do
+--   Right topl <- Decode.decodeTopLevel "./test-data/LoneJumper1.json"
+--   case runJ topl $ TopLevel.nets "/user/LoneJumper1" of
+--     Right nets -> if (map Net.getVals nets) == [[]]
+--                   then return Pass
+--                   else return $ Fail $ "FAIL: unexpected result in testLoneJumper1"
+--     Left msg -> return $ Fail msg
 
 
-testNetUseAND2Rot90 = do
-  let modname = "UseAND2Rot90"
-  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
-  let expected = [ [SigSimple "OUT1",SigSimple "USEOUT1"]
-                 , [SigSimple "IN1",SigSimple "USEIN1"]
-                 , [SigSimple "IN2",SigSimple "USEIN2"]]
+-- testNetUseAND2Rot90 = do
+--   let modname = "UseAND2Rot90"
+--   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+--   let expected = [ [SigSimple "OUT1",SigSimple "USEOUT1"]
+--                  , [SigSimple "IN1",SigSimple "USEIN1"]
+--                  , [SigSimple "IN2",SigSimple "USEIN2"]]
 
-  let func = do comps <- TopLevel.nets ("/user/" ++ modname)
-                return $ map Net.getSigs comps
-  case runJ topl func of
-    Right x -> return Pass
-    Left msg -> return $ Fail msg
--}
+--   let func = do comps <- TopLevel.nets ("/user/" ++ modname)
+--                 return $ map Net.getSigs comps
+--   case runJ topl func of
+--     Right x -> return Pass
+--     Left msg -> return $ Fail msg
+
 testTreeMiscEtc =
   let t name f = TestCase name f
   in TestTree "MiscEtc" [-- t "testTermDriverAnd23_Wire" testTermDriverAnd23_Wire
@@ -184,15 +184,17 @@ testNumNets2 modname numcomps = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   
   let func = do
-        comps <- TopLevel.nets ("/user/" ++ modname)
-        let wires = map Wire.ends (concat $ map Net.getWires comps)                 
-        return (length comps, comps)
+        nets <- TopLevel.nets ("/user/" ++ modname)
+        let wires = map Wire.ends (concat $ map Net.getWires nets)
+        nb "DD nets"
+        list nets
+        return (length nets, nets)        
         
   case runJ topl func of
     Right (n, comps) ->
       if n == numcomps
       then return Pass
-      else return $ Fail $ unlines [ format "{2}: Expected {0}, got: {1}" [show numcomps, show n, modname]
+      else return $ Fail $ unlines [ format "{2}: Expected {0}, got: {1}" [show numcomps, show n, modname] 
                                    , runLog topl func] 
     Left msg -> return $ Fail msg
 
@@ -210,7 +212,7 @@ testTreeNumNets =
   , t "Wires5" 1
   , t "Wires6" 1
   , t "Wire1" 1
-  , t "RepAnd2" 3
+  , t "RepAnd2" 6
   , t "And2Ports2" 3
   , t "And2Ports" 3
   , t "And2Ports4" 3
