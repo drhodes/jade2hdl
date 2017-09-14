@@ -13,7 +13,6 @@ import TestUtil
 import Control.Monad
 import Jade.Rawr.Types 
 
-
 bendyWire1 :: IO TestState
 bendyWire1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/bendy-wire-1.json"
@@ -27,7 +26,6 @@ bendyWire1 = do
   case result of
     Right _ -> return Pass
     Left msg -> return $ Fail msg
-
 
 testTermDriverAnd23_Wire :: IO TestState
 testTermDriverAnd23_Wire = do
@@ -218,6 +216,9 @@ testTreeNumNets =
   , t "And2Ports4" 3
   , t "JumperPort1" 1
   , t "JumperPort2" 1
+  , t "Buffer1" 2
+  , t "Buffer2" 2
+  
   , t "Nor32Arith5" 6
   ] 
 

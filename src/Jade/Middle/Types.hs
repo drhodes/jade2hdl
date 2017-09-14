@@ -1,6 +1,12 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveTraversable #-}
+
 module Jade.Middle.Types where
 
+import GHC.Generics
+import Data.Aeson
 import Control.Monad
 import Jade.Types
 import Jade.Util
@@ -21,11 +27,11 @@ import qualified Jade.Bundle as Bundle
 data TermAssoc = TermAssoc { taDir :: Direction
                            , taSrc :: Val
                            , taTgt :: Val
-                           } deriving (Show, Eq)
+                           } deriving (Generic, ToJSON, Show, Eq)
 
 data ValAssign = ValAssign { sigAssignSrc :: Val
                            , sigAssignTgt :: Val
-                           } deriving (Show, Eq)
+                           } deriving (Generic, ToJSON, Show, Eq)
 
 flipDir In = Out
 flipDir Out = In
@@ -41,9 +47,9 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
                                  , smrTermMapOutput :: [TermMap]
                                  , smrSubModule :: SubModule
                                  , smrZIndex :: Int
-                                 } deriving (Show, Eq)
+                                 } deriving (Generic, ToJSON, Show, Eq)
 
-data ModOutput = ModOutput TermMap deriving (Show, Eq)
+data ModOutput = ModOutput TermMap deriving (Generic, ToJSON, Show, Eq)
 
 flipAssign (ValAssign src tgt) = ValAssign tgt src
 
@@ -81,19 +87,6 @@ assignSig modname valname net = "Middle/Types.assignSig" <? do
 
 pickNetValsWithName valname (Bundle inVals) (Bundle netVals) =
   [ValAssign v1 v2 | (v1@(ValIndex n1 _), v2) <- zip inVals netVals, n1 == valname]
-
-
-  -- workingSigs <- Net.getValsWithIdent net valname
-  -- nb "FF Working Sigs"
-  -- list workingSigs
-  -- let idxs = downFrom $ length workingSigs - 1
-  --     indexedNames = zip workingSigs idxs
-
-  -- let matchedVals = filter (\(val, idx) -> Val.hasIdent val valname) indexedNames
-  -- netName <- Net.name net
-
-  -- let assigns = [ValAssign val (ValIndex netName (fromIntegral idx)) | (val, idx) <- matchedVals]
-  -- return assigns
 
 assignConstantNet :: Net -> J [ValAssign]
 assignConstantNet net = "Middle.Types/connectConstantNet" <? do 
@@ -206,43 +199,3 @@ memUnitInstance modname memunit = "Middle/Types.memUnitInstance" <? do
   rep <- buildSubModuleReps itms otms (SubMemUnit memunit) 0
   when (length rep /= 1) (impossible "This should contain one memunit representation")
   return $ head rep
-
-  
-
-
-
--- sharesInputP modname net = "Middle.Types.sharesInputP" <? do
---   let ts = Net.getTerminals net
---   drivers <- mapM (TopLevel.getInputTermDriver modname) ts
---   nb "Drivers!!"
---   list drivers
-  
---   if length (filterOut (==Nothing) drivers) == 0
---     then return False
---     else return True
-
-
--- sigNameDirection modname net = "Middle.Types.isSigNameDriver" <? do
---   -- does signames share a net with a terminal that belongs to a submodules Input?
---   sharesInput <- sharesInputP modname net  
---   nbf "sharesInput? {0}" [show sharesInput]
---   return $ if sharesInput
---            then In
---            else Out
-                
-----
-{-
-connectSigName modname sigName = "Middle/Types.connectSigName" <? do  
-  -- find nets with signame
-  nets <- TopLevel.getNetsWithName modname sigName
-
-  nbf "connectSigName:sigName = {0}" [sigName]
-  dirs <- mapM (sigNameDirection modname) nets
-  -- for each net, locate the z-index of the signame  
-  assigns <- concatMapM (assignSig modname sigName) nets
-  
-  return [case dir of
-            In -> flipAssign assn
-            Out -> assn
-         | (assn, dir) <- zip assigns dirs]
--}

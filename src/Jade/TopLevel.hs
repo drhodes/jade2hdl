@@ -91,6 +91,7 @@ processEdges wires parts = "TopLevel.processEdges" <? do
   
   let Just edges = sequence $ filter Maybe.isJust partEdges
   wireNbrs <- sequence [makeWire2WireEdge v w | v <- wires, w <- wires]
+  
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
   return $ edges ++ nbrs
 
@@ -169,7 +170,7 @@ nets' modname = "TopLevel.nets" <? do
       termcs = map TermC $ concat terms
        
   
-
+  
 
   nb "check to see if ports are directly on terminals."
   
@@ -201,7 +202,7 @@ nets' modname = "TopLevel.nets" <? do
       wireEdges = map Wire.toEdge (DL.nub $ concat $ map Wire.explode allWires)
   nb "wireEdges = map Wire.toEdge (DL.nub $ concat $ map Wire.explode allWires)"
   list wireEdges
-                  
+    
   edges <- processEdges allWires termcs 
   nb "edges <- processEdges allWires termcs"
   list edges 

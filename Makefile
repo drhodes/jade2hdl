@@ -1,9 +1,8 @@
 build: ## build
-	stack test
+	echo ok #	stack test
 
-test: 
-	# stack test
-	echo ok
+test: clean ## clean and test
+	stack test --fast
 
 app: ## run the app
 	stack exec -- jade2hdl --infile ${USER}.json --enthusiasm 10
