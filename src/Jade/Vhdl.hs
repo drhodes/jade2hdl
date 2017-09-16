@@ -76,13 +76,12 @@ mkTestLine m (act:actions) testline testnum = "Vhdl.mkTestLine" <? do
       txt <- sequence [testCaseIfBlock testnum o e c | (o, e) <- zip os (filter (not . null) exps)]
       recurse $ map T.unpack txt
 
-    SetSignal _ _ -> unimplemented -- (SigSimple name) x -> unimplemented
-      -- case x of
-      -- 0.0 -> recurse [format "{0} <= {1};" [name, quote "0"]];
-      -- 1.0 -> recurse [format "{0} <= {1};" [name, quote "1"]];
-      -- otherwise -> die $ "SetSignal needs to be 1 or 0, got: " ++ (show x)
+    SetSignal _ x -> case x of
+      0.0 -> recurse [format "{0} <= {1};" ["CLK", quote "0"]];
+      1.0 -> recurse [format "{0} <= {1};" ["CLK", quote "1"]];
+      otherwise -> die $ "SetSignal needs to be 1 or 0, got: " ++ (show x)
       
-    x -> unimplemented
+    x -> dief "unimplemented {0}" [show x]
 
 testCaseIfBlock :: Integer -> String -> String -> String -> J T.Text
 testCaseIfBlock testnum signal expected comment = "Vhdl.testCaseIfBlock" <? do

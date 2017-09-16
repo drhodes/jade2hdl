@@ -73,14 +73,15 @@ testNumNets2 modname numcomps = do
         list nets
         return (length nets, nets)
         
-  writeCallGraph (format "/tmp/{0}.dot" [modname]) topl func
   
   case runJ topl func of
     Right (n, comps) ->
       if n == numcomps
       then return Pass
-      else return $ Fail $ unlines [ format "{2}: Expected {0}, got: {1}" [show numcomps, show n, modname] 
-                                   , runLog topl func] 
+      else do
+        writeCallGraph (format "/tmp/{0}.dot" [modname]) topl func
+        return $ Fail $ unlines [ format "{2}: Expected {0}, got: {1}" [show numcomps, show n, modname] 
+                                , runLog topl func] 
     Left msg -> return $ Fail msg
 
 testTreeNumNets = 

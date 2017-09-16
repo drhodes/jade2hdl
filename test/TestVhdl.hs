@@ -45,7 +45,6 @@ spawnOneTest jadefile modname = do
         return $ TIO.writeFile outfile (T.concat [moduleCode, testCode])
         
   errlog <- runJIO topl func
-  writeCallGraph (format "/tmp/{0}.dot" [hashid modname]) topl func
     
   let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }
   let preludePath = "../../../app-data/vhdl/prelude.vhdl"
@@ -57,22 +56,26 @@ spawnOneTest jadefile modname = do
     ExitSuccess -> do 
       (ecode', stdout', stderr') <- readCreateProcessWithExitCode cmd2 ""
       case ecode' of
-        ExitSuccess -> return Pass
-        ExitFailure err' -> do return $ Fail $ unlines [ format "module: {0}" [modname]
-                                                       , format "ecode:  {0}" [show ecode']
-                                                       , errlog
-                                                       , stdout'
-                                                       , stderr'
-                                                       , show err'
-                                                       ]
+        ExitSuccess -> return Pass        
+        ExitFailure err' -> do
+          writeCallGraph (format "/tmp/{0}.dot" [hashid modname]) topl func
+          return $ Fail $ unlines [ format "module: {0}" [modname]
+                                  , format "ecode:  {0}" [show ecode']
+                                  , errlog
+                                  , stdout'
+                                  , stderr'
+                                  , show err'
+                                  ]
                                  
-    ExitFailure err -> do return $ Fail $ unlines [ format "module: {0}" [modname]
-                                                  , format "ecode:  {0}" [show ecode]
-                                                  , format "stdout: {0}" [stdout]
-                                                  , format "stdout: {0}" [stderr]
-                                                  , errlog 
-                                                  , show err
-                                                  ]
+    ExitFailure err -> do
+      writeCallGraph (format "/tmp/{0}.dot" [hashid modname]) topl func
+      return $ Fail $ unlines [ format "module: {0}" [modname]
+                              , format "ecode:  {0}" [show ecode]
+                              , format "stdout: {0}" [stdout]
+                              , format "stdout: {0}" [stderr]
+                              , errlog 
+                              , show err
+                              ]
 
 node s = TestCase s (spawn (ModPath "./test-data" s))
 tree s xs = TestTree s $ map node xs
@@ -82,7 +85,7 @@ testTree = TestTree "Vhdl" [ testTreeInnerSignal
                            --, testTreeMisc
                            , testTreeBuffer
                            , testTreeReplication
-                           , testTreeBeta
+                           --, testTreeBeta
                            --, testTreeMemUnit 
                            , testTree1
                            , testTree2
@@ -147,7 +150,7 @@ testTree1 = tree "One" [ "Jumper1"
                        , "Buffer3"
                        , "BuiltInAnd4"
                        , "BuiltInAnd4Messy"
-                       -- , "LeReg1"
+                       , "LeReg1"
                        , "CLwiresAdded"
                        , "CL"
                        -- , "CLA4"
