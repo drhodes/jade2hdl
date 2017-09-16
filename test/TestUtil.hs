@@ -14,5 +14,4 @@ writeCallGraph filename topl func = do
   let txt = runCallGraph topl func
   writeFile filename txt
 
-
 qualifiedModName modname = "/user/" ++ modname 

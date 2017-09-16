@@ -71,11 +71,9 @@ testNumNets2 modname numcomps = do
   let func = do
         nets <- TopLevel.nets ("/user/" ++ modname)
         list nets
-        return (length nets, nets)        
-
-  
+        return (length nets, nets)
+        
   writeCallGraph (format "/tmp/{0}.dot" [modname]) topl func
-
   
   case runJ topl func of
     Right (n, comps) ->
@@ -107,7 +105,7 @@ testTreeNumNets =
   , t "Buffer1" 2
   , t "Buffer2" 2
   , t "Nor32Arith5" 6
-  , t "RepAnd2" 9
+  , t "RepAnd2" 3
   ] 
 
 check topl func = case runJ topl func of
@@ -123,7 +121,6 @@ testConnectWiresWithSameSigName modname exp = do
         (Module _ (Just schem@(Schematic parts)) _ _) <- TopLevel.getModule qualModname
         wwssn <- TopLevel.connectWiresWithSameSigName parts
         enb wwssn        
-        bail
   check topl func
 
 testTreeConnectWiresWithSameSigName = 

@@ -40,6 +40,8 @@ runTree tp t = runTree' "?" tp t
 
 parMap f xs = map f xs `CPS.using` CPS.parList CPS.rseq
 
+allPass xs = length [Pass | Pass <- xs] == length xs
+
 runTree' :: String -> TestPath -> TestTree -> IO [TestState]
 runTree' c tp (TestTree s trees) = do
   putStrLn ""
@@ -49,8 +51,13 @@ runTree' c tp (TestTree s trees) = do
       notLeaves = filter (not . isTestCase) trees
 
   xs <- concat <$> (sequence $ parMap (runLeaf (tp ++ [s])) leaves)
-   
+  if allPass xs
+    then SCA.clearLine >> SCA.cursorUpLine 1
+    else return ()
+  
   ys <- join <$> sequence  [runTree' c (tp ++ [s]) t | (c, t) <- zip nums notLeaves]
+
+
   return $ xs ++ ys
   
 runTree' c tp (TestCase s f) = do

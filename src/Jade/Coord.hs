@@ -1,6 +1,6 @@
 module Jade.Coord where
 
-import Jade.Common
+import Jade.Types
 
 transformX rot x y =
   case fromEnum rot of
@@ -48,15 +48,6 @@ coord5ends p@(Coord5 x y rot dx dy) =
       Coord3 x' y' _ = rotate (Coord3 dx dy Rot0) rot 0 0
       n2 = (x + x', y + y')
   in (n1, n2)
-
-
--- coord5ends' p@(Coord5 x y rot dx dy) =
---   let x' = dx + (transformX rot x y)
---       y' = dy + (transformY rot x y)
---       n1 = (x, y)
---       n2 = (x', y')
---   in (n1, n2)
-
 
 xMinC5 c5 = let ((x1, _), (x2, _)) = coord5ends c5
             in min x1 x2

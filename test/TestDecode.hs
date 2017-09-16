@@ -62,26 +62,6 @@ doTestEither name eitherResult =
     Right _ -> report name Pass
     Left msg -> report name $ Fail msg
 
-testLine1 = let tstring = "[ \"line\", [ -8, -8, 0, 0, 16 ] ]"
-                exp = ok (Line (Coord5 {c5x = -8, c5y = -8, c5r = Rot0, c5dx = 0, c5dy = 16}))
-            in doTestString "testLine1" tstring exp
-                                
--- testTerminal1 = let tstring = "[ \"terminal\", [ 16, 0, 4 ], { \"name\": \"out\" } ]"
---                     expected = ok (Terminal (Coord3 {c3x = 16, c3y = 0, c3r = FlipX}) (SigSimple "RESERVED_OUT"))
---                 in doTestString "testTerminal1" tstring expected
-
--- testTerminal2 = let tstring = "[ \"terminal\", [ 16, 0, 4 ], { \"name\": \"out\" } ]"
---                     expected = ok (IconTerm (Terminal (Coord3 {c3x = 16, c3y = 0, c3r = FlipX}) (SigSimple "RESERVED_OUT")))
---                 in doTestString "testTerminal2" tstring expected
-
--- testWireConstant1 = do
---   let tstring = "[\"wire\",[0,0,0,-8,0],{\"signal\":\"1'1\",\"width\":\"1\"}]"
---       jsig = Just $ SigQuote 1 1
---       jwidth = Just 1
---       jdir = Nothing
---       expected = ok (Wire (Coord5 0 0 Rot0 (-8) 0) (Just (Signal jsig jwidth jdir)))
---   doTestString "testWireConstant1" tstring expected
-
 testMem1 = 
   let tstring = "[ \"memory\", [ 0, 0, 0 ], { \"name\": \"Mem1\", \"contents\": \"\" } ]"
       expected = ok $ MemUnit "Mem1" (Coord3 0 0 Rot0) "" 1 1 1
@@ -97,16 +77,9 @@ testMem4x2 =
       expected = ok $ MemUnit "Mem2" (Coord3 0 0 Rot0) "" 2 2 2
   in doTestString "testMem3" s expected
 
--- testWirePair1 =
---   let tstring = "[\"wire\", [0, 0, 0, 1, 1], {\"signal\": \"A,B\"}]"
---       sig = SigConcat [SigSimple "A", SigSimple "B"]
---       exp = ok (Wire (Coord5 0 0 Rot0 1 1) (Just (Signal (Just $ sig) (Just 2) Nothing)))
---   in doTestString "testWirePair1" tstring exp
-
 testTree = TestTree "Decode" $ [ testMem1
                                , testMem2
                                , testMem4x2
-                               --, testWirePair1
                                , doTestEither "testWire1" testWire1
                                , doTestEither "testSignal1" testSignal1
                                , doTestEither "testWireRange" testWireRange
@@ -117,11 +90,6 @@ testTree = TestTree "Decode" $ [ testMem1
                                , doTestEither "testSub1" testSub1
                                , doTestEither "testSchem1" testSchem1
                                , doTestEither "testSchem2" testSchem2
-
-                               -- , testTerminal1
-                               -- , testTerminal2
-                               -- , testWireConstant1
-                              
                                ]
 
 

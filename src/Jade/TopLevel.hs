@@ -16,26 +16,25 @@ module Jade.TopLevel ( getNetsWithName
                      , connectWiresWithSameSigName
                      ) where
 
-import qualified Data.Map as DM
-import qualified Data.Set as DS
-import qualified Data.List as DL
-import qualified Data.Vector as DV
-import qualified Jade.UnionFindST as UF
-import qualified Jade.Wire as Wire
-import qualified Data.Maybe as Maybe
-import qualified Jade.Decode as D
-import qualified Jade.Module as Module
-import qualified Jade.Part as Part
-import qualified Jade.Net as Net
-import qualified Jade.Schematic as Schem
-import qualified Jade.Jumper as Jumper
-import qualified Jade.MemUnit as MemUnit
-import qualified Jade.Bundle as Bundle
-import Jade.Types
-import Jade.Util
 import Control.Monad
 import Control.Monad.State
+import qualified Data.List as DL
+import qualified Data.Map as DM
 import Data.Maybe
+import qualified Data.Maybe as Maybe
+import qualified Data.Set as DS
+import qualified Data.Vector as DV
+import qualified Jade.Decode as D
+import qualified Jade.Jumper as Jumper
+import qualified Jade.MemUnit as MemUnit
+import qualified Jade.Module as Module
+import qualified Jade.Net as Net
+import qualified Jade.Part as Part
+import qualified Jade.Schematic as Schem
+import Jade.Types
+import qualified Jade.UnionFindST as UF
+import Jade.Util
+import qualified Jade.Wire as Wire
 import qualified Web.Hashids as WH
 
 -- |Get a module from a TopLevel given a module name
@@ -311,19 +310,3 @@ getWidthOfValName modname valname = do
   vals <- concatMapM (flip Net.getValsWithIdent valname) nets
   list vals
   return $ length (DL.nub vals)
-
-
-
--- valConnectedToSubModuleP :: String -> Val -> J Bool
--- valConnectedToSubModuleP modname val = do
---   nb "Check if an output val is connected to a submodule."
---   nb "If not, then code for that connection will need to be generated"
---   nets <- nets modname  
---   nb "Find the nets with valnal name"
---   let netsWithVal = filter (flip Net.hasVal val) nets
---   nb "Of those nets, do any have a terminal?"
---   return $ or $ map Net.hasAnyTerm netsWithVal
-  
--- getNetsWithoutTerms :: String -> J [Net]
--- getNetsWithoutTerms modname = "getNetsWithoutTerms" <?
---   (filter (not . Net.hasAnyTerm) <$> nets modname)
