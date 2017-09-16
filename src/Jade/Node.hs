@@ -2,14 +2,10 @@
 module Jade.Node where
 
 import qualified Data.List as DL
-import Jade.Types
+import Jade.Common
 import qualified Jade.Part as Part
-import qualified Jade.Signal as Signal
-import qualified Jade.Sig as Sig
-import qualified Jade.Wire as Wire
 import Data.Maybe
 import Control.Monad
-import Jade.Util
 
 isTerm (Node _ part) = Part.isTerm part
 getBundle (Node _ part) = Part.bundle part

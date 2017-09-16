@@ -1,10 +1,8 @@
-module TestMiddle where
+module TestMiddle (testTree) where
 
 import Jade.Middle.Types 
 import Jade.Rawr.Types 
 import Jade.Types
-import Jade.Util
-import TestUtil
 import Text.Format
 import qualified Data.List as DL
 import qualified Jade.Decode as Decode
@@ -12,6 +10,7 @@ import qualified Jade.Module as Modul
 import qualified Jade.Net as Net
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Wire as Wire
+import Jade.Util
 
 testSkeleton :: String -> (J Bool) -> IO TestState
 testSkeleton modname func = do

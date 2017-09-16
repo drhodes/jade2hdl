@@ -1,4 +1,4 @@
-module TestWire where
+module TestWire (testTree) where
 
 import Jade.Types
 import qualified Jade.TopLevel as TopLevel
@@ -63,9 +63,3 @@ testTreeCountWires = let t modname exp = TestCase modname (testWireCount modname
 testTree = TestTree "Wire" [ testTreeWireEnds
                            , testTreeCountWires
                            ]
-
-
-
-              
-  -- [ t "RepAnd2" 9  
-  -- , t "Nor32Arith5" 6

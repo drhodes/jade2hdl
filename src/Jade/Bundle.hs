@@ -5,7 +5,6 @@ import Jade.Types
 import Control.Monad
 import Data.Maybe
 import qualified Data.List as DL
-import qualified Jade.Sig as Sig
 import qualified Jade.Val as Val
 
 

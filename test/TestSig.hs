@@ -1,4 +1,4 @@
-module TestSig where
+module TestSig (testTree) where
 
 import Jade.Types
 import qualified Data.List as DL
@@ -11,7 +11,6 @@ import qualified Jade.Module as Modul
 import qualified Jade.Net as Net
 import qualified Jade.Wire as Wire
 import Text.Format
-import TestUtil
 import Control.Monad
 import Jade.Rawr.Types 
 import Jade.Util
@@ -35,19 +34,6 @@ testTreeSigWidth =
                         , t (SigRangeStep "" 0 0 0) 1
                         ] ++ [t (SigRangeStep "" i 0 1) (i+1) | i <- [0 .. 12]]
 
-
--- testExplode :: Monad m => Sig -> Integer -> m TestState
--- testExplode sig expectedWidth = do
---   case runJ emptyTopl (Sig.explode sig) of
---     (Right xs, _) -> return Pass
---     (Left msg, log) -> return $ Fail $ msg ++ log
-
-
--- testTreeExplode :: TestTree
--- testTreeExplode = TestTree "Explode"
---   [ testExplode (SigIndex "X" 0) 1
---   ]
-     
 testTree = TestTree "Sig" [ testTreeSigWidth
                           ]
 

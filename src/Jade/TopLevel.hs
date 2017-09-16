@@ -1,6 +1,20 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Jade.TopLevel where
+module Jade.TopLevel ( getNetsWithName
+                     , getModule
+                     , replicationDepth
+                     , netWithTerminal
+                     , nets
+                     , getSubModules
+                     , getInputs
+                     , getOutputs
+                     , getAllSigNames
+                     , numNets
+                     , dependencyOrder
+                     , getWidthOfValName
+                     , terminals
+                     , connectWiresWithSameSigName
+                     ) where
 
 import qualified Data.Map as DM
 import qualified Data.Set as DS
@@ -12,11 +26,9 @@ import qualified Data.Maybe as Maybe
 import qualified Jade.Decode as D
 import qualified Jade.Module as Module
 import qualified Jade.Part as Part
-import qualified Jade.Sig as Sig
 import qualified Jade.Net as Net
 import qualified Jade.Schematic as Schem
 import qualified Jade.Jumper as Jumper
-import qualified Jade.Coord as Coord
 import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Bundle as Bundle
 import Jade.Types
@@ -25,10 +37,6 @@ import Control.Monad
 import Control.Monad.State
 import Data.Maybe
 import qualified Web.Hashids as WH
-
--- |Get a list of pairs (modulename, module)
-modules :: TopLevel -> [(String, Module)]
-modules (TopLevel m) = DM.toList m
 
 -- |Get a module from a TopLevel given a module name
 getModule :: String -> J Module
@@ -96,12 +104,12 @@ processEdges wires parts = "TopLevel.processEdges" <? do
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
   return $ edges ++ nbrs
 
-findWireWithEndPoint parts p = "TopLevel.findWireWithEndPoint" <? do
-  let matches = [wire | wire@(WireC w) <- parts, let (p1, p2) = Wire.ends w
-                                                 in p == p1 || p == p2 ]
-  if null matches
-    then die $ "Couldn't find wire with end point: " ++ show p
-    else return $ head matches
+-- findWireWithEndPoint parts p = "TopLevel.findWireWithEndPoint" <? do
+--   let matches = [wire | wire@(WireC w) <- parts, let (p1, p2) = Wire.ends w
+--                                                  in p == p1 || p == p2 ]
+--   if null matches
+--     then die $ "Couldn't find wire with end point: " ++ show p
+--     else return $ head matches
 
 makeJumperWire :: Jumper -> J Wire
 makeJumperWire jumper = "TopLevel.makeJumperEdge" <? do
@@ -132,13 +140,6 @@ connectWiresWithSameSigName parts = "TopLevel.connectWiresWithSameSigName" <? do
 -- them to union find. This will reduce the total number of nets!
 -- which is good.  wires should just magically connect if this works.
 -- So, back to how union find distinguishes nodes, by 
-
-wireTwoParts :: Part -> Part -> J [Edge]
-wireTwoParts part1 part2 = "TopLevel.wireTwoParts" <? do
-  let b1 = Part.bundle part1
-      b2 = Part.bundle part2
-  if null (b1 `Bundle.intersection` b2) then return []
-    else unimplemented
 
 nets :: String -> J [Net] 
 nets modname = "TopLevel.nets" <? do
@@ -199,11 +200,6 @@ dependencyOrder modname = "TopLevel.dependencyOrder" <?
           children <- concatMapM dependencyOrder subnames
           return $ filter (`startsWith` "/user") $ DL.nub $ children ++ subnames 
 
-getInputTerminals :: SubModule -> J [Terminal]
-getInputTerminals (SubModule name offset) = do
-  m <- getModule name
-  Module.getInputTerminals m offset
-
 -- |Get the graph net which contains the terminals.
 netWithTerminal :: [Char] -> Terminal -> J Net
 netWithTerminal modname term@(Terminal c3@(Coord3 x y _) _) =
@@ -235,17 +231,17 @@ numNets :: String -> J Int
 numNets modname = "TopLevel.numNets" <? do
   length <$> nets modname ? "Couldn't get number of nets"
 
--- | Get the input of a module. This requires tests to be defined in
--- the module referenced, because .input directive of the test script
--- indicate the target signals in the schematic
+-- -- | Get the input of a module. This requires tests to be defined in
+-- -- the module referenced, because .input directive of the test script
+-- -- indicate the target signals in the schematic
 
 getInputs :: String -> J Inputs
 getInputs modname = "TopLevel.getInputs" <? do
   getModule modname >>= Module.getInputs 
 
--- | Get the outputs of a module. This requires tests to be defined in
--- the module referenced, because the .output directive of the test
--- script indicate the source signals in the schematic
+-- -- | Get the outputs of a module. This requires tests to be defined in
+-- -- the module referenced, because the .output directive of the test
+-- -- script indicate the source signals in the schematic
 
 getOutputs :: String -> J Outputs
 getOutputs modname = "TopLevel.getOutputs" <? do
@@ -264,54 +260,6 @@ getOutputs modname = "TopLevel.getOutputs" <? do
 -- indicate a set of driving signals. OUTPUT terminals of sub modules
 -- are also driving signals. 
 
---getInputTermDriver :: String -> Terminal -> J (Maybe Sig)
-getInputTermDriver modname term = "TopLevel.getInputTermDriver" <? do
-  m <- getModule modname
-  Net gid nodes <- netWithTerminal modname term
-
-  -- get all parts that aren't 'term' and all parts that have a signalname
-  let ps1 = map nodePart nodes
-      -- remove the source terminal
-      ps2 = DL.delete (TermC term) ps1
-      
-  let partList = filter Part.hasAnySigName ps2
-  
-  -- check the test script, if any graph net signals match the .input
-  -- lines.  if so, then that's it.
-  Inputs inputBundles <- getInputs modname
-  let partsMatchingInput = DL.nub [p | bndl <- inputBundles
-                                     , p <- partList
-                                     , Part.bundle p == bndl
-                                     ]
-  
-  case length partsMatchingInput of
-    0 -> "no parts matching inputs" <? do
-      let terms = [t | (TermC t) <- partList]
-      submods' <- mapM (subModuleWithOutputTerminal modname) terms
-      let submods = Maybe.catMaybes . concat . concat $ submods'
-      case submods of
-        [(Terminal coord bndl, submod)] -> undefined -- Just <$> Bundle.hashMangle (hashid submod) bndl
-        [] -> "looking in net attached to terminal" <? do
-          net <- getNetWithTerminal modname term
-          nb "Does this net have a .input signal?"
-          nb $ "Checking input signals: "
-          list inputBundles
-          let drivers = filter (Net.hasVal net) (concat $ map Bundle.getVals inputBundles)
-              quotedSigs = Net.getLitVals net
-          case drivers ++ quotedSigs of
-            [sig] -> do nb $ "found sig: " ++ show sig
-                        return (Just sig)
-            [] -> do nb $ "Couldn't find driving signal in a test script input, \
-                          \sub module output or in shared net: " ++ show net
-                     return Nothing
-            _ -> impossible $ "More than one driver found in terminal net: " ++ show term
-        xs -> impossible $ "Many submodules output to this terminal" ++ show xs
-      
-    _ -> let match = head partsMatchingInput
-         in case Part.bundle match of
-              Bundle [] -> die $ "Impossible, no signal was found in this part: " ++ show match
-              x -> undefined -- return x
-
 getNetWithTerminal :: String -> Terminal -> J Net
 getNetWithTerminal modname term  = "getNetWithTerminal" <? do
   allNets <- nets modname
@@ -321,17 +269,6 @@ getNetWithTerminal modname term  = "getNetWithTerminal" <? do
     [c] -> do nb $ "found net with terminal: " ++ show term
               return c
     _ -> impossible $ "More than one net found with terminal: " ++ show term
-
-subModuleWithOutputTerminal modname term = "subModuleWithOutputTerminal" <? do
-  allsubs <- getSubModules modname
-  forM allsubs $ \submod@(SubModule subname subloc) -> do
-    -- for each submodule check to see if its terminals contain the terminal
-    m <- getModule subname
-    subterms <- terminals submod
-    forM subterms $ \subterm -> do
-      if (term == subterm)
-        then return $ Just (term, submod)
-        else return Nothing
 
 replicationDepth :: String -> SubModule -> J Int
 replicationDepth modname submod  = "TopLevel.replicationDepth" <? do

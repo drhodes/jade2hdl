@@ -1,6 +1,5 @@
 module Jade.Schematic where
 
-import Jade.Part as Part
 import Jade.Types
 
 

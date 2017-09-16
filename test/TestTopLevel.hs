@@ -1,4 +1,4 @@
-module TestTopLevel where
+module TestTopLevel (testTree) where
 
 import qualified Data.List as DL
 import qualified Data.ByteString as DB
@@ -26,22 +26,6 @@ bendyWire1 = do
     Right _ -> return Pass
     Left msg -> return $ Fail msg
 
-testTermDriverAnd23_Wire :: IO TestState
-testTermDriverAnd23_Wire = do
-  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-  let result = runJ topl $ do
-        let modname =  "/user/UseAND2_3"
-        subs <- TopLevel.getSubModules modname
-        let submodule@(SubModule subname subloc) = subs !! 0
-        inputTerms <- TopLevel.getInputTerminals submodule
-        result <- mapM (TopLevel.getInputTermDriver modname) inputTerms
-        case result of
-          [(Just (ValIndex "A" 0)), (Just (ValIndex "B" 0))] -> return Pass
-          x -> return $ Fail $ runLog topl $ die $ "hmm, found: " ++ show x
-  case result of
-    Right x -> return x
-    Left msg -> return $ Fail msg
-
 testGetNetsWithName :: String -> String -> Int -> IO TestState
 testGetNetsWithName modname signame exp = do
   Right topl <- Decode.decodeTopLevel $ "./test-data/" ++ modname ++ ".json"
@@ -52,38 +36,6 @@ testGetNetsWithName modname signame exp = do
     Right cs -> if length cs == exp
                 then return Pass
                 else return $ Fail (show ("expected", exp, "got", length cs))
-
-testTopLevelGetInputs :: IO TestState
-testTopLevelGetInputs = do
-  let modname =  "/user/UseAND2_3"
-  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-  let func =do cs <- TopLevel.nets modname
-               subs <- TopLevel.getSubModules modname
-               -- pick a submodule with anonymous wires connected to
-               -- two other submodule outputs
-               let subm = subs !! 2
-               -- get the input terminals of the chosen submodule.
-               terms <- TopLevel.getInputTerminals subm
-               nb "!! Terms"
-               list terms
-               -- pick the first input terminal.
-               let term = terms !! 0
-               nbf "EE Chosen term: {0}" [show term]
-               
-               -- find the connected nets to that input terminal.
-               connected <- TopLevel.netWithTerminal modname term
-
-               nbf "EE Connected: {0}" [show connected]
-
-               -- find which signal is driving the input terminal.
-               driver <- TopLevel.getInputTermDriver modname (terms !! 1)
-               if driver == (Just $ ValIndex "LdyPxAwJGq0vO_RESERVED_OUT" 0)
-                 then return Pass
-                 else do nb $ show driver
-                         die $ "driver `not equal to` what it should be"
-  case runJ topl func of
-    Right x -> return x
-    Left msg -> return $ Fail $ runLog topl func
 
 testTreeMiscEtc =
   let t name f = TestCase name f
@@ -291,16 +243,11 @@ testTreeNumSubModules = TestTree "numSubModules" $
      , t "CLA32" 17
    ]
 
--- testMakePartEdge modname expected = do
---   testExpGot modname topl expected $ do
---     edge <- TopLevel.makePartEdge (qualifiedModName modname)
-
 testTree = TestTree "TopLevel" [ testTreeNumNets
                                , testTreeNumSubModules
                                , testTreeNumTerminals
                                , testTreeGetNetsWithNameAll
                                , testTreeConnectWiresWithSameSigName
-                               --, testTreeTerminals
                                , testTreeReplicationDepth
                                , testTreeGetWidthOfSigName
                                , testTreeMiscEtc

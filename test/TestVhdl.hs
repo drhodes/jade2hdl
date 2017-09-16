@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 
-module TestVhdl where
+module TestVhdl (testTree) where
 
 import Text.Format
 import qualified Jade.TopLevel as TopLevel

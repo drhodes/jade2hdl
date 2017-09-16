@@ -7,7 +7,6 @@ import Jade.Types
 import qualified Numeric as N
 import Text.Format
 import Control.Monad
-import Jade.Util
 import Data.Char as DC
 
 {-

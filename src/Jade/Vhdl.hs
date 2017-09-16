@@ -18,15 +18,11 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as DT
 import qualified Jade.Decode as Decode
 import qualified Jade.Net as Net
-import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Middle.Types as MT
 import qualified Jade.ModTest as ModTest
 import qualified Jade.Module as Module
-import qualified Jade.Part as Part
-import qualified Jade.Sig as Sig
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Bundle as Bundle
-import qualified Jade.UnionFindST as UnionFindST
 
 splitAssert _ [] = []
 splitAssert [] xs = [xs]

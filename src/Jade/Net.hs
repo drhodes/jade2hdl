@@ -4,9 +4,6 @@ module Jade.Net where
 import qualified Data.List as DL
 import Jade.Types
 import qualified Jade.Part as Part
-import qualified Jade.Signal as Signal
-import qualified Jade.Sig as Sig
-import qualified Jade.Wire as Wire
 import qualified Jade.Node as Node
 import Data.Maybe
 import Control.Monad

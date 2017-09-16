@@ -3,7 +3,6 @@ module Jade.Signal where
 
 import Jade.Common
 import qualified Jade.Bundle as Bundle
-import Jade.Util
 import Control.Monad
 import Data.Maybe
 

@@ -6,10 +6,8 @@ import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.Vector as DV
 import qualified Jade.Decode as D
-import qualified Jade.Part as Part
 import qualified Jade.Coord as Coord
 import Jade.Common
-import Jade.Wire
 
 xMin :: IconPart -> J (Maybe Integer)
 xMin ipart = "Icon.xMin" <? do

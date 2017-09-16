@@ -5,13 +5,11 @@ import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.Vector as DV
 import qualified Jade.Decode as D
-import qualified Jade.Part as Part
 import qualified Jade.Icon as Icon
 import qualified Jade.Coord as Coord
 import qualified Jade.ModTest as ModTest
 import qualified Jade.BoundingBox as BoundingBox
 import Jade.Types
-import Jade.Wire
 import Text.Format
 
 getIcon :: Module -> J Icon

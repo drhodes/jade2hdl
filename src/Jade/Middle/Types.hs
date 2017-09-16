@@ -8,8 +8,7 @@ module Jade.Middle.Types where
 import GHC.Generics
 import Data.Aeson
 import Control.Monad
-import Jade.Types
-import Jade.Util
+import Jade.Common
 import Text.Format
 import qualified Data.List as DL
 import qualified Data.Map as DM
@@ -19,7 +18,6 @@ import qualified Jade.Decode as Decode
 import qualified Jade.Net as Net
 import qualified Jade.Module as Module
 import qualified Jade.MemUnit as MemUnit
-import qualified Jade.Part as Part
 import qualified Jade.Val as Val
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Bundle as Bundle

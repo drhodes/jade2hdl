@@ -1,15 +1,13 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module TestDecode where
+module TestDecode (testTree) where
 
 import Jade.ModTest
 import Jade.Types
 import Jade.Decode
 import Data.Aeson
 import Control.Monad
-import Test.QuickCheck.Arbitrary
-import TestUtil
 import Text.Format
 import Jade.Rawr.Types
 import Jade.Util

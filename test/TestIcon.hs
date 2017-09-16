@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
-module TestIcon where
+module TestIcon (testTree) where
 
 import qualified Data.Map as DM
 import Jade.Types

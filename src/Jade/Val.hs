@@ -1,13 +1,6 @@
 module Jade.Val where
 
-import qualified Text.Parsec.Number as TPN
-import Text.Parsec
 import Jade.Types
-import qualified Numeric as N
-import Text.Format
-import Control.Monad
-import Jade.Util
-import Data.Char as DC
 
 
 

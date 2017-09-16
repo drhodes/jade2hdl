@@ -4,7 +4,6 @@ module Jade.Part where
 import Jade.Types
 import Control.Monad
 import Data.Maybe
-import qualified Jade.Sig as Sig
 import qualified Jade.Signal as Signal
 import qualified Jade.Bundle as Bundle
 

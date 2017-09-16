@@ -10,7 +10,6 @@ import Data.Functor.Identity
 import qualified System.IO as SIO
 import Text.Format
 import qualified Control.Parallel.Strategies as CPS
-import Jade.Util
 import qualified Data.List as DL
 import qualified System.Console.ANSI as SCA
 

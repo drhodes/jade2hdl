@@ -5,16 +5,9 @@ import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.List as DL
 import qualified Data.Vector as DV
-import qualified Jade.UnionFindST as UF
-import qualified Jade.Wire as Wire
 import qualified Data.Maybe as Maybe
 import qualified Jade.Decode as D
-import qualified Jade.Module as Module
-import qualified Jade.Part as Part
 import qualified Jade.Sig as Sig
-import qualified Jade.Net as Net
-import qualified Jade.Schematic as Schem
-import qualified Jade.Jumper as Jumper
 import qualified Jade.Coord as Coord
 import qualified Jade.Bundle as Bundle
 import Jade.Common
