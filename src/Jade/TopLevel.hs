@@ -23,6 +23,7 @@ import Jade.Types
 import Jade.Util
 import Control.Monad
 import Control.Monad.State
+import Data.Maybe
 import qualified Web.Hashids as WH
 
 -- |Get a list of pairs (modulename, module)
@@ -59,7 +60,7 @@ makePartEdge wire part = "TopLevel.makePartEdge" <? do
          else return Nothing
 
 makeWire2WireEdge :: Wire -> Wire -> J (Maybe Edge)
-makeWire2WireEdge w1 w2 = 
+makeWire2WireEdge w1 w2 = "TopLevel.makeWire2WireEdge" <? 
   if w1 == w2
   then return Nothing
   else let (loc1, loc2) = Wire.ends w1
@@ -95,7 +96,7 @@ processEdges wires parts = "TopLevel.processEdges" <? do
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
   return $ edges ++ nbrs
 
-findWireWithEndPoint parts p = "findWireWithEndPoint" <? do
+findWireWithEndPoint parts p = "TopLevel.findWireWithEndPoint" <? do
   let matches = [wire | wire@(WireC w) <- parts, let (p1, p2) = Wire.ends w
                                                  in p == p1 || p == p2 ]
   if null matches
@@ -103,23 +104,22 @@ findWireWithEndPoint parts p = "findWireWithEndPoint" <? do
     else return $ head matches
 
 makeJumperWire :: Jumper -> J Wire
-makeJumperWire jumper = "makeJumperEdge" <? do
+makeJumperWire jumper = "TopLevel.makeJumperEdge" <? do
   nb "find the endpoints of the jumper"
   let (p1, p2) = Jumper.getEnds jumper
   nb "create a wire where the jumper is"
   return $ Wire.new p1 p2
 
 makePortWire :: Port -> J Wire
-makePortWire (Port (Coord3 x y r) sig)  = "makePortWire" <? do
+makePortWire (Port (Coord3 x y r) sig)  = "TopLevel.makePortWire" <? do
   nb "create a wire of length zero, that has the signal from the port"
   return $ Wire (Coord5 x y r 0 0) sig
 
 connectWiresWithSameSigName :: [Part] -> J [Wire]
-connectWiresWithSameSigName parts = "connectWiresWithSameSigName" <? do
-  let pairs = DL.nub [DL.sort [wc1, wc2] |
-                      wc1@(WireC w1) <- parts,
-                      wc2@(WireC w2) <- parts, (w1 /= w2) && (w1 `Wire.hasSameSig` w2)]
-  return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | [WireC w1, WireC w2] <- pairs]
+connectWiresWithSameSigName parts = "TopLevel.connectWiresWithSameSigName" <? do
+  let wires = triangleProd $ catMaybes $ map Part.toWire parts
+  let pairs = [(w1, w2) | (w1, w2) <- wires, w1 `Wire.hasSameSig` w2]              
+  return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | (w1, w2) <- pairs]
 
 -- | What's going on here? Now that the decoder explodes signal names
 -- out into val bundles immediately, it's possible to connect wire
@@ -153,69 +153,43 @@ nets modname = "TopLevel.nets" <? do
                   return cs
 
 nets'  :: String -> J [Net] 
-nets' modname = "TopLevel.nets" <? do
+nets' modname = "TopLevel.nets_" <? do
+  edges <- getEdges modname
+  let nets_ = UF.components $ edges
+  nb "let nets = UF.components $ edges ++ wireEdges"
+  enb nets_
+  return nets_
+
+getEdges  :: String -> J [Edge]
+getEdges modname = "TopLevel.getEdges" <? do
   nb "---------------------------------"
   nbf "get the module: {0}" [modname]
   (Module _ (Just schem@(Schematic parts)) _ _) <- getModule modname
-
-  nbf "get all parts({0}) from module: {1}" [show $ length parts, modname]
   
   terms <- sequence [terminals submod | submod <- Schem.getSubModules schem]
-  nbf "get all terms({0}) from module: {1}" [show $ length terms, modname]
-  list terms
-  
   let wires = [w | WireC w <- parts]
       ports = [p | PortC p <- parts]
       jumpers = Schem.getJumpers schem
       termcs = map TermC $ concat terms
-       
-  
-  
 
-  nb "check to see if ports are directly on terminals."
-  
   ssnw <- connectWiresWithSameSigName parts
-  nb "ssnw <- connectWiresWithSameSigName parts"
-  list ssnw
-  
+
   jumperWires <- mapM makeJumperWire jumpers
-  nb "jumperWires <- mapM makeJumperWire jumpers"
-  list jumperWires
-  
   portWires <- mapM makePortWire ports
-  nb "portWires <- mapM makePortWire ports"
-  list portWires
-  
   ts <- getOverlappingTerminals modname
-  nb "ts <- getOverlappingTerminals modname"
-  list ts
-  
   overlappingTermWires <- connectOverlappingTerminals ts
-  nb "overlappingTermWires <- connectOverlappingTerminals ts"
-  list overlappingTermWires
   
   let allWires = concat [ wires
                         , jumperWires
                         , ssnw
                         , portWires
                         , overlappingTermWires]
-      wireEdges = map Wire.toEdge (DL.nub $ concat $ map Wire.explode allWires)
-  nb "wireEdges = map Wire.toEdge (DL.nub $ concat $ map Wire.explode allWires)"
-  list wireEdges
-    
+      wireEdges = map Wire.toEdge allWires
+
   edges <- processEdges allWires termcs 
-  nb "edges <- processEdges allWires termcs"
-  list edges 
-  
-  let nets = UF.components $ edges ++ wireEdges
-  nb "let nets = UF.components $ edges ++ wireEdges"
-  list nets
-  
-  return nets
+  return (wireEdges ++ edges)
 
 -- | VHDL requires that modules be instantiated in dependency order,
-
-
 dependencyOrder :: String -> J [String]
 dependencyOrder modname = "TopLevel.dependencyOrder" <? 
   if not $ modname `startsWith` "/user/" then return []
@@ -359,20 +333,6 @@ subModuleWithOutputTerminal modname term = "subModuleWithOutputTerminal" <? do
         then return $ Just (term, submod)
         else return Nothing
 
--- valConnectedToSubModuleP :: String -> Val -> J Bool
--- valConnectedToSubModuleP modname val = do
---   nb "Check if an output val is connected to a submodule."
---   nb "If not, then code for that connection will need to be generated"
---   nets <- nets modname  
---   nb "Find the nets with valnal name"
---   let netsWithVal = filter (flip Net.hasVal val) nets
---   nb "Of those nets, do any have a terminal?"
---   return $ or $ map Net.hasAnyTerm netsWithVal
-  
--- getNetsWithoutTerms :: String -> J [Net]
--- getNetsWithoutTerms modname = "getNetsWithoutTerms" <?
---   (filter (not . Net.hasAnyTerm) <$> nets modname)
-
 replicationDepth :: String -> SubModule -> J Int
 replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
   -- get the terminals of the submodule
@@ -414,3 +374,19 @@ getWidthOfValName modname valname = do
   vals <- concatMapM (flip Net.getValsWithIdent valname) nets
   list vals
   return $ length (DL.nub vals)
+
+
+
+-- valConnectedToSubModuleP :: String -> Val -> J Bool
+-- valConnectedToSubModuleP modname val = do
+--   nb "Check if an output val is connected to a submodule."
+--   nb "If not, then code for that connection will need to be generated"
+--   nets <- nets modname  
+--   nb "Find the nets with valnal name"
+--   let netsWithVal = filter (flip Net.hasVal val) nets
+--   nb "Of those nets, do any have a terminal?"
+--   return $ or $ map Net.hasAnyTerm netsWithVal
+  
+-- getNetsWithoutTerms :: String -> J [Net]
+-- getNetsWithoutTerms modname = "getNetsWithoutTerms" <?
+--   (filter (not . Net.hasAnyTerm) <$> nets modname)

@@ -38,6 +38,12 @@ hasVal part val = Bundle.hasVal (bundle part) val
 isJumper (JumperC _) = True
 isJumper _ = False
 
+isWire (WireC _) = True
+isWire _ = False
+
+toWire (WireC w) = Just w
+toWire _ = Nothing
+
 isSubModule (SubModuleC _) = True
 isSubModule _ = False
 

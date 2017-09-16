@@ -66,7 +66,7 @@ collect uf (x:rest) = do
   (cnx:) <$> collect uf notcnx
 
 components edges = runST $ do
-  let nodes = DL.nub $ DL.sort $ concat [[n1, n2] | Edge n1 n2 <- edges]
+  let nodes = DL.nub $ DL.sort $ concat [[n1, n2] | Edge n1 n2 <- edges, n1 /= n2]
       table = DM.fromList $ zip nodes [0..]
   uf <- newUnionFind (length nodes)
 

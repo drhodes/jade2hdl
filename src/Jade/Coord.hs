@@ -1,6 +1,6 @@
 module Jade.Coord where
 
-import Jade.Types 
+import Jade.Common
 
 transformX rot x y =
   case fromEnum rot of

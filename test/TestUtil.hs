@@ -16,3 +16,11 @@ withTest name f = do
   putStrLn ""
 
 expectedEq exp got = unless (got == exp) (expected exp got)
+
+
+writeCallGraph filename topl func = do
+  let txt = runCallGraph topl func
+  writeFile filename txt
+
+
+qualifiedModName modname = "/user/" ++ modname 

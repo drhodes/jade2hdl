@@ -194,7 +194,6 @@ mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
   schem <- Module.getSchematic m
 
   subs <- TopLevel.getSubModules modname
-  nets <- TopLevel.nets modname  
   instances <- mapM (mkSubModuleInstance modname) subs
   
   Inputs ins <- Module.getInputs m
@@ -207,6 +206,7 @@ mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
   inputWires <- assignAllInputs modname ins
 
   -- TODO this is where all the spaces are being inserted.
+  nets <- TopLevel.nets modname
   constantWires <- T.intercalate (T.pack "\n") <$> mapM (connectConstant modname) nets
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")

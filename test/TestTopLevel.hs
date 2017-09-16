@@ -1,6 +1,5 @@
 module TestTopLevel where
 
-import Jade.Types
 import qualified Data.List as DL
 import qualified Data.ByteString as DB
 import qualified Jade.TopLevel as TopLevel
@@ -12,6 +11,7 @@ import Text.Format
 import TestUtil
 import Control.Monad
 import Jade.Rawr.Types 
+import Jade.Common
 
 bendyWire1 :: IO TestState
 bendyWire1 = do
@@ -22,7 +22,6 @@ bendyWire1 = do
         case length cs of
           1 -> return "+"
           x -> die $ "hmm, found: " ++ show x
-
   case result of
     Right _ -> return Pass
     Left msg -> return $ Fail msg
@@ -86,53 +85,6 @@ testTopLevelGetInputs = do
     Right x -> return x
     Left msg -> return $ Fail $ runLog topl func
 
--- testSigConnectedToSubModuleP1 :: IO TestState
--- testSigConnectedToSubModuleP1 = do
---   Right topl <- Decode.decodeTopLevel "./test-data/Jumper1.json"
---   let func = do Outputs outs <- TopLevel.getOutputs "/user/Jumper1"
-                
---                 eh <- TopLevel.valConnectedToSubModuleP "/user/Jumper1" undefined -- (outs !! 0)
---                 if eh == False
---                   then return Pass
---                   else return $ Fail "no message"
---   return $ case runJ topl func of
---              Right x -> x
---              Left msg -> Fail msg
-
--- testSigConnectedToSubModuleP2 = do
---   Right topl <- Decode.decodeTopLevel "./test-data/UseAND2_3.json"
---   let func = do
---         let modname =  "/user/UseAND2_3"
---         Outputs outs <- TopLevel.getOutputs modname
---         v <- mapM (TopLevel.sigConnectedToSubModuleP modname) outs
---         if v == [True] then return Pass else return (Fail "no message")
---   return $ case runJ topl func of
---              Right x -> x
---              Left msg -> Fail msg
-
--- testLoneJumper1 :: IO TestState
--- testLoneJumper1 = do
---   Right topl <- Decode.decodeTopLevel "./test-data/LoneJumper1.json"
---   case runJ topl $ TopLevel.nets "/user/LoneJumper1" of
---     Right nets -> if (map Net.getVals nets) == [[]]
---                   then return Pass
---                   else return $ Fail $ "FAIL: unexpected result in testLoneJumper1"
---     Left msg -> return $ Fail msg
-
-
--- testNetUseAND2Rot90 = do
---   let modname = "UseAND2Rot90"
---   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
---   let expected = [ [SigSimple "OUT1",SigSimple "USEOUT1"]
---                  , [SigSimple "IN1",SigSimple "USEIN1"]
---                  , [SigSimple "IN2",SigSimple "USEIN2"]]
-
---   let func = do comps <- TopLevel.nets ("/user/" ++ modname)
---                 return $ map Net.getSigs comps
---   case runJ topl func of
---     Right x -> return Pass
---     Left msg -> return $ Fail msg
-
 testTreeMiscEtc =
   let t name f = TestCase name f
   in TestTree "MiscEtc" [-- t "testTermDriverAnd23_Wire" testTermDriverAnd23_Wire
@@ -143,24 +95,7 @@ testTreeMiscEtc =
       -- , t "testSigConnectedToSubModuleP2" testSigConnectedToSubModuleP2
       -- , t "testLoneJumper1" testLoneJumper1
     ]
-  {-
-testNets :: String -> [[Sig]] -> IO TestState
-testNets modname exp = do
-  Right topl <- Decode.decodeTopLevel $ format "./test-data/{0}.json" [modname]
-  let func = do
-        comps <- TopLevel.nets $ format "/user/{0}" [modname]
-        let r1 = DL.sort exp
-            r2 = DL.sort $ map Net.getSigs comps
-        if r1 == r2
-          then return True
-          else do expected exp (map Net.getSigs comps)
-                  list comps
-                  return False
-  case runJ topl func of
-    Left msg -> return $ Fail msg
-    Right True -> return Pass
-    Right False -> return $ Fail $ runLog topl func
--}
+     
 testReplicationDepth :: String -> Int -> IO TestState
 testReplicationDepth modname expDepth = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
@@ -183,11 +118,13 @@ testNumNets2 modname numcomps = do
   
   let func = do
         nets <- TopLevel.nets ("/user/" ++ modname)
-        let wires = map Wire.ends (concat $ map Net.getWires nets)
-        nb "DD nets"
         list nets
         return (length nets, nets)        
-        
+
+  
+  writeCallGraph (format "/tmp/{0}.dot" [modname]) topl func
+
+  
   case runJ topl func of
     Right (n, comps) ->
       if n == numcomps
@@ -210,7 +147,6 @@ testTreeNumNets =
   , t "Wires5" 1
   , t "Wires6" 1
   , t "Wire1" 1
-  , t "RepAnd2" 6
   , t "And2Ports2" 3
   , t "And2Ports" 3
   , t "And2Ports4" 3
@@ -218,17 +154,30 @@ testTreeNumNets =
   , t "JumperPort2" 1
   , t "Buffer1" 2
   , t "Buffer2" 2
-  
   , t "Nor32Arith5" 6
+  , t "RepAnd2" 9
   ] 
 
-testTree = TestTree "TopLevel" [ testTreeNumNets
-                               , testTreeGetNetsWithNameAll
-                               --, testTreeTerminals
-                               , testTreeReplicationDepth
-                               , testTreeGetWidthOfSigName
-                               , testTreeMiscEtc
-                               ]
+check topl func = case runJ topl func of
+                    Left msg -> return $ Fail $ unlines [msg, runLog topl func]
+                    Right state -> return Pass
+
+testConnectWiresWithSameSigName modname exp = do
+  let modpath =  (format "./test-data/{0}.json" [modname])
+  let qualModname = "/user/" ++ modname
+  Right topl <- Decode.decodeTopLevel modpath
+  
+  let func = do
+        (Module _ (Just schem@(Schematic parts)) _ _) <- TopLevel.getModule qualModname
+        wwssn <- TopLevel.connectWiresWithSameSigName parts
+        enb wwssn        
+        bail
+  check topl func
+
+testTreeConnectWiresWithSameSigName = 
+  let t modname exp = TestCase modname (testConnectWiresWithSameSigName modname exp)
+  in TestTree "ConnectWiresWithSameSigName" [t "RepAnd2" 9
+                                            ]
 
 testTreeGetNetsWithNameAll =
   let t modname signame exp = TestCase modname (testGetNetsWithName modname signame exp)
@@ -283,37 +232,6 @@ testTreeGetWidthOfSigName =
                                   , t "Buffer7" "X" 1
                                   , t "Buffer7" "OUT1" 3
                                   ]
-{-
-testTreeTerminals = let t name f = TestCase name testTerminals1
-  in TestTree "terminals" [ t "testTerminals1" testTerminals1
-                          ]
--}
-
-{-
-testTerminals1 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/MemUnit1.json" 
-  let modname =  "/user/MemUnit1"
-      name = "Mem1"
-      loc = Coord3 0 0 Rot0
-      contents = "0\n1"
-      (numports, naddr, ndata) = (1,1,1)
-      
-      func = TopLevel.terminals (SubMemUnit (MemUnit name loc contents numports naddr ndata))
-      cs = runJ topl func
-      
-      exp = [ Terminal (Coord3 {c3x = 0, c3y = 0, c3r = Rot0}) (SigSimple "ADDR_PORT1")
-            , Terminal (Coord3 {c3x = 72, c3y = 0, c3r = Rot0}) (SigSimple "DATA_PORT1")
-            , Terminal (Coord3 {c3x = 0, c3y = 8, c3r = Rot0}) (SigSimple "OE_PORT1")
-            , Terminal (Coord3 {c3x = 0, c3y = 16, c3r = Rot0}) (SigSimple "WE_PORT1")
-            , Terminal (Coord3 {c3x = 0, c3y = 24, c3r = Rot0}) (SigSimple "CLK_PORT1")
-            ]
-            
-  case cs of
-    Right cs -> if DL.sort cs == DL.sort exp
-                then return Pass
-                else return $ Fail $ runLog topl (func >> (expected exp cs))
-    Left msg -> return $ Fail msg
--}
 
 portTest1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/port-test-1.json" 
@@ -325,56 +243,65 @@ portTest1 = do
                   x -> return $ Fail $ show (runLog topl $ die $ "hmm, found: " ++ show x)
     Left msg -> return $ Fail msg
 
-------------------------------------------------------------------
--- CHECKS
-{-
-checkJumper21nets = do
-  Right topl <- Decode.decodeTopLevel "./test-data/Jumper21.json"
-  case runJ topl $ do TopLevel.nets "/user/Jumper21" of
-    Right comps -> print $ map Net.getSigs comps
-    Left msg -> fail msg
+testNumTerminals modname expected = do
+  testExpGot modname expected $ do
+    let qualModName = "/user/" ++ modname 
+    allSubs <- TopLevel.getSubModules qualModName
+    length <$> concatMapM TopLevel.terminals allSubs
+    
+testExpGot modname expected f = do
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+  let func = do
+        got <- f
+        case got == expected of
+          True -> return ()
+          False -> let temp = "exp: {0}, got: {1}" 
+                   in do enb got
+                         die $ format temp [show expected, show got]
+  case runJ topl func of
+    Right x -> return Pass
+    Left msg -> return $ Fail $ unlines [runLog topl func]
 
-checkNets modname = do
-  Right topl <- Decode.decodeTopLevel $ format "./test-data/{0}.json" [modname]
-  case runJ topl (TopLevel.nets (format "/user/{0}" [modname])) of
-    Right comps -> mapM_ print $ map Net.getSigs comps
-    Left msg -> fail msg
+testTreeNumTerminals = TestTree "numTerminals" $
+  let t name exp = TestCase name (testNumTerminals name exp)
+  in [ t "RepAnd2" 3
+     , t "Rep1FA2" 5
+     , t "RangeStep2" 5
+     , t "RangeStep1" 3
+     , t "Nor32Arith5" 6 
+     , t "Nor32Arith4" 12
+     ]
 
-checkJumper41 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/Jumper41.json"
-  putStrJ topl $ do
-    let modname =  "/user/Jumper41"
-    liftM show $ TopLevel.nets modname
+testNumSubModules modname expected = do
+  testExpGot modname expected $ do
+    length <$> TopLevel.getSubModules (qualifiedModName modname)
 
-checkDependencyOrder1 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/CLA32.json"
-  printJ topl $ do
-    let modname =  "/user/CLA32"
-    cs <- TopLevel.dependencyOrder modname
-    return cs 
+testTreeNumSubModules = TestTree "numSubModules" $
+  let t name exp = TestCase name (testNumSubModules name exp)
+  in [ t "RepAnd2" 1
+     , t "Rep1FA2" 1
+     , t "Nor32Arith4" 4
+     , t "Nor32Arith3" 3
+     , t "Nor32Arith2" 4
+     , t "Nor32Arith" 4
+     , t "RepAnd4" 1
+     , t "RepAnd3" 1
+     , t "RangeStep2" 1  
+     , t "RangeStep1" 1 
+     , t "CLA32" 17
+   ]
 
-buildUserAnd23 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-3.json"
-  printJ topl $ do
-    let modname =  "/user/UseAND2_3"
-    cs <- TopLevel.nets modname
-    return $ cs !! 4
+-- testMakePartEdge modname expected = do
+--   testExpGot modname topl expected $ do
+--     edge <- TopLevel.makePartEdge (qualifiedModName modname)
 
-buildUserAnd24 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-4.json"
-  putStrJ topl $ do
-    let modname =  "/user/UseAND2_4"
-    cs <- TopLevel.nets modname
-    let (Net gid cs') = cs !! 5
-    return $ show $ map nodePart $ cs'
-
-checkTopLevelNets = do
-  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
-  return $ TopLevel.nets "/user/UseAND2"
-
-checkTopLevelNets1 :: IO (J Int)
-checkTopLevelNets1 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/user-and2-2.json"
-  return $ TopLevel.numNets "/user/UseAND2"
-
--}
+testTree = TestTree "TopLevel" [ testTreeNumNets
+                               , testTreeNumSubModules
+                               , testTreeNumTerminals
+                               , testTreeGetNetsWithNameAll
+                               , testTreeConnectWiresWithSameSigName
+                               --, testTreeTerminals
+                               , testTreeReplicationDepth
+                               , testTreeGetWidthOfSigName
+                               , testTreeMiscEtc
+                               ]

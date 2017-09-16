@@ -17,6 +17,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src, test
   exposed-modules:     Jade.Decode
+                     , Jade.Common
                      , Jade.Types
                      , Jade.BoundingBox
                      , Jade.TopLevel
@@ -41,6 +42,8 @@ library
                      , Jade.Bundle
                      , Jade.Node
                      , Jade.Val
+                     , Jade.Story
+                     , Jade.Note
 
                      , TestModule
                      , TestUtil

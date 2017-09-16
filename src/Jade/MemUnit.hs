@@ -17,7 +17,7 @@ import qualified Jade.Schematic as Schem
 import qualified Jade.Jumper as Jumper
 import qualified Jade.Coord as Coord
 import qualified Jade.Bundle as Bundle
-import Jade.Types
+import Jade.Common
 import Jade.Util
 import Control.Monad
 import Control.Monad.State

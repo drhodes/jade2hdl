@@ -19,18 +19,19 @@ main = do
   putStrLn "Starting test"
   --testem [ TW.testAll ]
     
-  JRT.runTree [] $ JRT.TestTree "T"
-           [ --
-             TS.testTree
-           , TD.testTree
-           , TI.testTree
-           , TM.testTree
-           -- , TestMiddle.testTree
-           , TTL.testTree
-           -- , TV.testTree
-           ]    
+  results <- JRT.runTree [] $ JRT.TestTree "T"
+             [ --
+               TW.testTree
+             , TS.testTree
+             , TD.testTree
+             , TI.testTree
+             , TM.testTree
+             , TestMiddle.testTree
+             , TTL.testTree             
+             , TV.testTree
+             ]
+             
   putStrLn ""
-  
   putStrLn "All done."
     
 

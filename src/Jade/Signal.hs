@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Jade.Signal where
 
-import Jade.Types
+import Jade.Common
 import qualified Jade.Bundle as Bundle
 import Jade.Util
 import Control.Monad

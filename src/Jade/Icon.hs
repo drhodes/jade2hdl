@@ -8,7 +8,7 @@ import qualified Data.Vector as DV
 import qualified Jade.Decode as D
 import qualified Jade.Part as Part
 import qualified Jade.Coord as Coord
-import Jade.Types
+import Jade.Common
 import Jade.Wire
 
 xMin :: IconPart -> J (Maybe Integer)

@@ -16,6 +16,8 @@ import Jade.Util
 import Data.Hashable
 import Text.Format
 import Data.Aeson
+import Jade.Note
+-- import qualified Jade.Story as JS
 
 import Control.Monad.Except 
 import Control.Monad.Writer
@@ -28,13 +30,14 @@ import Control.Monad.State
 --         |               |      |      Log handling.
 --         |               |      |      |                  return val.
 --         |               |      |      |                  |
-type J a = ExceptT String (StateT Global (Writer [String])) a 
+type J a = ExceptT String (StateT Global (Writer [Note])) a 
 
 data Global = Global { globalTopLevel :: TopLevel
                      , globalMemo :: Memo
                      }
 
 data Memo = Memo { memoComps :: DM.Map String [Net] }
+
 
 emptyMemo = Memo DM.empty
 emptyTopl = TopLevel DM.empty
@@ -51,14 +54,18 @@ getTop = globalTopLevel <$> get
 
 globalInit topl = Global topl emptyMemo
 
-runX :: TopLevel -> J a -> (Either String a, [String])
+runX :: TopLevel -> J a -> (Either String a, [Note])
 runX topl x = let stateV = runExceptT x
                   writerV = evalStateT stateV (globalInit topl)
               in runWriter writerV
 
 runLog :: TopLevel -> J a -> String
 runLog topl x = let log = snd $ runX topl x
-                in DL.intercalate "\n" ("Cool Story": uniq log)
+                in notesToString log
+
+runCallGraph :: TopLevel -> J a -> String
+runCallGraph topl x = let log = snd $ runX topl x
+                      in dotGraph log
 
 runJ topl x = fst (runX topl x)
 
@@ -73,8 +80,8 @@ putStrJ topl x = case runJ topl x of
 runJIO :: TopLevel -> J (IO a) -> IO String
 runJIO topl x =
   case runX topl x of
-    (Left msg, log) -> return $ DL.intercalate "\n" ("Cool Story" : uniq log ++ [msg])
-    (Right f, log) -> f >> return (DL.intercalate "\n" ("Cool Story" : uniq log))
+    (Left msg, log) -> return $ DBL8.unpack $ encode (uniq log ++ [Note msg])
+    (Right f, log) -> f >> (return $ DBL8.unpack $ encode (uniq log))
 
 die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
 dief msg xs = die (format msg xs)
@@ -84,12 +91,13 @@ impossible msg = die $ "The impossible happened: " ++ msg
 unimplemented :: J a
 unimplemented = die "unimplemented."
 
-nb s = tell [s]
+nb :: String -> J ()
+nb s = tell [Note $ DBL8.unpack $ encode s]
 nbf s xs = nb $ format s xs
 
-list x = do nb $ DL.intercalate "\n" $ map show x
-            nb ""
---lists s xs = nb s >> list xs
+enb :: ToJSON a => a -> J ()
+enb x = tell [Note $ DBL8.unpack $ encode x]
+list xs = enb xs
 
 bail :: J a
 bail = die "bailing!"
@@ -98,8 +106,12 @@ bailWhen cond = when cond bail
 (?) x msg = let crash e = throwError $ e ++ "\n" ++ "! " ++ msg
             in x `catchError` crash
 
--- | for building nice stack traces.
-(<?) msg x = nb msg >> x ? msg
+-- | for building execution traces.
+(<?) msg f = do
+  tell [Func msg]
+  result <- f ? msg
+  tell [EndFunc]
+  return result
 
 ------------------------------------------------------------------
 -- Icon Types
@@ -179,8 +191,10 @@ data Sig = SigSimple String
 
 -- TODO consider this phantom type.
 -- data Val a = ValIndex String Integer
-data Val = ValIndex String Integer
-         | Lit BinVal 
+data Val = ValIndex { valIdxName :: String
+                    , valIdxIdx :: Integer
+                    } 
+         | Lit { litBinVal :: BinVal }
          deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 
 type ValBundle = Bundle Val
@@ -344,9 +358,13 @@ data Node = Node { nodeLocation :: (Integer, Integer)
   
 type NetId = Integer
 
-data Net = Net NetId [Node] deriving (Generic, Show, Eq, Ord, ToJSON)
+data Net = Net { netId :: NetId
+               , netNodes :: [Node]
+               } deriving (Generic, Show, Eq, Ord, ToJSON)
 
-data Edge = Edge Node Node deriving (Generic, Show, Hashable, Ord, Eq, ToJSON)
+data Edge = Edge { edgeNode1 :: Node
+                 , edgeNode2 :: Node
+                 } deriving (Generic, Show, Hashable, Ord, Eq, ToJSON)
 
 data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    , store :: DM.Map a Int

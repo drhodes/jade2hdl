@@ -77,7 +77,8 @@ fails = do
   SCA.setSGR [SCA.SetColor SCA.Foreground SCA.Vivid SCA.Red]
   putStr "X" >> SIO.hFlush SIO.stdout
   SCA.setSGR [SCA.Reset]
-           
+  
+    
 rawrLog tp name state =  
   case state of
     Pass -> return ()

@@ -61,7 +61,7 @@ sigRange = do
 
     
 runExplode s = case runX emptyTopl $ explode s of
-                 (Left msg, log) -> fail $ msg ++ (concat log)
+                 (Left msg, log) -> fail $ msg ++ (show log)
                  (Right xs, _) -> xs
 
 

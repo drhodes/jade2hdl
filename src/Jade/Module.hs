@@ -19,8 +19,7 @@ getIcon (Module _ _ _ (Just x)) = return x
 getIcon _ = die "No icon found in module"
 
 terminals :: Module -> Coord3 -> J [Terminal]
-terminals mod p@(Coord3 mx my mr) = "Module.testTerms:" <? do
-  nb $ show p
+terminals mod p@(Coord3 mx my mr) = "Module.terminals" <? do
   icon <- getIcon mod
            
   let rotateTerm (Terminal (Coord3 tx ty tr) sig) =

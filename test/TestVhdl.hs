@@ -37,11 +37,15 @@ spawnOneTest jadefile modname = do
   SD.createDirectoryIfMissing False "test-data/auto-vhdl"
   SD.createDirectory autoTestPath
   Right topl <- Decode.decodeTopLevel jadefile
-  errlog <- runJIO topl $ do
-    nb $ "spawnOneTest: " ++ modname
-    moduleCode <- Vhdl.mkAllMods modname
-    testCode <- Vhdl.mkTestBench modname    
-    return $ TIO.writeFile outfile (T.concat [moduleCode, testCode])
+  
+  let func = do
+        nb $ "spawnOneTest: " ++ modname
+        moduleCode <- Vhdl.mkAllMods modname
+        testCode <- Vhdl.mkTestBench modname    
+        return $ TIO.writeFile outfile (T.concat [moduleCode, testCode])
+        
+  errlog <- runJIO topl func
+  writeCallGraph (format "/tmp/{0}.dot" [hashid modname]) topl func
     
   let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }
   let preludePath = "../../../app-data/vhdl/prelude.vhdl"
@@ -69,7 +73,6 @@ spawnOneTest jadefile modname = do
                                                   , errlog 
                                                   , show err
                                                   ]
-
 
 node s = TestCase s (spawn (ModPath "./test-data" s))
 tree s xs = TestTree s $ map node xs

@@ -4,8 +4,8 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveTraversable #-}
 
-module Jade.Types where
-
+module Jade.Story where
+{-
 import GHC.Generics
 import qualified Data.Vector as V
 import qualified Data.Map as DM
@@ -78,7 +78,6 @@ jsonStory f =
     Right x -> Right x
     Left errlog -> Left $ encode errlog
 
-
 debug s = encode $ Err s Debug
 fatal s = throwError $ Err (Log (V.fromList [T.pack s])) Fatal
 
@@ -94,6 +93,12 @@ bail = die "Bailing!"
 (?) x msg = let crash e = throwError e -- <> msg)
             in x `catchError` crash
 
+
+data Trace = Trace [String] deriving (Show, Eq)
+
+
+
+newtype TraceT m a = TraceT { runTraceT :: m (Trace a) }
 
 
 {-
@@ -116,4 +121,5 @@ list x = do nb $ DL.intercalate "\n" $ map show x
 (<?) msg x = nb msg >> x ? msg
 
 
+-}
 -}

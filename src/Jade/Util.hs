@@ -113,5 +113,8 @@ mapF _ [] = []
 mapF (f:fs) (x:xs) = (f x):(mapF fs xs)
 
 
+triangleProd [] = []
+triangleProd (x:xs) = zip (repeat x) xs ++ (triangleProd xs)
 
-  
+
+replace x y str = [if c == x then y else c | c <- str]

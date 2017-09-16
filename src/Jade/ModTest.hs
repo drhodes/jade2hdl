@@ -3,7 +3,7 @@ module Jade.ModTest where
 import Text.Parsec.String
 import qualified Text.Parsec.Number as TPN
 import Text.Parsec
-import Jade.Types
+import Jade.Common
 import qualified Numeric as N
 import qualified Jade.Sig as Sig
 import qualified Jade.Bundle as Bundle

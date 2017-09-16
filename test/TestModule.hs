@@ -14,6 +14,7 @@ import Text.Format
 import Control.Monad
 import TestUtil
 import Jade.Rawr.Types 
+import Jade.Note
 
 withTopLevel :: String -> (TopLevel -> b) -> IO b
 withTopLevel modname f = do
@@ -212,7 +213,12 @@ testTreeHasTerminalsAt = TestTree "hasTerminalsAt" $
   , t "SubBuiltIn2" hasTerminalsAt2 [(16,32), (32, 32), (24, -16)]
   , t "SubBuiltIn3" hasTerminalsAt2 [(0,0), (16,0), (8,-48)]
   , t "SubBuiltIn4" hasTerminalsAt2 [(0,0), (16,0), (8,48)]
+  , t "RepAnd2" hasTerminalsAt2 [(0,0), (0,16), (48,8)]
+  , t "RepBuffer1" hasTerminalsAt2 [(0,0), (32,0)]
+  
   ]
+
+ 
 
 testTreeSubModBoundingBox = TestTree "subModBoundingBox" $
   [ t "SubBuiltIn3" testSubModBoundingBox BB{bbLeft=(-4), bbTop=(-48), bbRight=20, bbBottom=0}
