@@ -38,7 +38,6 @@ data Global = Global { globalTopLevel :: TopLevel
 
 data Memo = Memo { memoComps :: DM.Map String [Net] }
 
-
 emptyMemo = Memo DM.empty
 emptyTopl = TopLevel DM.empty
 
@@ -370,9 +369,6 @@ data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
                                    , store :: DM.Map a Int
                                    , curId :: Int
                                    } deriving (Show)
-
-
-
 
 safeCycle [] = "Jade/Types.safeCycle" <? die "empty list"
 safeCycle xs = return $ cycle xs

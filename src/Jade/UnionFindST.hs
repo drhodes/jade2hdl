@@ -1,4 +1,4 @@
-module Jade.UnionFindST where
+module Jade.UnionFindST (components) where
 
 -- this code swiped from https://gist.github.com/kseo/8693028
 
@@ -13,8 +13,7 @@ import qualified Data.Map as DM
 import Prelude hiding (id)
 
 data UnionFind s = UnionFind { ids :: STUArray s Int Int
-                             , szs :: STUArray s Int Int
-                             }
+                             , szs :: STUArray s Int Int }
 
 newUnionFind :: Int -> ST s (UnionFind s)
 newUnionFind n = liftM2 UnionFind (newListArray (0, n-1) [0..n-1]) (newArray (0, n-1) 1)
@@ -43,27 +42,12 @@ unite uf p q = do
               writeArray (szs uf) j (szi + szj)
       else do writeArray (ids uf) j i
               writeArray (szs uf) i (szj + szi)
-            
 -- end of swipe from
 -- https://gist.github.com/kseo/8693028
 
---fromEdges :: Ord t => [Edge t] -> UnionFind (Node t)
---fromEdges :: Foldable t => t a -> ST s (UnionFind s)
 
--- https://hackage.haskell.org/package/extra-1.6/docs/src/Control-Monad-Extra.html#partitionM
-partitionM :: Monad m => (a -> m Bool) -> [a] -> m ([a], [a])
-partitionM f [] = return ([], [])
-partitionM f (x:xs) = do
-    res <- f x
-    (as,bs) <- partitionM f xs
-    return ([x | res]++as, [x | not res]++bs)
 
-collect :: UnionFind s -> [Int] -> ST s [[Int]]
-collect _ [] = return []
-collect uf (x:rest) = do
-  (cnx, notcnx) <- partitionM (find uf x) rest
-  (cnx:) <$> collect uf notcnx
-
+components :: [Edge] -> [Net]
 components edges = runST $ do
   let nodes = DL.nub $ DL.sort $ concat [[n1, n2] | Edge n1 n2 <- edges, n1 /= n2]
       table = DM.fromList $ zip nodes [0..]
@@ -79,14 +63,4 @@ components edges = runST $ do
   xs <- sequence [filterM (find uf x) [0.. length nodes - 1] | x <- [0.. length nodes - 1]]
   let indexes = DL.nub xs
   return $ zipWith Net [1..] [DL.nub $ map (nodes !!) xs | xs <- indexes]
-  
-nameComp :: Net -> J String
-nameComp (Net gid nodes) = "UnionFind.nameComp" <? do
-  let parts = map nodePart nodes
-      signals1 = [signal | WireC (Wire _ (Just signal)) <- parts] -- this is bad.
-      names = [n | Signal (Just (Bundle [ValIndex n 0])) _ _ <- signals1] 
-      genNameLen = 10
-  return $ if null names
-           then take genNameLen $ "wire_" ++ show gid
-           else head names
 

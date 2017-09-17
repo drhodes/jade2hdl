@@ -1,4 +1,8 @@
-module Jade.ModTest where
+module Jade.ModTest ( parseModTestString
+                    , setSignals
+                    , assertBitVals
+                    , sampleBitVals
+                    )where
 
 import Text.Parsec.String
 import qualified Text.Parsec.Number as TPN
@@ -276,11 +280,6 @@ acreteAll filename mt ((lineNum,line):rest) =
   in case mt' of
     Left msg -> Left msg
     Right asdf -> acreteAll filename asdf rest
-    
-parseModTestFile filename = do
-  xs <- lines <$> readFile filename
-  let linePairs = zip [1..] xs
-  return $ acreteAll filename defaultModTest linePairs
   
 parseModTestString :: String -> Either [Char] ModTest
 parseModTestString s =
@@ -304,21 +303,25 @@ setSignals modt =
     Just (CycleLine actions) -> DL.nub [bndl | SetSignal bndl _ <- actions]
     Nothing -> []
   
-testLineSignals :: ModTest -> TestLine -> Either String [(ValBundle, [BinVal])]
-testLineSignals modt testline@(TestLine bvs _) = do
-  let Just (Inputs inSigs) = modInputs modt
-      Just (Outputs outSigs) = modOutputs modt
-      inWidths = map Bundle.width inSigs
-      outWidths = map Bundle.width outSigs
-  asserts <- assertBitVals modt testline
-  samples <- sampleBitVals modt testline
+-- testLineSignals :: ModTest -> TestLine -> Either String [(ValBundle, [BinVal])]
+-- testLineSignals modt testline@(TestLine bvs _) = do
+--   let Just (Inputs inSigs) = modInputs modt
+--       Just (Outputs outSigs) = modOutputs modt
+--       inWidths = map Bundle.width inSigs
+--       outWidths = map Bundle.width outSigs
+--   asserts <- assertBitVals modt testline
+--   samples <- sampleBitVals modt testline
 
-  -- improve these error messages
-  when (sum inWidths /= (fromIntegral $ length asserts)) $ 
-    fail $ "testline asserts do not match the width of the signals: " ++ (show (inSigs, asserts))
+--   -- improve these error messages
+--   when (sum inWidths /= (fromIntegral $ length asserts)) $ 
+--     fail $ "testline asserts do not match the width of the signals: " ++ (show (inSigs, asserts))
 
-  when (sum outWidths /= (fromIntegral $ length samples)) $ 
-    fail $ "testline samples do not match the width of the signals: " ++ (show (outSigs, samples))
+--   when (sum outWidths /= (fromIntegral $ length samples)) $ 
+--     fail $ "testline samples do not match the width of the signals: " ++ (show (outSigs, samples))
     
-  return $ concat [ zip inSigs (bust (map fromIntegral inWidths) asserts)
-                  , zip outSigs (bust (map fromIntegral outWidths) samples) ]
+--   return $ concat [ zip inSigs (bust (map fromIntegral inWidths) asserts)
+--                   , zip outSigs (bust (map fromIntegral outWidths) samples) ]
+
+
+
+

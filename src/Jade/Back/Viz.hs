@@ -4,31 +4,32 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 
 module Jade.Back.Viz where
-{-
-import Control.Monad
-import Data.FileEmbed
-import Data.Text.Encoding
-import Jade.Types
-import Jade.Util
-import Text.Format
-import Text.Mustache
-import Text.Mustache.Compile (mustache)
-import qualified Data.List as DL
-import qualified Data.Map as DM
-import qualified Data.Map as DM
-import qualified Data.Text as T
-import qualified Data.Text.IO as DT
-import qualified Jade.Decode as Decode
-import qualified Jade.Net as Net
-import qualified Jade.MemUnit as MemUnit
-import qualified Jade.Middle.Types as MT
-import qualified Jade.ModTest as ModTest
-import qualified Jade.Module as Module
-import qualified Jade.Part as Part
-import qualified Jade.Sig as Sig
-import qualified Jade.TopLevel as TopLevel
-import qualified Jade.UnionFindST as UnionFindST
 
+-- import Control.Monad
+-- import Data.FileEmbed
+-- import Data.Text.Encoding
+-- import Jade.Types
+-- import Jade.Util
+-- import Text.Format
+-- import Text.Mustache
+-- import Text.Mustache.Compile (mustache)
+-- import qualified Data.List as DL
+-- import qualified Data.Map as DM
+-- import qualified Data.Map as DM
+-- import qualified Data.Text as T
+-- import qualified Data.Text.IO as DT
+-- import qualified Jade.Decode as Decode
+-- import qualified Jade.Net as Net
+-- import qualified Jade.MemUnit as MemUnit
+-- import qualified Jade.Middle.Types as MT
+-- import qualified Jade.ModTest as ModTest
+-- import qualified Jade.Module as Module
+-- import qualified Jade.Part as Part
+-- import qualified Jade.Sig as Sig
+-- import qualified Jade.TopLevel as TopLevel
+-- import qualified Jade.UnionFindST as UnionFindST
+
+{-
 portAssoc :: Sig -> J String
 portAssoc (SigConcat _) = die "Viz.portAssoc doesn't support SigConcat"
 portAssoc sig = "Viz.portAssoc" <? do

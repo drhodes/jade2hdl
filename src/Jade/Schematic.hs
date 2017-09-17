@@ -1,7 +1,8 @@
-module Jade.Schematic where
+module Jade.Schematic ( getJumpers
+                      , getSubModules
+                      ) where
 
-import Jade.Types
-
+import Jade.Common
 
 getJumpers :: Schematic -> [Jumper]
 getJumpers (Schematic parts) = [j | (JumperC j) <- parts] --filter Part.isJumper parts

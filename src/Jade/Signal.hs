@@ -1,5 +1,8 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Jade.Signal where
+module Jade.Signal ( width
+                   , getBundle
+                   , explode
+                   ) where
 
 import Jade.Common
 import qualified Jade.Bundle as Bundle
@@ -11,9 +14,9 @@ width (Signal _ (Just w) _) = Just w
 width (Signal (Just sigb) _ _) = Just $ Bundle.width sigb
 width _ = Nothing
 
-getNames :: Signal -> [String]
-getNames (Signal (Just bundle) _ _) = Bundle.getNames bundle
-getNames _ = return []
+-- getNames :: Signal -> [String]
+-- getNames (Signal (Just bundle) _ _) = Bundle.getNames bundle
+-- getNames _ = return []
 
 
 getBundle (Signal (Just b) _ _) = b

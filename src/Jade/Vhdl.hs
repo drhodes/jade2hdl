@@ -162,9 +162,7 @@ mkTestBench modname = "Jade.Vhdl.mkTestBench" <? do
                             ]
   return $ substitute temp mapping
 
-mkCombinationalTest modname =
-  ("Jade.Vhdl.mkCombinationalTest: " ++ modname) <? do
-  mkTestBench modname
+mkCombinationalTest modname = "Vhdl.mkCombinationalTest" <? mkTestBench modname
 
 ------------------------------------------------------------------
 --genPort dir (SigConcat _) = die "Vhdl.mkModule/genPort doesn't support SigConcat"
@@ -182,7 +180,7 @@ genPorts ins outs = "Vhdl.genPorts" <? do
   portOuts <- mapM (genPort "out") outs
   return $ T.pack $ DL.intercalate ";\n" (concat [portIns, portOuts])
 
-mkModule modname = ("Vhdl.mkModule: " ++ modname) <? do
+mkModule modname = "Vhdl.mkModule" <? do
   nb $ "Jade.Vhdl.mkModule, convert module to VHDL: " ++ modname
   
   m <- TopLevel.getModule modname ? modname

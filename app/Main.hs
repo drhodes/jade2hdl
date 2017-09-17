@@ -7,15 +7,13 @@ import Control.Monad
 import qualified Jade.Back.Viz as Viz
 import qualified Jade.Decode as Decode
 import qualified Data.Text.IO as TIO
+import qualified Data.Text as T
 
-
-{-
 data Opts = Opts { infile :: String
                  , topLevelMod :: String
                  , viz :: Bool
                  , hdlType :: Maybe String
                  } deriving (Show, Eq)
-
 
 infileOption = strOption $ mconcat [ long "infile"
                                    , metavar "SOURCEPATH"
@@ -73,11 +71,8 @@ generateViz opts = when (viz opts) $ do
   let dotSrc = case topl of
         Left msg -> error msg
         Right topl -> runJ topl $ do
-          Viz.mkAllMods (topLevelMod opts)
-
+          return (T.pack "viz src gen stub") -- Viz.mkAllMods (topLevelMod opts)
   case dotSrc of
     Left msg -> putStrLn msg
     Right src -> TIO.putStrLn src
--}
 
-main = print "refactoring"

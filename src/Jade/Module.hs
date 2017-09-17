@@ -1,4 +1,17 @@
-module Jade.Module where
+module Jade.Module ( getSchematic
+                   , terminals
+                   , getInputs
+                   , getOutputs
+                   , getInputTerminals
+                   , getOutputTerminals
+                   , getInputsNoSetSigs
+                   , mangleModName
+                   , testLines
+                   , cycleLine
+                   , boundingBox
+                   , testBenchName
+                   ) where
+
 
 import Control.Monad
 import qualified Data.Map as DM
@@ -17,13 +30,11 @@ getIcon (Module _ _ _ (Just x)) = return x
 getIcon _ = die "No icon found in module"
 
 terminals :: Module -> Coord3 -> J [Terminal]
-terminals mod p@(Coord3 mx my mr) = "Module.terminals" <? do
+terminals mod p@(Coord3 mx my mr) = do --"Module.terminals" <? do
   icon <- getIcon mod
-           
   let rotateTerm (Terminal (Coord3 tx ty tr) sig) =
         let (Coord3 dx dy _) = Coord.rotate (Coord3 tx ty Rot0) mr 0 0
         in Terminal (Coord3 (mx + dx) (my + dy) (Coord.composeRot mr tr)) sig
-  
   return $ [rotateTerm t | IconTerm t <- iconParts icon]
 
 getSchematic :: Module -> J Schematic
@@ -104,6 +115,5 @@ replace c r xs = concat [if [x] == c then r else [x] | x <- xs]
 
 mangleModName :: String -> String
 mangleModName modname = "mod" ++ replace "/" "_" modname
-
 
 testBenchName modname = mangleModName modname ++ "_tb"

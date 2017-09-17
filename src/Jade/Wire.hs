@@ -1,4 +1,13 @@
-module Jade.Wire where
+module Jade.Wire ( toEdge
+                 , ends
+                 , hasSameSig
+                 , width
+                 , getBundle
+                 , explode
+                 , new
+                 , portToEdge
+                 , mkDegenerate
+                 ) where
 
 import Jade.Types
 import qualified Jade.Signal as Signal
@@ -10,9 +19,6 @@ toEdge w@(Wire (Coord5 x y rot dx dy) _) =
       n1 = Node (x, y) (WireC w)
       n2 = Node (x', y') (WireC w)
   in Edge n1 n2
-
-w1 = Wire (Coord5 0 0 Rot0 8 0) Nothing
-w2 = Wire (Coord5 0 0 Rot270 8 0) Nothing
 
 ends w@(Wire c5 _) = Coord.coord5ends c5
 
@@ -29,13 +35,6 @@ getBundle _ = Bundle []
 
 explode (Wire c (Just signal)) = [Wire c (Just subsig) | subsig <- Signal.explode signal]
 explode w = [w]
-
-
-
--- get the intersection of two wire bundles.
---valIntersection w1 w2 = getBundle w1 `Bundle.intersection` getBundle w2
-
-
 
 new (x1, y1) (x2, y2) =
   let dx = x2 - x1

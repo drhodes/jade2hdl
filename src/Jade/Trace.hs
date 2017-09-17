@@ -1,9 +1,7 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveTraversable #-}
 
-module Jade.Story where
+module Jade.Trace where
 
 import GHC.Generics
 import qualified Data.Vector as V
@@ -25,6 +23,10 @@ import Control.Monad.Identity
 import Control.Applicative
 import Data.Char
 
+
+
+
+
 newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) } deriving (Functor, Applicative)
 
 instance Monad m => Monad (MaybeT m) where
@@ -43,17 +45,12 @@ instance Monad m => Alternative (MaybeT m) where
                           Nothing -> runMaybeT y
                           Just _ -> return maybe_value
 
-
 instance Monad m => MonadPlus (MaybeT m) where
   mzero = empty
   mplus = (<|>)
 
 instance MonadTrans MaybeT where
   lift = MaybeT . (liftM Just)
-
-
-
-
 
 isValid s = and [ length s > 8
                 , any isAlpha s
@@ -88,8 +85,6 @@ instance Monad Trace where
 
 newtype TraceT m a = TraceT { runTraceT :: m (Trace a) } deriving (Functor, Applicative)
 
-
-
 instance Monad m => Monad (TraceT m) where
   return x = TraceT $ return $ Trace [x]
 
@@ -97,10 +92,3 @@ instance Monad m => Monad (TraceT m) where
             do Trace xs <- runTraceT x
                --Trace ys <- runTraceT (f x)
                undefined
-  
-  --return = MaybeT . return . Just
-
-  -- x >>= f = MaybeT $ do maybe_value <- runMaybeT x
-  --                       case maybe_value of
-  --                         Nothing -> return Nothing
-  --                         Just val -> runMaybeT $ f val

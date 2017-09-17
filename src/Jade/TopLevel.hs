@@ -39,7 +39,7 @@ import qualified Web.Hashids as WH
 
 -- |Get a module from a TopLevel given a module name
 getModule :: String -> J Module
-getModule name = "TopLevel.getModule" <? do  
+getModule name = do -- "TopLevel.getModule" <? do  
   -- if name `startsWith` "/gate"
   -- then return $ BuiltInModule name
   TopLevel m <- getTop
@@ -48,7 +48,7 @@ getModule name = "TopLevel.getModule" <? do
     Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
 
 getSubModules :: String -> J [SubModule]
-getSubModules modname = "TopLevel.getSubModules" <? do
+getSubModules modname = do --"TopLevel.getSubModules" <? do
   (Module _ schem _ _) <- getModule modname
   case schem of 
     Just schem -> return $ Schem.getSubModules schem
@@ -153,7 +153,7 @@ nets modname = "TopLevel.nets" <? do
                   return cs
 
 nets'  :: String -> J [Net] 
-nets' modname = "TopLevel.nets_" <? do
+nets' modname = do --"TopLevel.nets_" <? do
   edges <- getEdges modname
   let nets_ = UF.components $ edges
   nb "let nets = UF.components $ edges ++ wireEdges"
@@ -201,8 +201,7 @@ dependencyOrder modname = "TopLevel.dependencyOrder" <?
 
 -- |Get the graph net which contains the terminals.
 netWithTerminal :: [Char] -> Terminal -> J Net
-netWithTerminal modname term@(Terminal c3@(Coord3 x y _) _) =
-  ("TopLevel.netWithTerminal: " ++ modname) <? do
+netWithTerminal modname term@(Terminal c3@(Coord3 x y _) _) = "TopLevel.netWithTerminal" <? do
   nets <- nets modname
   let result = filter (flip Net.hasTerm term) nets   
   case length result of
@@ -217,7 +216,7 @@ netWithTerminal modname term@(Terminal c3@(Coord3 x y _) _) =
 -- | Get a list of input and output terminals in a submodule offset by
 -- the position of the submodule
 terminals :: SubModule -> J [Terminal]
-terminals (SubModule modname offset) = "TopLevel.terminals" <? do
+terminals (SubModule modname offset) = do --"TopLevel.terminals" <? do
   nb $ show ("TopLevel.terminals checks submodule: " ++ modname)
   mod <- getModule modname
   Module.terminals mod offset

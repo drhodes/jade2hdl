@@ -1,9 +1,12 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Jade.Arbitrary where
 
 import Jade.Types
 import Test.QuickCheck.Arbitrary
+import qualified Test.QuickCheck.Property as TQP
 import Test.QuickCheck
 import Control.Monad
+import Data.Word as DW
 import qualified Jade.Sig as Sig
 
 oneOf xs = do
@@ -54,11 +57,13 @@ instance Arbitrary Sig where
           ]
 
 instance Arbitrary Signal where
-  arbitrary = do
-    sig <- arbitrary
-    let w = show $ Sig.width sig
-    dir <- Just <$> arbitrary
-    return $ Signal (Just sig) (Just w) dir
+  arbitrary = Signal <$> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary Val where
+  arbitrary = ValIndex <$> arbitrary <*> arbitrary
+
+instance Arbitrary (Bundle Val) where
+  arbitrary = Bundle <$> arbitrary
 
 arb2 x = x <$> arbitrary <*> arbitrary    
 
@@ -79,3 +84,63 @@ instance Arbitrary Part where
                            ]
 
 
+
+prop xs = (reverse xs) == xs
+  where types = xs :: [Int]
+
+-- test group properties of color pixel.
+
+class Zeroish a where
+  hasZero :: a -> Bool
+
+data Pixel = Pixel { pxR :: DW.Word8
+                   , pxG :: DW.Word8
+                   , pxB :: DW.Word8
+                   } deriving (Show, Eq)
+
+instance Arbitrary Pixel where
+  arbitrary = Pixel <$> arbitrary <*> arbitrary <*> arbitrary
+
+
+pixelAdd (Pixel r1 g1 b1) (Pixel r2 g2 b2) = Pixel (r1+r2) (g1+g2) (b1+b2)
+pixelSub (Pixel r1 g1 b1) (Pixel r2 g2 b2) = Pixel (r1-r2) (g1-g2) (b1-b2)
+
+
+hasZeroProp (p1, p2) = p1 `pixelAdd` p2 == p1
+hasZeroProp1 p = (Pixel 0 0 0) `pixelAdd` p == p
+
+notHasZeroProp (p1, p2)  = not $ hasZeroProp (p1, p2)
+
+testForZero = quickCheckWith stdArgs{maxSuccess = 1000} (forAll (arbitrary :: Gen (Pixel)) hasZeroProp1)
+
+prop_reverse :: [Int] -> Bool
+prop_reverse xs = reverse (reverse xs) == xs
+
+
+hasCommutative op (p1, p2) = let px1 = op p1 p2
+                                 px2 = op p2 p1
+                             in px1 == px2
+
+hasAssociative op (p1, p2, p3) = let px1 = op (op p1 p2) p3
+                                     px2 = op p1 (op p2 p3)
+                                 in px1 == px2
+
+
+
+testForPropFunc prop =
+  quickCheckWith (stdArgs{maxSuccess = 1000}) (forAll arbitrary prop)
+
+
+
+testForCommutativeAdd = testForPropFunc $ hasCommutative pixelAdd
+testForAssociativeAdd = testForPropFunc $ hasAssociative pixelAdd
+
+testForCommutativeSub = testForPropFunc $ hasCommutative pixelSub
+testForAssociativeSub = testForPropFunc $ hasAssociative pixelSub
+
+
+testAll = do
+  mapM testForPropFunc [ hasCommutative pixelAdd
+                       , hasCommutative pixelSub ]
+  mapM testForPropFunc [ hasAssociative pixelAdd
+                       , hasAssociative pixelSub ]

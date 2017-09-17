@@ -1,5 +1,6 @@
-module Jade.TestParser where
+module Jade.TestParser () where
 
+{-
 import Text.Parsec.String
 import qualified Text.Parsec.Number as TPN
 import Text.Parsec
@@ -8,7 +9,6 @@ import qualified Numeric as N
 
 {-
 signal names need to be parsed.
-
     // parse string into an array of symbols.  Canonicalize all text to lower case. 
     //  sig_list := sig[,sig]... 
     //  sig := symbol 
@@ -97,3 +97,5 @@ sig = choice $ map try [ sigQuote
 
 parseSig :: String -> Either ParseError Sig
 parseSig s = parse sig "signal" s
+-}
+

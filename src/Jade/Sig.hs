@@ -1,4 +1,8 @@
-module Jade.Sig where
+module Jade.Sig ( sigBundle
+                , explode
+                , parseSig
+                , width
+                ) where
 
 import Text.Parsec.String
 import qualified Text.Parsec.Number as TPN
@@ -26,10 +30,9 @@ symbol = do
   rest <- many (alphaNum <|> char '_')
   let sym = map DC.toUpper (x:rest)
   case sym of
-    -- "OUT" is a reserved name in HDL, save the user from having to change it by renaming it.
+    -- | "OUT" is a reserved name in HDL, save the user from having to change it by renaming it.
     "OUT" -> return "RESERVED_OUT"
     x -> return x
-
 
 -- := sig#count         replicate sig specified number of times 
 sigHash :: Parser ValBundle
@@ -57,15 +60,12 @@ sigRange = do
   to <- many1 digit
   char ']'
   return $ runExplode (SigRange name (read from) (read to)) 
-
     
 runExplode s = case runX emptyTopl $ explode s of
                  (Left msg, log) -> fail $ msg ++ (show log)
                  (Right xs, _) -> xs
 
-
 -- := sig[start:stop:step]   expands to sig[start],sig[start+step],...,sig[end]
---sigRangeStep
 sigRangeStep :: Parser ValBundle
 sigRangeStep = do name <- symbol
                   char '['
@@ -143,30 +143,29 @@ width sig = case sig of
                                              in fromIntegral $ length range
               SigQuote _ w -> fromIntegral w
 
+-- hashMangle :: String -> Sig -> J Sig
+-- hashMangle s sig =
+--   let f x = s ++ "_" ++ x
+--   in case sig of 
+--     SigSimple name -> return $ SigSimple (f name)
+--     SigIndex name x -> return $ SigIndex (f name) x
+--     SigHash name x -> return $ SigHash (f name) x
+--     SigRange name x y -> return $ SigRange (f name) x y 
+--     SigRangeStep name x y z -> return $ SigRangeStep (f name) x y z
+--     x -> die $ "hashMangle doesn't support: " ++ show x
 
-hashMangle :: String -> Sig -> J Sig
-hashMangle s sig =
-  let f x = s ++ "_" ++ x
-  in case sig of 
-    SigSimple name -> return $ SigSimple (f name)
-    SigIndex name x -> return $ SigIndex (f name) x
-    SigHash name x -> return $ SigHash (f name) x
-    SigRange name x y -> return $ SigRange (f name) x y 
-    SigRangeStep name x y z -> return $ SigRangeStep (f name) x y z
-    x -> die $ "hashMangle doesn't support: " ++ show x
+-- getName :: Sig -> J String
+-- getName sig =
+--   case sig of
+--     SigSimple name -> return name
+--     SigRange name from to -> return name
+--     SigIndex name _ -> return name
+--     SigQuote val width -> return $ format "SigQuote_{0}_{1}" [show val, show width]
+--     SigRangeStep n _ _ _ -> return n
+--     x -> die $ "Sig.getNames doesn't support: " ++ show x
 
-getName :: Sig -> J String
-getName sig =
-  case sig of
-    SigSimple name -> return name
-    SigRange name from to -> return name
-    SigIndex name _ -> return name
-    SigQuote val width -> return $ format "SigQuote_{0}_{1}" [show val, show width]
-    SigRangeStep n _ _ _ -> return n
-    x -> die $ "Sig.getNames doesn't support: " ++ show x
-
-hasIdent :: Sig -> String -> J Bool
-hasIdent sig ident = (== ident) <$> getName sig
+-- hasIdent :: Sig -> String -> J Bool
+-- hasIdent sig ident = (== ident) <$> getName sig
 
 explode :: Sig -> J ValBundle
 explode sig = "Sig.explode" <? do
@@ -197,13 +196,11 @@ genbits n | n == 0 = []
 
 twosComplement val numBits = reverse $ take (fromInteger numBits) $ (genbits val) ++ repeat L
         
-isQuotedSig (SigQuote _ _) = True
-isQuotedSig _ = False
+-- isQuotedSig (SigQuote _ _) = True
+-- isQuotedSig _ = False
 
-isIndexSig (SigIndex _ _) = True
-isIndexSig _ = False
+-- isIndexSig (SigIndex _ _) = True
+-- isIndexSig _ = False
 
-
-
-flatten :: Sig -> J [Sig]
-flatten x = return [x]
+-- flatten :: Sig -> J [Sig]
+-- flatten x = return [x]

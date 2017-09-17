@@ -1,7 +1,19 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Jade.Part where
+module Jade.Part ( isTerm
+                 , bundle
+                 , getValsWithIdent
+                 , getBundleWithIdent
+                 , getBundleWithLit
+                 , width
+                 , hasVal
+                 , getLitVals
+                 , containsIdentifier
+                 , getNames
+                 , loc
+                 , toWire
+                 ) where
 
-import Jade.Types
+import Jade.Common
 import Control.Monad
 import Data.Maybe
 import qualified Jade.Signal as Signal
@@ -13,12 +25,12 @@ bundle part =
     PortC (Port _ (Just s)) -> Signal.getBundle s
     WireC (Wire _ (Just s)) -> Signal.getBundle s
     WireC (Wire _ Nothing) -> mempty
-    TermC (Terminal _ s) -> s  
+    TermC (Terminal _ s) -> s
     x -> error $ "Part.sig: Not implemented for: " ++ show x
 
 getBundleWithIdent part ident = if Bundle.hasName (bundle part) ident
                                 then Just $ bundle part
-                                else Nothing 
+                                else Nothing
 getBundleWithLit part = if Bundle.hasLit (bundle part)
                         then Just $ bundle part
                         else Nothing
@@ -29,22 +41,22 @@ getLitVals part = Bundle.getLitVals (bundle part)
 containsIdentifier :: Part -> String -> Bool
 containsIdentifier part ident = Bundle.containsIdentifier (bundle part) ident
 
-hasAnySigName :: Part -> Bool
-hasAnySigName part = Bundle.hasAnyValName (bundle part)
+-- hasAnySigName :: Part -> Bool
+-- hasAnySigName part = Bundle.hasAnyValName (bundle part)
 
 hasVal part val = Bundle.hasVal (bundle part) val
 
-isJumper (JumperC _) = True
-isJumper _ = False
+-- isJumper (JumperC _) = True
+-- isJumper _ = False
 
-isWire (WireC _) = True
-isWire _ = False
+-- isWire (WireC _) = True
+-- isWire _ = False
 
 toWire (WireC w) = Just w
 toWire _ = Nothing
 
-isSubModule (SubModuleC _) = True
-isSubModule _ = False
+-- isSubModule (SubModuleC _) = True
+-- isSubModule _ = False
 
 isTerm (TermC _) = True
 isTerm _ = False
@@ -64,7 +76,7 @@ loc part =
 width :: Part -> J (Maybe Int)
 width part = do
   nb $ show part
-  case part of 
+  case part of
     PortC (Port _ (Just s)) -> return $ Signal.width s
     PortC (Port _ Nothing) -> return Nothing
     WireC (Wire _ (Just s)) -> do
@@ -74,5 +86,3 @@ width part = do
     WireC (Wire _ Nothing) -> return $ Just 1
     TermC (Terminal _ s) -> return $ Just $ Bundle.width s
     x -> die $ "Part.width: Not implemented for: " ++ show x
-
-

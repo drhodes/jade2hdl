@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
-module Jade.Decode where
+module Jade.Decode (decodeTopLevel) where
 
 import Control.Monad
 import Data.Aeson

@@ -59,22 +59,22 @@ spawnOneTest jadefile modname = do
         ExitSuccess -> return Pass        
         ExitFailure err' -> do
           writeCallGraph (format "/tmp/{0}.dot" [hashid modname]) topl func
-          return $ Fail $ unlines [ format "module: {0}" [modname]
-                                  , format "ecode:  {0}" [show ecode']
-                                  , errlog
-                                  , stdout'
-                                  , stderr'
-                                  , show err'
+          return $ Fail $ unlines [ format "[{ \"module\": {0}}, " [show modname]
+                                  , format "{ \"ecode\":  {0}}, " [show $ show ecode']
+                                  , format "{ \"errlog\": {0}}, " [errlog]
+                                  , format "{ \"stdout\": {0}}, " [show $ show stdout']
+                                  , format "{ \"stderr\": {0}}, " [show stderr']
+                                  , format "{ \"err\": {0}} ] " [ show $ show err']
                                   ]
                                  
     ExitFailure err -> do
       writeCallGraph (format "/tmp/{0}.dot" [hashid modname]) topl func
-      return $ Fail $ unlines [ format "module: {0}" [modname]
-                              , format "ecode:  {0}" [show ecode]
-                              , format "stdout: {0}" [stdout]
-                              , format "stdout: {0}" [stderr]
-                              , errlog 
-                              , show err
+      return $ Fail $ unlines [ format "[{ \"module\": {0}}, " [show modname]
+                              , format "{ \"ecode\":  {0}}, " [show $ show ecode]
+                              , format "{ \"errlog\": {0}}, " [errlog]
+                              , format "{ \"stdout\": {0}}, " [show $ show stdout]
+                              , format "{ \"stderr\": {0}}, " [show stderr]
+                              , format "{ \"err\": {0}} ] " [ show $ show err]
                               ]
 
 node s = TestCase s (spawn (ModPath "./test-data" s))
@@ -153,7 +153,7 @@ testTree1 = tree "One" [ "Jumper1"
                        , "LeReg1"
                        , "CLwiresAdded"
                        , "CL"
-                       -- , "CLA4"
+                       , "CLA4"
                        , "fast_and4"
                        -- , "CLA32"
                        , "FA1"

@@ -1,5 +1,8 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Jade.MemUnit where
+module Jade.MemUnit ( terminals
+                    , getInputTerminals
+                    , getOutputTerminals
+                    ) where
 
 import qualified Data.Map as DM
 import qualified Data.Set as DS
@@ -43,11 +46,8 @@ isInputTerm t = not <$> isOutputTerm t
 buildPort mem@(MemUnit name loc _ nports naddr ndata) portno = "MemUnit.buildPort" <? do
   let sigport name = format "{0}_PORT{1}" [name, show portno]
       simple name = SigSimple (sigport name)
-  
-
       
       offsetY y = y + (portno - 1) * 40
-
       Coord3 x y r = loc
       withOffset x' y' = Coord.rotate (Coord3 (x+x') (offsetY(y+y')) Rot0) r (x+0) (y+0)
 
