@@ -13,6 +13,7 @@ import Text.Parsec
 import Text.Parsec.String
 import qualified Numeric as N
 import qualified Text.Parsec.Number as TPN
+import qualified Jade.Bundle as Bundle
 
 {-
 signal names need to be parsed.

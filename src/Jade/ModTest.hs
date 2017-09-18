@@ -2,6 +2,7 @@ module Jade.ModTest ( parseModTestString
                     , setSignals
                     , assertBitVals
                     , sampleBitVals
+                    , getTestlineComment
                     )where
 
 import Text.Parsec.String
@@ -303,3 +304,5 @@ setSignals modt =
     Just (CycleLine actions) -> DL.nub [bndl | SetSignal bndl _ <- actions]
     Nothing -> []
   
+getTestlineComment (TestLine _ (Just s)) = s
+getTestlineComment _ = "empty comment"

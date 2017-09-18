@@ -99,7 +99,7 @@ getOutputs m = "Module.getOutputs" <? do
 -- associated with a output name.
 getSamplesWithName :: Module -> TestLine -> String -> J ValBundle
 getSamplesWithName m testline outputName = "Module.getSamples" <? do
-  let TestLine binvals comment = testline
+  let TestLine binvals _ = testline
   Outputs bundles <- getOutputs m
   let names = concatMap Bundle.getNames bundles 
   return $ Bundle [Lit bv | (name, bv)  <- zip names binvals, name == outputName]

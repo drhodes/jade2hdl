@@ -45,20 +45,8 @@ mkTestLine m (act:actions) testline testnum = "Vhdl.mkTestLine" <? do
         Millisecond ms -> recurse $ [format "wait for {0} ms;" [show ms]]
         
     Assert _ -> "Assert" <? do
-      -- a <= '0'; b <= '0'; c <= '0'; d <= '0';
-      -- let TestLine _ _ = testline
-      asserts <- ModTest.assertBitVals modt testline
-      Inputs ins <- Module.getInputsNoSetSigs m
-      nb "INS !!"
-      list ins
+      mkAssert m modt testline >>= recurse 
       
-      let inputNames = uniq $ concat $ map Bundle.getNames ins
-      nb "INPUT NAMES!!!"
-      list inputNames
-      
-      let inputWidths = map Bundle.width ins
-      recurse $ zipWith sigAssert inputNames (splitAssert inputWidths asserts)
-
     Sample _ -> "Samples" <? do
       txt <- mkSampleLine testnum modt testline m
       recurse $ map T.unpack txt
@@ -69,22 +57,32 @@ mkTestLine m (act:actions) testline testnum = "Vhdl.mkTestLine" <? do
       otherwise -> die $ "SetSignal needs to be 1 or 0, got: " ++ (show x)
     x -> dief "not unimplemented {0}" [show x]
 
+mkAssert m modt testline = "Vhdl.mkAssert" <? do
+  -- a <= '0'; b <= '0'; c <= '0'; d <= '0';
+  asserts <- ModTest.assertBitVals modt testline
+  Inputs bundles <- Module.getInputs m
+  let tgts = concatMap Bundle.getVals bundles  
+  if (length tgts == length tgts)
+    then return $ map sigAssert (zip tgts asserts)
+    else die "expecteds not the same length as lits."
+
+sigAssert (ValIndex name idx, assert) = 
+  format "{0}({1}) <= '{2}';" [name, show idx, [binValToChar assert]]
+
 mkSampleLine :: Integer -> ModTest -> TestLine -> Module -> J [T.Text]
-mkSampleLine testnum modt testline m = do
+mkSampleLine testnum modt testline m = "Vhdl.mkSampleLine" <? do
   expecteds <- ModTest.sampleBitVals modt testline
-  Outputs outs <- Module.getOutputs m 
-  mapM (mkSampleCase testnum testline m) outs
-  
-mkSampleCase :: Integer -> TestLine -> Module -> Bundle Val -> J T.Text
-mkSampleCase testnum testline m out = do  
-  outputName <- Bundle.getName out
-  sampleBundle <- Module.getSamplesWithName m testline outputName
-  let expected = map binValToChar [bv | Lit bv <- Bundle.getLitVals sampleBundle]
-      TestLine _ comment = testline
-      c = case comment of
-            Just s -> DBL8.unpack $ encode s
-            Nothing -> "no comment"
-  testCaseIfBlock testnum outputName expected c
+  Outputs bundles <- Module.getOutputs m
+  let singles = concatMap Bundle.getVals bundles
+
+  if (length expecteds == length singles)
+    then mapM (mkSamplePair testnum modt testline m) (zip singles expecteds)
+    else die "expecteds not the same length as singles."
+
+mkSamplePair testnum modt testline m (ValIndex name idx, exp) = "Vhdl.mkSamplePair" <? do
+  let n = format "{0}({1})" [name, show idx]
+      comment = ModTest.getTestlineComment testline
+  testCaseIfBlock testnum n ['\'', binValToChar exp, '\''] comment
 
 testCaseIfBlock :: Integer -> String -> String -> String -> J T.Text
 testCaseIfBlock testnum signal expected comment = "Vhdl.testCaseIfBlock" <? do
@@ -95,7 +93,7 @@ testCaseIfBlock testnum signal expected comment = "Vhdl.testCaseIfBlock" <? do
       to_string = format "to_string({0})" [signal]
       mapping = DM.fromList [ ("testnum", toMustache testnum)
                             , ("signal", toMustache signal)
-                            , ("expected", toMustache (quote expected))
+                            , ("expected", toMustache expected)
                             , ("show-expected", toMustache (removeQuotes expected))
                             , ("signal_to_string", toMustache to_string)
                             , ("comment", toMustache comment)
@@ -110,8 +108,6 @@ binValToChar bv = case bv of { H -> '1'
                              ; L -> '0'
                              ; Z -> 'U' }
                   
-sigAssert :: String -> [BinVal] -> String
-sigAssert x bv = format "{0} <= {1};" [x, quote $ map binValToChar bv]
 
 portAssoc :: ValBundle -> J String
 portAssoc bndl = "Vhdl.portAssoc" <? do

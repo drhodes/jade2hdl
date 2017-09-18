@@ -14,6 +14,7 @@ containsIdentifier (Bundle xs) ident = or $ map (flip Val.hasIdent ident) xs
 
 intersection (Bundle xs) (Bundle ys) = Bundle $ xs `DL.intersect` ys
 
+
 width :: Bundle a -> Int
 width (Bundle xs) = length xs
 
@@ -32,6 +33,8 @@ getName bundle = do
     [name] -> return name
     [] -> die "no names found"
     _ -> die "too many names found"
+
+reverse (Bundle xs) = Bundle (DL.reverse  xs)
 
 getIndexedNames (Bundle xs) = map Val.getIndexedName xs
 

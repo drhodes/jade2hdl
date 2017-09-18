@@ -102,13 +102,6 @@ processEdges wires parts = "TopLevel.processEdges" <? do
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
   return $ edges ++ nbrs
 
--- findWireWithEndPoint parts p = "TopLevel.findWireWithEndPoint" <? do
---   let matches = [wire | wire@(WireC w) <- parts, let (p1, p2) = Wire.ends w
---                                                  in p == p1 || p == p2 ]
---   if null matches
---     then die $ "Couldn't find wire with end point: " ++ show p
---     else return $ head matches
-
 makeJumperWire :: Jumper -> J Wire
 makeJumperWire jumper = "TopLevel.makeJumperEdge" <? do
   nb "find the endpoints of the jumper"

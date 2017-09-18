@@ -61,6 +61,7 @@ spawnOneTest jadefile modname = do
         ExitFailure err' -> do
           writeCallGraph (format "/tmp/dots/{0}-FAIL.dot" [hashid modname]) topl func
           return $ Fail $ unlines [ format "[{ \"module\": {0}}, " [show modname]
+                                  , format "{ \"hashcode\": {0}}, " [show $ hashid modname]
                                   , format "{ \"ecode\":  {0}}, " [show $ show ecode']
                                   , format "{ \"errlog\": {0}}, " [errlog]
                                   , format "{ \"stdout\": {0}}, " [show $ show stdout']
@@ -107,6 +108,9 @@ testTreeBeta = tree "Beta" [ "Bool2"
 
 testTreeBuffer = tree "Buffer" [ "Buffer4"
                                , "Buffer5"
+                               , "Buffer5_1"
+                               , "Buffer5_2"
+                               , "Buffer5_3"
                                , "Buffer6"
                                , "WonkyBuffer1"
                                ]
