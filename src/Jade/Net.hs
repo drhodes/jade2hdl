@@ -2,7 +2,7 @@
 module Jade.Net where
 
 import qualified Data.List as DL
-import Jade.Types
+import Jade.Common
 import qualified Jade.Part as Part
 import qualified Jade.Node as Node
 import Data.Maybe

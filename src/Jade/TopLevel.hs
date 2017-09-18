@@ -31,9 +31,8 @@ import qualified Jade.Module as Module
 import qualified Jade.Net as Net
 import qualified Jade.Part as Part
 import qualified Jade.Schematic as Schem
-import Jade.Types
+import Jade.Common
 import qualified Jade.UnionFindST as UF
-import Jade.Util
 import qualified Jade.Wire as Wire
 import qualified Web.Hashids as WH
 

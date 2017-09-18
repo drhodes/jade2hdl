@@ -1,6 +1,6 @@
 module TestUtil where
 
-import Jade.Types
+import Jade.Common
 import Text.Format
 import Control.Monad
 import qualified System.IO as SIO

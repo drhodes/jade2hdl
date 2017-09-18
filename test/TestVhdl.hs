@@ -17,9 +17,8 @@ import qualified System.Directory as SD
 import Control.Monad
 import Data.FileEmbed
 import Data.Text.Encoding 
-import Jade.Types
 import TestUtil
-import Jade.Util
+import Jade.Common
 
 import System.Process 
 import System.Exit      

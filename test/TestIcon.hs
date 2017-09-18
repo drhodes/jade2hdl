@@ -2,7 +2,7 @@
 module TestIcon (testTree) where
 
 import qualified Data.Map as DM
-import Jade.Types
+import Jade.Common
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Icon as Icon
 import qualified Jade.Decode as Decode

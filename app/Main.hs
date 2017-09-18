@@ -1,6 +1,6 @@
 module Main where
 
-import Jade.Types
+import Jade.Common
 import Options.Applicative
 import Data.Semigroup ((<>))
 import Control.Monad

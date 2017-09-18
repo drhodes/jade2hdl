@@ -2,7 +2,7 @@ module TestModule (testTree) where
 
 import qualified Data.Map as DM
 import qualified Data.List as DL
-import Jade.Types
+import Jade.Common
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module

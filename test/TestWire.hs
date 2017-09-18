@@ -1,6 +1,6 @@
 module TestWire (testTree) where
 
-import Jade.Types
+import Jade.Common
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Decode as Decode
 import qualified Jade.Module as Modul

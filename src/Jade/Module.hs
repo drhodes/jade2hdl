@@ -22,7 +22,7 @@ import qualified Jade.Icon as Icon
 import qualified Jade.Coord as Coord
 import qualified Jade.ModTest as ModTest
 import qualified Jade.BoundingBox as BoundingBox
-import Jade.Types
+import Jade.Common hiding (replace)
 import Text.Format
 
 getIcon :: Module -> J Icon

@@ -4,14 +4,14 @@ module Jade.Sig ( sigBundle
                 , width
                 ) where
 
-import Text.Parsec.String
-import qualified Text.Parsec.Number as TPN
-import Text.Parsec
-import Jade.Types
-import qualified Numeric as N
-import Text.Format
 import Control.Monad
 import Data.Char as DC
+import Jade.Common
+import Text.Format
+import Text.Parsec
+import Text.Parsec.String
+import qualified Numeric as N
+import qualified Text.Parsec.Number as TPN
 
 {-
 signal names need to be parsed.

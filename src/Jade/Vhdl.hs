@@ -4,11 +4,10 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 module Jade.Vhdl where
 
+import Jade.Common
 import Control.Monad
 import Data.FileEmbed
 import Data.Text.Encoding
-import Jade.Types
-import Jade.Util
 import Text.Format
 import Text.Mustache
 import Text.Mustache.Compile (mustache)
