@@ -10,6 +10,7 @@ module Jade.Module ( getSchematic
                    , cycleLine
                    , boundingBox
                    , testBenchName
+                   , getSamplesWithName
                    ) where
 
 
@@ -24,6 +25,7 @@ import qualified Jade.ModTest as ModTest
 import qualified Jade.BoundingBox as BoundingBox
 import Jade.Common hiding (replace)
 import Text.Format
+import qualified Jade.Bundle as Bundle
 
 getIcon :: Module -> J Icon
 getIcon (Module _ _ _ (Just x)) = return x
@@ -61,8 +63,8 @@ getInputTerminals mod offset = "Module.getInputTerminals" <? do
 getOutputTerminals :: Module -> Coord3 -> J [Terminal]
 getOutputTerminals mod offset = "Module.getOutputTerminals" <? do
   ts <- terminals mod offset
-  (Outputs ins) <- getOutputs mod
-  return [term | term@(Terminal _ sig1) <- ts, sig2 <- ins, sig1 == sig2]
+  (Outputs outs) <- getOutputs mod
+  return [term | term@(Terminal _ sig1) <- ts, sig2 <- outs, sig1 == sig2]
     
 getInputs :: Module -> J Inputs
 getInputs m = "Module.getInputs" <? do
@@ -91,6 +93,17 @@ getOutputs m = "Module.getOutputs" <? do
         Just outs -> return outs
         Nothing -> die "Module.getOutputs couldn't find outputs"
     Nothing ->  die "Module.getOutputs could not find test script"
+
+
+-- | For a given testline, extract the expected sample output values
+-- associated with a output name.
+getSamplesWithName :: Module -> TestLine -> String -> J ValBundle
+getSamplesWithName m testline outputName = "Module.getSamples" <? do
+  let TestLine binvals comment = testline
+  Outputs bundles <- getOutputs m
+  let names = concatMap Bundle.getNames bundles 
+  return $ Bundle [Lit bv | (name, bv)  <- zip names binvals, name == outputName]
+
 
 cycleLine :: Module -> J CycleLine
 cycleLine m = "Module.cycleLine" <? do

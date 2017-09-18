@@ -84,7 +84,7 @@ dotGraph notes = let template = unlines [ "digraph {"
                                         , "}"
                                         ] 
                      callEdges = DL.nub $ filter isCallEdge (callCollect (dropNotes notes))
-                     nodeTxt = concat [format "{0} -> {1};" [x, y] | (CallEdge x y) <- callEdges]
+                     nodeTxt = concat [format "{0} -> {1};\n" [x, y] | (CallEdge x y) <- callEdges]
                      fixedTxt = replace ':' ' '
                                 $ replace '\'' '_'
                                 $ replace '/' '_'

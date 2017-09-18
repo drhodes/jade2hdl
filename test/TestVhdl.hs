@@ -55,9 +55,11 @@ spawnOneTest jadefile modname = do
     ExitSuccess -> do 
       (ecode', stdout', stderr') <- readCreateProcessWithExitCode cmd2 ""
       case ecode' of
-        ExitSuccess -> return Pass        
+        ExitSuccess -> do
+          writeCallGraph (format "/tmp/dots/{0}-PASS.dot" [hashid modname]) topl func
+          return Pass        
         ExitFailure err' -> do
-          writeCallGraph (format "/tmp/{0}.dot" [hashid modname]) topl func
+          writeCallGraph (format "/tmp/dots/{0}-FAIL.dot" [hashid modname]) topl func
           return $ Fail $ unlines [ format "[{ \"module\": {0}}, " [show modname]
                                   , format "{ \"ecode\":  {0}}, " [show $ show ecode']
                                   , format "{ \"errlog\": {0}}, " [errlog]
@@ -67,7 +69,7 @@ spawnOneTest jadefile modname = do
                                   ]
                                  
     ExitFailure err -> do
-      writeCallGraph (format "/tmp/{0}.dot" [hashid modname]) topl func
+      writeCallGraph (format "/tmp/dots/{0}-FAIL.dot" [hashid modname]) topl func
       return $ Fail $ unlines [ format "[{ \"module\": {0}}, " [show modname]
                               , format "{ \"ecode\":  {0}}, " [show $ show ecode]
                               , format "{ \"errlog\": {0}}, " [errlog]

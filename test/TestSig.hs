@@ -35,6 +35,22 @@ testTreeSigWidth =
                         ] ++ [t (SigRangeStep "" i 0 1) (i+1) | i <- [0 .. 12]]
 
 testTree = TestTree "Sig" [ testTreeSigWidth
+                          , testTreeTwosComplement
                           ]
 
+testTwosCompement val w exp = do
+  let tc = Sig.twosComplement val w
+  if tc == exp
+    then return Pass
+    else return (Fail (fmt "expected {0}, got {1}" (exp, tc)))
 
+testTreeTwosComplement :: TestTree
+testTreeTwosComplement = 
+  let t val w exp = TestCase "twos complement" $ testTwosCompement val w exp
+  in TestTree "twosComplement" $ [ t 0 1 [L]
+                                 , t 1 1 [H]
+                                 , t 0 2 [L, L]
+                                 , t 1 2 [L, H]
+                                 , t 2 2 [H, L]
+                                 , t 3 2 [H, H]
+                                 ]

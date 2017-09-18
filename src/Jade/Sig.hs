@@ -2,6 +2,7 @@ module Jade.Sig ( sigBundle
                 , explode
                 , parseSig
                 , width
+                , twosComplement
                 ) where
 
 import Control.Monad
@@ -143,30 +144,6 @@ width sig = case sig of
                                              in fromIntegral $ length range
               SigQuote _ w -> fromIntegral w
 
--- hashMangle :: String -> Sig -> J Sig
--- hashMangle s sig =
---   let f x = s ++ "_" ++ x
---   in case sig of 
---     SigSimple name -> return $ SigSimple (f name)
---     SigIndex name x -> return $ SigIndex (f name) x
---     SigHash name x -> return $ SigHash (f name) x
---     SigRange name x y -> return $ SigRange (f name) x y 
---     SigRangeStep name x y z -> return $ SigRangeStep (f name) x y z
---     x -> die $ "hashMangle doesn't support: " ++ show x
-
--- getName :: Sig -> J String
--- getName sig =
---   case sig of
---     SigSimple name -> return name
---     SigRange name from to -> return name
---     SigIndex name _ -> return name
---     SigQuote val width -> return $ format "SigQuote_{0}_{1}" [show val, show width]
---     SigRangeStep n _ _ _ -> return n
---     x -> die $ "Sig.getNames doesn't support: " ++ show x
-
--- hasIdent :: Sig -> String -> J Bool
--- hasIdent sig ident = (== ident) <$> getName sig
-
 explode :: Sig -> J ValBundle
 explode sig = "Sig.explode" <? do
   result <- case sig of 
@@ -194,13 +171,5 @@ genbits n | n == 0 = []
           | otherwise = H : (genbits next)
   where next = n `div` 2
 
+twosComplement :: Integral a => a -> Integer -> [BinVal]
 twosComplement val numBits = reverse $ take (fromInteger numBits) $ (genbits val) ++ repeat L
-        
--- isQuotedSig (SigQuote _ _) = True
--- isQuotedSig _ = False
-
--- isIndexSig (SigIndex _ _) = True
--- isIndexSig _ = False
-
--- flatten :: Sig -> J [Sig]
--- flatten x = return [x]

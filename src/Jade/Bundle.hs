@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Jade.Bundle where
 
-import Jade.Types
+import Jade.Common
 import Control.Monad
 import Data.Maybe
 import qualified Data.List as DL
@@ -25,12 +25,21 @@ getLitVals (Bundle xs) = [lit | lit@(Lit _) <- xs]
 getNames :: Bundle Val -> [String]
 getNames (Bundle xs) = map Val.getName xs
 
+getName :: Bundle Val -> J String
+getName bundle = do
+  let names = DL.nub $ getNames bundle
+  case names of
+    [name] -> return name
+    [] -> die "no names found"
+    _ -> die "too many names found"
+
+getIndexedNames (Bundle xs) = map Val.getIndexedName xs
+
 getValsWithIdent :: Bundle Val -> String -> [Val]
 getValsWithIdent (Bundle vals) ident = [v | v <- vals, v `Val.hasIdent` ident]
 
 hasAnyValName :: Bundle Val -> Bool
 hasAnyValName b = null $ getNames b
-
 
 hasName b name = name `elem` getNames b
 hasLit = not . null . getLitVals 

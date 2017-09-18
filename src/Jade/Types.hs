@@ -56,6 +56,7 @@ data ModPath = ModPath { modPath :: FilePath
 data Vdd = Vdd Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 
+
 ------------------------------------------------------------------
 -- Schematic Types
 type ModuleName = String
@@ -84,7 +85,6 @@ instance Monoid (Bundle a) where
   mconcat bs = Bundle $ concat [x | Bundle x <- bs]
   mappend (Bundle x) (Bundle y) = Bundle (x ++ y)
   mempty = Bundle []
-  
 
 data Sig = SigSimple String
          | SigIndex String Integer
@@ -94,6 +94,7 @@ data Sig = SigSimple String
          | SigQuote Integer Integer
          deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 
+-- TODO refactor name Val to SubSig
 
 -- TODO consider this phantom type.
 -- data Val a = ValIndex String Integer
@@ -229,7 +230,7 @@ data CycleLine = CycleLine [Action] deriving (Generic, Show, Eq, Hashable, Ord, 
 
 data BinVal = L | H | Z deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-data TestLine = TestLine { testLineBinVals :: [BinVal]                         
+data TestLine = TestLine { testLineBinVals :: [BinVal] 
                          , testLineComment :: Maybe String
                          } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 

@@ -22,6 +22,8 @@ import qualified Jade.ModTest as ModTest
 import qualified Jade.Module as Module
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Bundle as Bundle
+import qualified Data.ByteString.Lazy.Char8 as DBL8
+import Data.Aeson
 
 splitAssert _ [] = []
 splitAssert [] xs = [xs]
@@ -58,29 +60,31 @@ mkTestLine m (act:actions) testline testnum = "Vhdl.mkTestLine" <? do
       recurse $ zipWith sigAssert inputNames (splitAssert inputWidths asserts)
 
     Sample _ -> "Samples" <? do
-      expecteds <- ModTest.sampleBitVals modt testline
-      Outputs outs <- Module.getOutputs m
-      let TestLine _ comment = testline
-          outputWidths = map Bundle.width outs
-          exps = splitAssert outputWidths (map binValToChar expecteds)
-          c = case comment of
-                Just s -> "// " ++ s
-                Nothing -> "// no comment"
-
-      nbf "(exps, {0})" [show exps]
-      let os = concat $ map Bundle.getNames outs
-      nbf "HH outs:        {0}" [show outs]
-      nbf "HH os:          {0}" [show os]
-      nbf "HH expecteds:   {0}" [show expecteds]
-      txt <- sequence [testCaseIfBlock testnum o e c | (o, e) <- zip os (filter (not . null) exps)]
+      txt <- mkSampleLine testnum modt testline m
       recurse $ map T.unpack txt
 
     SetSignal _ x -> case x of
       0.0 -> recurse [format "{0} <= {1};" ["CLK", quote "0"]];
       1.0 -> recurse [format "{0} <= {1};" ["CLK", quote "1"]];
       otherwise -> die $ "SetSignal needs to be 1 or 0, got: " ++ (show x)
-      
-    x -> dief "unimplemented {0}" [show x]
+    x -> dief "not unimplemented {0}" [show x]
+
+mkSampleLine :: Integer -> ModTest -> TestLine -> Module -> J [T.Text]
+mkSampleLine testnum modt testline m = do
+  expecteds <- ModTest.sampleBitVals modt testline
+  Outputs outs <- Module.getOutputs m 
+  mapM (mkSampleCase testnum testline m) outs
+  
+mkSampleCase :: Integer -> TestLine -> Module -> Bundle Val -> J T.Text
+mkSampleCase testnum testline m out = do  
+  outputName <- Bundle.getName out
+  sampleBundle <- Module.getSamplesWithName m testline outputName
+  let expected = map binValToChar [bv | Lit bv <- Bundle.getLitVals sampleBundle]
+      TestLine _ comment = testline
+      c = case comment of
+            Just s -> DBL8.unpack $ encode s
+            Nothing -> "no comment"
+  testCaseIfBlock testnum outputName expected c
 
 testCaseIfBlock :: Integer -> String -> String -> String -> J T.Text
 testCaseIfBlock testnum signal expected comment = "Vhdl.testCaseIfBlock" <? do
@@ -124,8 +128,6 @@ mkDUT m modname = "Vhdl.testDUT" <? do
       template = "dut : entity work.{0} port map ({1});"
       mn = Module.mangleModName modname
   return $ format template [mn, portmap]
-
-
 
 mkSigDecl :: ValBundle -> J String 
 mkSigDecl bndl = "Vhdl.mkSignalDecl" <? do

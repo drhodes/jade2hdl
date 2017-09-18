@@ -30,8 +30,9 @@ main = do
              , TTL.testTree             
              , TV.testTree
              ]
-             
-  putStrLn ""
+
+  putStrLn "" -- newline
+  putStrLn $ "Num Tests: " ++ (show $ length results)
   putStrLn "All done."
     
 

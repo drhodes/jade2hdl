@@ -31,6 +31,7 @@ data ValAssign = ValAssign { sigAssignSrc :: Val
                            , sigAssignTgt :: Val
                            } deriving (Generic, ToJSON, Show, Eq)
 
+
 flipDir In = Out
 flipDir Out = In
 

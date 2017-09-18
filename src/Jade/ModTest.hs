@@ -303,25 +303,3 @@ setSignals modt =
     Just (CycleLine actions) -> DL.nub [bndl | SetSignal bndl _ <- actions]
     Nothing -> []
   
--- testLineSignals :: ModTest -> TestLine -> Either String [(ValBundle, [BinVal])]
--- testLineSignals modt testline@(TestLine bvs _) = do
---   let Just (Inputs inSigs) = modInputs modt
---       Just (Outputs outSigs) = modOutputs modt
---       inWidths = map Bundle.width inSigs
---       outWidths = map Bundle.width outSigs
---   asserts <- assertBitVals modt testline
---   samples <- sampleBitVals modt testline
-
---   -- improve these error messages
---   when (sum inWidths /= (fromIntegral $ length asserts)) $ 
---     fail $ "testline asserts do not match the width of the signals: " ++ (show (inSigs, asserts))
-
---   when (sum outWidths /= (fromIntegral $ length samples)) $ 
---     fail $ "testline samples do not match the width of the signals: " ++ (show (outSigs, samples))
-    
---   return $ concat [ zip inSigs (bust (map fromIntegral inWidths) asserts)
---                   , zip outSigs (bust (map fromIntegral outWidths) samples) ]
-
-
-
-

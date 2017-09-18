@@ -18,7 +18,7 @@ clean: ## clean all the things
 	bash clean.sh
 
 work: ## open all files in editor
-	$(shell emacs -nw jade2hdl.cabal `find src app test -type f -name '*.hs' -o -name '*.yaml'`)
+	$(shell emacs -nw makefile jade2hdl.cabal `find src app test -type f -name '*.hs' -o -name '*.yaml'`)
 
 setup:
 	touch battle-plan.org

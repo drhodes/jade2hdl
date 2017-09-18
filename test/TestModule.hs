@@ -8,6 +8,7 @@ import qualified Jade.Decode as Decode
 import qualified Jade.Module as Module
 import qualified Jade.Icon as Icon
 import qualified Data.Hashable as H
+import qualified Jade.Bundle as Bundle
 import Text.Format
 import Control.Monad
 import TestUtil
@@ -61,9 +62,6 @@ hasTerminalsAt2 modname locs = do
     Left msg -> return $ Fail $ unlines [ modname
                                         , msg ]
 
-
-t name iofunc exp = TestCase name (iofunc name exp)
-
 testTreeHasTerminalsAt = TestTree "hasTerminalsAt" $
   [ t "IconBoundingBox6" hasTerminalsAt2 [(8,40),(24,40),(16,-8)]
   , t "TermRot1" hasTerminalsAt2 [(16,16), (-16,16), (-16,-16), (16, -16)]
@@ -78,10 +76,7 @@ testTreeHasTerminalsAt = TestTree "hasTerminalsAt" $
   , t "SubBuiltIn4" hasTerminalsAt2 [(0,0), (16,0), (8,48)]
   , t "RepAnd2" hasTerminalsAt2 [(0,0), (0,16), (48,8)]
   , t "RepBuffer1" hasTerminalsAt2 [(0,0), (32,0)]
-  
   ]
-
- 
 
 testTreeSubModBoundingBox = TestTree "subModBoundingBox" $
   [ t "SubBuiltIn3" testSubModBoundingBox BB{bbLeft=(-4), bbTop=(-48), bbRight=20, bbBottom=0}
@@ -89,8 +84,43 @@ testTreeSubModBoundingBox = TestTree "subModBoundingBox" $
   , t "SubBuiltIn2" testSubModBoundingBox BB{bbLeft=6, bbTop=(-16), bbRight=36, bbBottom=32}
   ]
 
+testTreeGetSamplesWithName = TestTree "getSamplesWithName" $
+  [ t "CLA4" (testGetSamplesWithName "S") [L,L,L,L]
+  , t "CLA4" (testGetSamplesWithName "G") [L]
+  , t "CLA4" (testGetSamplesWithName "P") [L]
+  , t "CLA4" (testGetSamplesWithName "P") [L]
+  , t "CL" (testGetSamplesWithName "P") [L]
+  , t "CL" (testGetSamplesWithName "G") [L]
+  , t "CL" (testGetSamplesWithName "CH") [L]
+  , t "CL" (testGetSamplesWithName "CL") [L]
+  , t "Buffer5" (testGetSamplesWithName "OUT1") [L,L,L]
+ ]
 
 testTree = TestTree "TestModule" [ testTreeSubModBoundingBox
                                  , testTreeHasTerminalsAt
+                                 , testTreeGetSamplesWithName
                                  ]
  
+
+t name iofunc exp = TestCase name (iofunc name exp)
+
+testGetSamplesWithName :: String -> String -> [BinVal] -> IO TestState
+testGetSamplesWithName sampleName modname exp = do
+  let qualModName = "/user/" ++ modname
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+  
+  let func = "testGetSamplesWithName" <? do
+        -- test the first test line
+        m <- TopLevel.getModule qualModName
+        testline <- head <$> Module.testLines m
+        bundle <- Module.getSamplesWithName m testline sampleName
+        let bvs = [bv | Lit bv <- Bundle.getLitVals bundle]
+        if bvs == exp
+          then return ()
+          else dief "expected {0}, got {1}" [show exp, show bvs]
+
+  case runJ topl func of
+    Right x -> return Pass
+    Left msg -> return $ Fail $ unlines [msg, runLog topl func]
+
+  
