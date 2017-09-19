@@ -14,6 +14,7 @@ module Jade.TopLevel ( getNetsWithName
                      , getWidthOfValName
                      , terminals
                      , connectWiresWithSameSigName
+                     , getInternalSigNames
                      ) where
 
 import Control.Monad
@@ -35,6 +36,7 @@ import Jade.Common
 import qualified Jade.UnionFindST as UF
 import qualified Jade.Wire as Wire
 import qualified Web.Hashids as WH
+import qualified Jade.Bundle as Bundle
 
 -- |Get a module from a TopLevel given a module name
 getModule :: String -> J Module
@@ -287,10 +289,11 @@ getNetsWithName modname signame = "TopLevel.getNetsWithName" <? do
   ns <- nets modname
   filterM (flip Net.containsIdent signame) ns
   
+getAllSigNames :: String -> J [String]
 getAllSigNames modname = do
   nets <- nets modname
   let parts = (concat $ map Net.parts nets)    
-  let results = concatMapM Part.getNames parts
+      results = concat $ map Part.getNames parts
   return $ DL.nub results
 
 -- | Given a valnal name scour all the nets that contains the
@@ -301,3 +304,19 @@ getWidthOfValName modname valname = do
   vals <- concatMapM (flip Net.getValsWithIdent valname) nets
   list vals
   return $ length (DL.nub vals)
+  
+getInternalSigNames modname = "TopLevel.getInternalSigNames" <? do
+  m <- getModule modname
+  allNames <- getAllSigNames modname
+  
+  (Inputs inputBundles) <- getInputs modname
+  (Outputs outputBundles) <- getOutputs modname
+
+  let inputNames = concat $ map Bundle.getNames inputBundles
+      outputNames = concat $ map Bundle.getNames outputBundles
+  return $ allNames DL.\\ (DL.nub $ inputNames ++ outputNames)
+  
+
+
+
+

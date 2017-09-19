@@ -32,11 +32,6 @@ import qualified Jade.Bundle as Bundle
 import Jade.Common
 import Jade.Middle.Types
 
-{-
-(defun hask-instrument ()
-  (interactive)
-  (print "asdf"))
--}
 
   
 flipAssign (ValAssign src tgt) = ValAssign tgt src
@@ -113,11 +108,11 @@ replicateOneTerminal numReplications dir term@(Terminal _ bndl) net =
                    Out -> flipTermMap tmap
       }
 
-oneOfEach :: [[a]] -> ([a], [[a]])
-oneOfEach xs =  
-  if 0 `elem` (map length xs)
-  then ([], [])
-  else (map head xs, map tail xs)
+-- oneOfEach :: [[a]] -> ([a], [[a]])
+-- oneOfEach xs =  
+--   if 0 `elem` (map length xs)
+--   then ([], [])
+--   else (map head xs, map tail xs)
 
 buildSubModuleReps :: [[TermMap]] -> [[TermMap]] -> SubModule -> Int -> J [SubModuleRep]
 buildSubModuleReps inputTermMaps outputTermMaps submod zidx =

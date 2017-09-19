@@ -17,7 +17,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as DT
 import qualified Jade.Decode as Decode
 import qualified Jade.Net as Net
-import qualified Jade.Middle.Types as MT
+--import qualified Jade.Middle.Types as MT
 import qualified Jade.ModTest as ModTest
 import qualified Jade.Module as Module
 import qualified Jade.TopLevel as TopLevel
@@ -108,7 +108,6 @@ binValToStdLogic bv = case bv of { H -> quote "1"
 binValToChar bv = case bv of { H -> '1'
                              ; L -> '0'
                              ; Z -> 'U' }
-                  
 
 portAssoc :: ValBundle -> J String
 portAssoc bndl = "Vhdl.portAssoc" <? do
@@ -194,6 +193,8 @@ mkModule modname = "Vhdl.mkModule" <? do
   outputWires <- T.intercalate (T.pack "\n") <$> (return outMap)
   inputWires <- assignAllInputs modname ins
 
+  internalAssignments <- mkInternalAssignments modname instances
+
   -- TODO this is where all the spaces are being inserted.
   nets <- TopLevel.nets modname
   constantWires <- T.intercalate (T.pack "\n") <$> mapM (connectConstant modname) nets
@@ -206,6 +207,7 @@ mkModule modname = "Vhdl.mkModule" <? do
         , ("node-declarations", toMustache (nodeDecls)) -- ++ nodeDeclsNotFromInput))
         , ("submodule-entity-instances", toMustache  (T.intercalate  (T.pack "\n") instances))
         , ("maybe-wire-input", toMustache inputWires) 
+        , ("maybe-internal-assignments", toMustache (internalAssignments :: T.Text))
         , ("maybe-wire-constants", toMustache constantWires)
         , ("maybe-wire-output", toMustache outputWires)
         ]
@@ -214,6 +216,32 @@ mkModule modname = "Vhdl.mkModule" <? do
 mkAllMods modname = "Vhdl.mkAllMods" <? do
   userModNames <- TopLevel.dependencyOrder modname
   T.concat <$> mapM mkModule (userModNames ++ [modname])
+
+
+mkInternalAssignments modname instances = "Vhdl.mkInternalAssignments" <? do
+  -- get signal names that aren't an .input or .output
+  internalNames <- TopLevel.getInternalSigNames modname
+  --mapM (assignInternalSig modname) internalNames
+  return $ T.pack ""
+
+
+-- | internal sigs can be connected to nets.  
+assignInternalSig modname internalName instances = "Vhdl.assignInternalSig" <? do
+  -- look at the submodule instances.
+  -- internal sigs can be
+
+  -- there are two types of nets, driven and driver.
+  -- driven nets are at the outputs of sub modules.
+  -- driver nets are at the intputs of sub modules.
+
+  -- jumpers are ambiguous, unless a signal on one side is known to be
+  -- a driven or a driver.
+
+  -- internal sigs can be on ports.
+  -- 
+  unimplemented
+
+
 
 ------------------------------------------------------------------
 comma = T.pack ", \n"

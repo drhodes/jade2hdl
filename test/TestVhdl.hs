@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 
-module TestVhdl (testTree, myTree) where
+module TestVhdl (testTree) where
 
 import Text.Format
 import qualified Jade.TopLevel as TopLevel
@@ -83,28 +83,26 @@ node s = TestCase s (spawn (ModPath "./test-data" s))
 tree s xs = TestTree s $ map node xs
 
 testTree = TestTree "Vhdl" [ testTreeInnerSignal
-                           --, testTreeMisc
+                           , testTreeMisc
                            , testTreeBuffer
                            , testTreeReplication
-                           --, testTreeBeta
-                           --, testTreeMemUnit 
+                           , testTreeBeta
+                           --, testTreeMemUnit
                            , testTree1
                            , testTree2
                            ]
-
-myTree = tree "Buffer5_1" [ "Buffer5_1" ]
 
 testTreeInnerSignal = tree "InnerSignal" [ "InnerSignal1"
                                          , "InnerSignal2"
                                          ]
            
-testTreeBeta = tree "Beta" [ "Bool2"
-                           , "Nor32Arith5"
-                           --, "Nor32Arith4"
-                           --, "Nor32Arith3"
+testTreeBeta = tree "Beta" [ "Bool2" 
+                           , "Nor32Arith3"
+                           -- , "Nor32Arith4"
+                           -- , "Nor32Arith5"
                            -- , "Nor32Arith2"
-                           --, "Nor32Arith"
-                           --, "Shift1"
+                           -- , "Nor32Arith"
+                           -- , "Shift1"
                            ]
 
 testTreeBuffer = tree "Buffer" [ "Buffer4"
@@ -116,7 +114,7 @@ testTreeBuffer = tree "Buffer" [ "Buffer4"
                                , "WonkyBuffer1"
                                ]
                  
-testTreeMiscx = tree "Misc" [ "Vdd"
+testTreeMisc = tree "Misc" [ "Vdd"
                            , "RangeStep1"
                            , "RangeStep2"
                            ]
@@ -161,14 +159,14 @@ testTree1 = tree "One" [ "Jumper1"
                        , "CL"
                        , "CLA4"
                        , "fast_and4"
-                       -- , "CLA32"
                        , "FA1"
-                       -- , "GarrInc4"
                        , "AndStuff6"
-                       --, "zreg"
-                       --, "zreg2"
-                       --, "CycleIdentity1"
-                       --, "FreqDivider"
+                       , "zreg"
+                       , "zreg2"
+                       -- , "CLA32" passed, but slowly.  why so slow?
+                       , "FreqDivider"
+                       , "GarrInc4"
+                       , "CycleIdentity1"
 
                        -- these haven't worked yet.
                        -- , "CycleCounter"
@@ -178,18 +176,18 @@ testTree1 = tree "One" [ "Jumper1"
 testTreeReplication = tree "Replication" [ "RepAnd2"
                                          , "RepAnd3"
                                          , "RepAnd4"
-                                         -- , "Mux21Rep4"
-                                         -- , "Mux21Rep32"
+                                         , "Mux21Rep4"
+                                         , "Mux21Rep32"
                                          , "Mux4Rep1"
-                                         --, "Buffer7"
                                          , "RepWonkyBuffer1Exp"
                                          , "RepWonkyBuffer1"
                                          , "ZipReplication"
-                                         , "Bool2"                                       
-                                         -- , "Rep1FA2"
+                                         , "Bool2"
+                                         
+                                         , "Rep1FA2"
+                                         -- , "Buffer7"
                                          -- , "Ripple32"
                                          ]
-
 
   
 spawn (ModPath path filename) =

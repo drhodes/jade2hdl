@@ -94,7 +94,6 @@ getOutputs m = "Module.getOutputs" <? do
         Nothing -> die "Module.getOutputs couldn't find outputs"
     Nothing ->  die "Module.getOutputs could not find test script"
 
-
 -- | For a given testline, extract the expected sample output values
 -- associated with a output name.
 getSamplesWithName :: Module -> TestLine -> String -> J ValBundle
@@ -103,7 +102,6 @@ getSamplesWithName m testline outputName = "Module.getSamples" <? do
   Outputs bundles <- getOutputs m
   let names = concatMap Bundle.getNames bundles 
   return $ Bundle [Lit bv | (name, bv)  <- zip names binvals, name == outputName]
-
 
 cycleLine :: Module -> J CycleLine
 cycleLine m = "Module.cycleLine" <? do
@@ -130,3 +128,4 @@ mangleModName :: String -> String
 mangleModName modname = "mod" ++ replace "/" "_" modname
 
 testBenchName modname = mangleModName modname ++ "_tb"
+

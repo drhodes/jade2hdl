@@ -10,3 +10,4 @@ getJumpers (Schematic parts) = [j | (JumperC j) <- parts] --filter Part.isJumper
 
 getSubModules :: Schematic -> [SubModule]
 getSubModules (Schematic parts) = [s | (SubModuleC s) <- parts]
+

@@ -14,7 +14,6 @@ containsIdentifier (Bundle xs) ident = or $ map (flip Val.hasIdent ident) xs
 
 intersection (Bundle xs) (Bundle ys) = Bundle $ xs `DL.intersect` ys
 
-
 width :: Bundle a -> Int
 width (Bundle xs) = length xs
 

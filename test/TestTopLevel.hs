@@ -192,12 +192,6 @@ portTest1 = do
                   1 -> return Pass
                   x -> return $ Fail $ show (runLog topl $ die $ "hmm, found: " ++ show x)
     Left msg -> return $ Fail msg
-
-testNumTerminals modname expected = do
-  testExpGot modname expected $ do
-    let qualModName = "/user/" ++ modname 
-    allSubs <- TopLevel.getSubModules qualModName
-    length <$> concatMapM TopLevel.terminals allSubs
     
 testExpGot modname expected f = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
@@ -210,7 +204,15 @@ testExpGot modname expected f = do
                          die $ format temp [show expected, show got]
   case runJ topl func of
     Right x -> return Pass
-    Left msg -> return $ Fail $ unlines [runLog topl func]
+    Left msg -> return $ Fail $ unlines [msg ++ runLog topl func]
+
+
+
+testNumTerminals modname expected = do
+  testExpGot modname expected $ do
+    let qualModName = "/user/" ++ modname 
+    allSubs <- TopLevel.getSubModules qualModName
+    length <$> concatMapM TopLevel.terminals allSubs
 
 testTreeNumTerminals = TestTree "numTerminals" $
   let t name exp = TestCase name (testNumTerminals name exp)
@@ -241,6 +243,16 @@ testTreeNumSubModules = TestTree "numSubModules" $
      , t "CLA32" 17
    ]
 
+testGetInternalSigNames modname expected = do
+  testExpGot modname expected $ do
+    TopLevel.getInternalSigNames (qualifiedModName modname)
+
+testTreeGetInternalSigNames = TestTree "getinternalsigname" $
+  let t name exp = TestCase name (testGetInternalSigNames name exp)
+  in [ t "Rep1FA2" ["CO"]
+     ]
+
+
 testTree = TestTree "TopLevel" [ testTreeNumNets
                                , testTreeNumSubModules
                                , testTreeNumTerminals
@@ -249,4 +261,5 @@ testTree = TestTree "TopLevel" [ testTreeNumNets
                                , testTreeReplicationDepth
                                , testTreeGetWidthOfSigName
                                , testTreeMiscEtc
+                               , testTreeGetInternalSigNames
                                ]
