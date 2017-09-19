@@ -69,12 +69,14 @@ runLeaf :: TestPath -> TestTree -> IO [TestState]
 runLeaf tp tc@(TestCase s f) = runTree' "." tp tc
 
 passes = do
-  SCA.setSGR [SCA.SetColor SCA.Foreground SCA.Vivid SCA.Green]
+  SCA.setSGR [SCA.SetColor SCA.Foreground SCA.Vivid SCA.Green] 
   putStr "·" >> SIO.hFlush SIO.stdout
   SCA.setSGR [SCA.Reset]
 
 fails = do
-  SCA.setSGR [SCA.SetColor SCA.Foreground SCA.Vivid SCA.Red]
+  --SCA.setSGR [SCA.SetColor SCA.Foreground SCA.Vivid SCA.Red]
+  SCA.setSGR [SCA.SetBlinkSpeed SCA.SlowBlink]
+  
   putStr "X" >> SIO.hFlush SIO.stdout
   SCA.setSGR [SCA.Reset]
     

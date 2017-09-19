@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 
-module TestVhdl (testTree) where
+module TestVhdl (testTree, myTree) where
 
 import Text.Format
 import qualified Jade.TopLevel as TopLevel
@@ -82,7 +82,6 @@ spawnOneTest jadefile modname = do
 node s = TestCase s (spawn (ModPath "./test-data" s))
 tree s xs = TestTree s $ map node xs
 
-
 testTree = TestTree "Vhdl" [ testTreeInnerSignal
                            --, testTreeMisc
                            , testTreeBuffer
@@ -92,6 +91,8 @@ testTree = TestTree "Vhdl" [ testTreeInnerSignal
                            , testTree1
                            , testTree2
                            ]
+
+myTree = tree "Buffer5_1" [ "Buffer5_1" ]
 
 testTreeInnerSignal = tree "InnerSignal" [ "InnerSignal1"
                                          , "InnerSignal2"

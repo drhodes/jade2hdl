@@ -96,6 +96,8 @@ impossible msg = die $ "The impossible happened: " ++ msg
 unimplemented :: J a
 unimplemented = die "unimplemented."
 
+cnb _ = return ()
+
 nb :: String -> J ()
 nb s = tell [Note $ DBL8.unpack $ encode s]
 nbf s xs = nb $ format s xs
@@ -120,3 +122,5 @@ bailWhen cond = when cond bail
 
 safeCycle [] = "Jade/Types.safeCycle" <? die "empty list"
 safeCycle xs = return $ cycle xs
+
+

@@ -37,6 +37,7 @@ library
                      , Jade.Signal
                      , Jade.MemUnit
                      , Jade.Middle.Types
+                     , Jade.Middle.Middle
                      , Jade.Rawr.Types
                      , Jade.Back.Viz
                      , Jade.Bundle

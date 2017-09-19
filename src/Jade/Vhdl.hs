@@ -2,9 +2,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PartialTypeSignatures #-}
+
 module Jade.Vhdl where
 
-import Jade.Common
 import Control.Monad
 import Data.FileEmbed
 import Data.Text.Encoding
@@ -24,6 +24,9 @@ import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Bundle as Bundle
 import qualified Data.ByteString.Lazy.Char8 as DBL8
 import Data.Aeson
+
+import Jade.Common
+import qualified Jade.Middle.Middle as JMM
 
 splitAssert _ [] = []
 splitAssert [] xs = [xs]
@@ -86,8 +89,6 @@ mkSamplePair testnum modt testline m (ValIndex name idx, exp) = "Vhdl.mkSamplePa
 
 testCaseIfBlock :: Integer -> String -> String -> String -> J T.Text
 testCaseIfBlock testnum signal expected comment = "Vhdl.testCaseIfBlock" <? do
-  nb $ show ("expected", expected)
-
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/test-case-if-block.mustache")
       Right temp = compileTemplate "test-case-if-block" txt
       to_string = format "to_string({0})" [signal]
@@ -178,8 +179,6 @@ genPorts ins outs = "Vhdl.genPorts" <? do
   return $ T.pack $ DL.intercalate ";\n" (concat [portIns, portOuts])
 
 mkModule modname = "Vhdl.mkModule" <? do
-  nb $ "Jade.Vhdl.mkModule, convert module to VHDL: " ++ modname
-  
   m <- TopLevel.getModule modname ? modname
   schem <- Module.getSchematic m
 
@@ -228,8 +227,8 @@ mkValName val = "Vhdl.mkValName" <? do
     Lit L -> p "'0'"
     Lit Z -> p "'Z'"
 
-mkTermAssoc :: MT.TermAssoc -> J T.Text
-mkTermAssoc (MT.TermAssoc dir src tgt) = "Vhdl.mkTermAssoc" <? do
+mkTermAssoc :: JMM.TermAssoc -> J T.Text
+mkTermAssoc (JMM.TermAssoc dir src tgt) = "Vhdl.mkTermAssoc" <? do
   -- TermAssoc {taDir = In, taSrc = SigIndex "A" 0, taTgt = SigIndex "in1" 0}
   srcTxt <- mkValName src
   tgtTxt <- mkValName tgt
@@ -237,18 +236,18 @@ mkTermAssoc (MT.TermAssoc dir src tgt) = "Vhdl.mkTermAssoc" <? do
     In -> return $ T.concat [ tgtTxt , T.pack " => " , srcTxt ]
     Out -> return $ T.concat [ srcTxt , T.pack " => " , tgtTxt ]
   
-mkTermAssign :: MT.ValAssign -> J T.Text
-mkTermAssign (MT.ValAssign src tgt) = "Vhdl.mkTermAssign" <? do
+mkTermAssign :: JMM.ValAssign -> J T.Text
+mkTermAssign (JMM.ValAssign src tgt) = "Vhdl.mkTermAssign" <? do
   srcTxt <- mkValName src
   tgtTxt <- mkValName tgt
   return $ T.concat [ tgtTxt , T.pack " <= " , srcTxt ]
 
-mkTermMap :: MT.TermMap -> J T.Text
+mkTermMap :: JMM.TermMap -> J T.Text
 mkTermMap xs = "Vhdl.mkTermMap" <? do
   ts <- mapM mkTermAssoc xs
   return $ T.concat $ DL.intersperse comma ts
     
-mkPortMap :: [MT.TermMap] -> [MT.TermMap] -> J T.Text
+mkPortMap :: [JMM.TermMap] -> [JMM.TermMap] -> J T.Text
 mkPortMap ins outs = "Vhdl.mkPortMap" <? do
   portIns <- mapM mkTermMap ins
   portOuts <- mapM mkTermMap outs
@@ -264,9 +263,9 @@ replicatedLabel subModName loc zIdx =
 mkSubModuleInstance :: String -> SubModule -> J T.Text
 mkSubModuleInstance modname submod@(SubModule name loc) = 
   "Jade.Vhdl.mkSubModuleInstance" <? do
-  subModuleReps <- MT.subModuleInstances modname submod
+  subModuleReps <- JMM.subModuleInstances modname submod
 
-  let mkOneInstance submodrep@(MT.SubModuleRep ins outs _ zIdx) = do
+  let mkOneInstance submodrep@(JMM.SubModuleRep ins outs _ zIdx) = do
         portmap <- mkPortMap ins outs
         let label = replicatedLabel name loc zIdx        
         -- u1 : entity work.AND2 port map (in1 => a, in2 => b, out1 => w1);
@@ -279,10 +278,8 @@ mkSubModuleInstance modname submod@(SubModule name loc) =
         return $ substitute template mapping
   T.intercalate (T.pack "\n") <$> mapM mkOneInstance subModuleReps
 
-mkSubModuleInstance modname mem@(SubMemUnit memunit) =
-  "Jade.Vhdl.mkSubModuleInstance" <? do
-  nb "MemUnits are not replicated in JADE."
-  MT.SubModuleRep ins outs _ zIdx <- MT.memUnitInstance modname memunit
+mkSubModuleInstance modname mem@(SubMemUnit memunit) = "Jade.Vhdl.mkSubModuleInstance" <? do
+  JMM.SubModuleRep ins outs _ zIdx <- JMM.memUnitInstance modname memunit
 
   portmap <- mkPortMap ins outs
   let loc = memCoord3 memunit
@@ -307,7 +304,7 @@ mkNetName net = "Vhdl.mkNetName" <? do
 -- get all node names needed for wiring.
 -- no input names.
 mkNodeDecls modname = "Jade.Vhdl.mkNodeDecls" <? do
-  nb "These ins and outs aren't going to be SigConcats, ever."
+  cnb "These ins and outs aren't going to be SigConcats, ever."
   Inputs ins <- TopLevel.getInputs modname
   Outputs outs <- TopLevel.getOutputs modname
   let ignore = concat $ map Bundle.getNames (ins ++ outs)
@@ -332,15 +329,9 @@ internalSigNames modname = do
   Inputs ins <- TopLevel.getInputs modname
   Outputs outs <- TopLevel.getOutputs modname
   ignore <- undefined -- concatMapM undefined -- Sig.getNames (ins ++ outs)
-  
   nets <- TopLevel.nets modname
   netNames <- mapM Net.name nets
-  list netNames
-  nb "-- ignores"
-  list ignore
   allNames <- TopLevel.getAllSigNames modname
-  nb "-- allnames"
-  list allNames                                       
   let keepers = (DL.nub allNames) DL.\\ (DL.nub ignore)
   return keepers
 
@@ -349,36 +340,17 @@ withSemiColonNewLines txts = T.concat [T.append t (T.pack ";\n") | t <- txts]
 -- If output signals are not connected directly to a submodule output,
 -- then there is no structural output to that output.
 connectOutput modname outBundle = "Vhdl.connectOutput" <? do
-  assignMap <- MT.assignOutputBundle modname outBundle
+  assignMap <- JMM.assignOutputBundle modname outBundle
   withSemiColonNewLines <$> mapM mkTermAssign assignMap
 
 -- If input signals are not connected directly to a submodule output,
 -- then there is no structural input for that input.
 assignAllInputs :: String -> [ValBundle] -> J T.Text
 assignAllInputs modname modInputBundles = "Vhdl.assignAllInputs" <? do
-  assignMap <- concatMapM (MT.assignInputBundle modname) modInputBundles
-  nb "EE assignMap" >> list assignMap
+  assignMap <- concatMapM (JMM.assignInputBundle modname) modInputBundles
   withSemiColonNewLines <$> mapM mkTermAssign assignMap
   
 connectConstant :: String -> Net -> J T.Text
 connectConstant modname net = "Vhdl.connectConstant" <? do
-  assignMap <- MT.assignConstantNet net
-  nb "TT assignMap" >> list assignMap
+  assignMap <- JMM.assignConstantNet net
   withSemiColonNewLines <$> mapM mkTermAssign assignMap
-
-
-
--- mkNodeDeclsNotFromInput modname = "Jade.Vhdl.mkNodeDeclsFromInput" <? do
---   keepers <- internalSigNames modname
-  
---   nb "-- keepers"
---   list keepers
---   sigDecls <- mapM (declareSigName modname) keepers
---   return $ concat $ DL.intersperse "\n" sigDecls
-
--- -- | some signal names are not module inputs or outputs, they are
--- -- internal signal names.  Search for the internal signal names and
--- -- declare them.
--- -- mkInternalDecls topl modname =
--- --   topl modname
-

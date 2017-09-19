@@ -1,6 +1,6 @@
 module TestMiddle (testTree) where
 
-import Jade.Middle.Types 
+import Jade.Middle.Middle
 import Jade.Rawr.Types 
 import Jade.Common
 import Text.Format

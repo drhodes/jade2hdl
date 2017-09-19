@@ -91,6 +91,3 @@ testTree = TestTree "Decode" $ [ testMem1
                                , doTestEither "testSchem1" testSchem1
                                , doTestEither "testSchem2" testSchem2
                                ]
-
-
-

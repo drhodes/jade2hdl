@@ -151,21 +151,18 @@ explode sig = "Sig.explode" <? do
     SigSimple name -> return $ [ValIndex name 0]
     SigIndex name x -> return $ [ValIndex name x]
     SigHash name x -> die "explode doesn't handle SigHash yet"
-    SigRange name x y -> return $ [ValIndex name i | i <- if x == y then [x]
-                                                          else if x < y
-                                                               then [y, y-1 .. x]
-                                                               else [x, x-1 .. y]]
-    SigRangeStep name from to step -> do
-      let range = if from < to 
-                  then [from, from+step .. to] -- ascending
-                  else [from, from-step .. to] -- descengind
-      return $ map (ValIndex name) range
-
+    SigRange name from to ->
+      return $ map (ValIndex name) (range from to 1)
+    SigRangeStep name from to step ->
+      return $ map (ValIndex name) (range from to step)
     SigQuote val width -> do
       -- need to convert val to twos complement and make a bundle
       return $ map Lit $ twosComplement val width
-
   return $ Bundle result
+
+range from to step = if from < to 
+                     then [from, from+step .. to] -- ascending
+                     else [from, from-step .. to] -- descengind
 
 genbits n | n == 0 = []
           | n `mod` 2 == 0 = L : (genbits next)

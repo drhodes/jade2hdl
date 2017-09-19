@@ -70,7 +70,7 @@ callCollect (Func caller1 : Func caller2 : rest) = callCollect (Func caller1 : (
 callCollect (Func caller : Call callee : rest) = (CallEdge caller callee) : callCollect (Func caller : rest)
 callCollect (Func caller : ce@(CallEdge _ _) : rest) = ce : callCollect (Func caller : rest)
 callCollect (EndFunc : rest) = callCollect rest
-callCollect xs = error (show xs)
+callCollect xs = [EndFunc] --error (show xs)
 
 dropNotes xs = filter (not . isNote) xs
 
