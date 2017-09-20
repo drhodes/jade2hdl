@@ -108,12 +108,6 @@ replicateOneTerminal numReplications dir term@(Terminal _ bndl) net =
                    Out -> flipTermMap tmap
       }
 
--- oneOfEach :: [[a]] -> ([a], [[a]])
--- oneOfEach xs =  
---   if 0 `elem` (map length xs)
---   then ([], [])
---   else (map head xs, map tail xs)
-
 buildSubModuleReps :: [[TermMap]] -> [[TermMap]] -> SubModule -> Int -> J [SubModuleRep]
 buildSubModuleReps inputTermMaps outputTermMaps submod zidx =
   "Middle/Types.buildSubModuleRep" <? do
@@ -167,3 +161,11 @@ memUnitInstance modname memunit = "Middle/Types.memUnitInstance" <? do
   rep <- buildSubModuleReps itms otms (SubMemUnit memunit) 0
   when (length rep /= 1) (impossible "This should contain one memunit representation")
   return $ head rep
+
+
+
+-- oneOfEach :: [[a]] -> ([a], [[a]])
+-- oneOfEach xs =  
+--   if 0 `elem` (map length xs)
+--   then ([], [])
+--   else (map head xs, map tail xs)

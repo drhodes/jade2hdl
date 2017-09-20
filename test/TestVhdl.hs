@@ -83,9 +83,10 @@ node s = TestCase s (spawn (ModPath "./test-data" s))
 tree s xs = TestTree s $ map node xs
 
 testTree = TestTree "Vhdl" [ testTreeInnerSignal
+                           , testTreeReplication
+                           , testTreeJumpers
                            , testTreeMisc
                            , testTreeBuffer
-                           , testTreeReplication
                            , testTreeBeta
                            --, testTreeMemUnit
                            , testTree1
@@ -105,7 +106,10 @@ testTreeBeta = tree "Beta" [ "Bool2"
                            -- , "Shift1"
                            ]
 
-testTreeBuffer = tree "Buffer" [ "Buffer4"
+testTreeBuffer = tree "Buffer" [ "Buffer1"
+                               , "Buffer2"
+                               , "Buffer3"
+                               , "Buffer4"
                                , "Buffer5"
                                , "Buffer5_1"
                                , "Buffer5_2"
@@ -125,16 +129,16 @@ testTreeMemUnit = tree "MemUnit" [ "MemUnit1"
                                  , "MemUnitRotate2"
                                  , "MemUnit2" ]
 
+testTreeJumpers = tree "One" [ "Jumper1" 
+                             , "SimpleJumper21"                             
+                             , "Jumper41"
+                             , "Jumper1Rot90"
+                             , "Jumper3"
+                             ]
 
-testTree1 = tree "One" [ "Jumper1"
-                       , "SimpleJumper21"
-                       , "And41"
+testTree1 = tree "One" [ "And41"
                        , "AndStuff4" 
                        , "AndStuff5"
-                       , "Jumper41"
-                       , "Jumper1"
-                       , "Jumper1Rot90"
-                       , "Jumper3"
                        , "AND2"
                        , "AND2Rot90"
                        , "And2Ports"
@@ -144,14 +148,11 @@ testTree1 = tree "One" [ "Jumper1"
                        , "Constant1"
                        , "Constant2"
                        , "Constant3"
-                       , "Buffer1"
-                       , "Buffer2"
                        , "WireConnectMid1"
                        , "WireConnectMid2"
                        , "CLA1_notext"
                        , "CLA1"
-                       , "Mux2to1_1"
-                       , "Buffer3"
+                       , "Mux2to1_1" 
                        , "BuiltInAnd4"
                        , "BuiltInAnd4Messy"
                        , "LeReg1"
@@ -173,7 +174,8 @@ testTree1 = tree "One" [ "Jumper1"
                        -- , "GarrInc32"
                        ]
 
-testTreeReplication = tree "Replication" [ "RepAnd2"
+testTreeReplication = tree "Replication" [ "Rep1FA2"
+                                         , "RepAnd2"
                                          , "RepAnd3"
                                          , "RepAnd4"
                                          , "Mux21Rep4"
@@ -184,7 +186,6 @@ testTreeReplication = tree "Replication" [ "RepAnd2"
                                          , "ZipReplication"
                                          , "Bool2"
                                          
-                                         , "Rep1FA2"
                                          -- , "Buffer7"
                                          -- , "Ripple32"
                                          ]

@@ -8,6 +8,7 @@ module Jade.Vhdl where
 import Control.Monad
 import Data.FileEmbed
 import Data.Text.Encoding
+import Data.Maybe
 import Text.Format
 import Text.Mustache
 import Text.Mustache.Compile (mustache)
@@ -77,7 +78,6 @@ mkSampleLine testnum modt testline m = "Vhdl.mkSampleLine" <? do
   expecteds <- ModTest.sampleBitVals modt testline
   Outputs bundles <- Module.getOutputs m
   let singles = concatMap Bundle.getVals bundles
-
   if (length expecteds == length singles)
     then mapM (mkSamplePair testnum modt testline m) (zip singles expecteds)
     else die "expecteds not the same length as singles."
@@ -104,7 +104,6 @@ testCaseIfBlock testnum signal expected comment = "Vhdl.testCaseIfBlock" <? do
 binValToStdLogic bv = case bv of { H -> quote "1"
                                  ; L -> quote "0"
                                  ; Z -> quote "U" }
-                      
 binValToChar bv = case bv of { H -> '1'
                              ; L -> '0'
                              ; Z -> 'U' }
@@ -180,20 +179,19 @@ genPorts ins outs = "Vhdl.genPorts" <? do
 mkModule modname = "Vhdl.mkModule" <? do
   m <- TopLevel.getModule modname ? modname
   schem <- Module.getSchematic m
-
   subs <- TopLevel.getSubModules modname
   instances <- mapM (mkSubModuleInstance modname) subs
   
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
-  ports <- genPorts ins outs 
   
+  ports <- genPorts ins outs 
   nodeDecls <- mkNodeDecls modname
   outMap <- mapM (connectOutput modname) outs
   outputWires <- T.intercalate (T.pack "\n") <$> (return outMap)
   inputWires <- assignAllInputs modname ins
 
-  internalAssignments <- mkInternalAssignments modname instances
+  internalAssignments <- mkInternalAssignmentsTxt modname
 
   -- TODO this is where all the spaces are being inserted.
   nets <- TopLevel.nets modname
@@ -217,30 +215,82 @@ mkAllMods modname = "Vhdl.mkAllMods" <? do
   userModNames <- TopLevel.dependencyOrder modname
   T.concat <$> mapM mkModule (userModNames ++ [modname])
 
+mkInternalAssignmentsTxt :: String -> J T.Text
+mkInternalAssignmentsTxt modname = "Vhdl.mkInternalAssignmentsTxt" <? do
+  mkTermMap =<< mkInternalAssignments modname
 
-mkInternalAssignments modname instances = "Vhdl.mkInternalAssignments" <? do
-  -- get signal names that aren't an .input or .output
-  internalNames <- TopLevel.getInternalSigNames modname
-  --mapM (assignInternalSig modname) internalNames
-  return $ T.pack ""
+mkInternalAssignments :: String -> J JMM.TermMap
+mkInternalAssignments modname = "Vhdl.mkInternalAssignments" <? do
+  -- ATTENTION. submodule instances have their inside names attached.
+  
+  -- for NAME in internal signal names
+  --   for SUBMOD in submodules (mkisubs)
+  --     for REP in replicated submod (mkiReps)
+  --       for OUTPUT_TERM in REP (mkiTerms)
+  --         ! wrong. output_term here is referring to the output term of the submodule module, NOT
+  --         ! that is, NOT the signals attached to that module.
+  --         ! so, find the net associated with this terminal? Is that possible?
+  --         ! find the nodes of those nets.
+  --         ! look at the signals on those nodes.
+  
+  --         if OUTPUT_TERM contains NAME (mkiCollect1)
+  --            then 1. collect all VALINDEX_SRC with NAME
+  --                 2. determine associatated NETINDEX_SRC
+  --                 3. find all DRIVEN-NETS with NAME
+  --                 4. for each NET in DRIVEN-NETS:
+  --                      1. collect all VALINDEX_TGTS with NAME
+  --                      2. for each VALINDEX_TGT
+  --                         1. determine associated NETINDEX
+  --                         2. BAM! NETINDEX_TGT <= NETINDEX_SRC
+  --                   
+  --            else output terminal doesn't contain name,
+  --                 which means that it's an element of .group output.
+  TopLevel.getInternalSigNames modname >>= concatMapM (mkiSubs modname) 
+
+mkiSubs :: String -> String -> J [JMM.TermAssoc]
+mkiSubs modname name = "Vhdl.mkiSubs" <? do
+  --   for SUBMOD in submodules (mkisubs)
+  allSubModules <- TopLevel.getSubModules modname
+  concatMapM (mkiReps modname name) allSubModules
+
+mkiReps :: String -> String -> SubModule -> J [JMM.TermAssoc]
+mkiReps modname name submod = "Vhdl.mkiReps" <? do
+  --     for REP in replicated submod (mkiReps)
+  reps <- JMM.subModuleInstances modname submod
+  concatMapM (mkiTerms modname name) reps
+
+mkiTerms :: String -> String -> JMM.SubModuleRep -> J [JMM.TermAssoc]
+mkiTerms modname name rep = "Vhdl.mkiTerms" <? do
+  --       for OUTPUT_TERM in REP (mkiTerms)
+  let termMaps = JMM.smrTermMapOutput rep
+  enb ("TAG1", name, rep)
+
+  -- need to get the wire with $name 
+
+  
+  
+  return []
+  --concatMapM (mkiCollect1 modname name) termMaps
 
 
--- | internal sigs can be connected to nets.  
-assignInternalSig modname internalName instances = "Vhdl.assignInternalSig" <? do
-  -- look at the submodule instances.
-  -- internal sigs can be
 
-  -- there are two types of nets, driven and driver.
-  -- driven nets are at the outputs of sub modules.
-  -- driver nets are at the intputs of sub modules.
+  
+-- mkiCollect1 :: String -> String -> JMM.TermMap -> J [JMM.TermAssoc]
+-- mkiCollect1 modname name termMap = "Vhdl.mkiCollect1" <? do
+--   --         if OUTPUT_TERM contains NAME (mkiCollect1)
+--   --            then 1. collect all VALINDEX_SRC with NAME
+--   --                 2. determine associatated NETINDEX_SRC
+--   let tgts = map (flip JMM.termAssocTgtFromSrcName name) termMap
+--   enb (modname, name, termMap)
+--   return []
+-- --termMapContainsName :: 
 
-  -- jumpers are ambiguous, unless a signal on one side is known to be
-  -- a driven or a driver.
 
-  -- internal sigs can be on ports.
-  -- 
-  unimplemented
+  
 
+------------------------------------------------------------------
+-- here's another idea, find all nets containing "CO" and see what happens.
+--
 
 
 ------------------------------------------------------------------

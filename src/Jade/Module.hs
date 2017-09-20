@@ -58,14 +58,17 @@ getInputTerminals :: Module -> Coord3 -> J [Terminal]
 getInputTerminals mod offset = "Module.getInputTerminals" <? do
   ts <- terminals mod offset
   (Inputs ins) <- getInputs mod
-  return [term | term@(Terminal _ sig1) <- ts, sig2 <- ins, sig1 == sig2]
+  let result = [term | term@(Terminal _ sig1) <- ts, sig2 <- ins, sig1 == sig2]
+  return result
 
 getOutputTerminals :: Module -> Coord3 -> J [Terminal]
 getOutputTerminals mod offset = "Module.getOutputTerminals" <? do
   ts <- terminals mod offset
   (Outputs outs) <- getOutputs mod
-  return [term | term@(Terminal _ sig1) <- ts, sig2 <- outs, sig1 == sig2]
-    
+  let result = [term | term@(Terminal _ sig1) <- ts, sig2 <- outs, sig1 == sig2]
+  enb ("CO", result)
+  return result
+      
 getInputs :: Module -> J Inputs
 getInputs m = "Module.getInputs" <? do
   case moduleTest m of

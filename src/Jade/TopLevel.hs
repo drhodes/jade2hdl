@@ -316,7 +316,6 @@ getInternalSigNames modname = "TopLevel.getInternalSigNames" <? do
       outputNames = concat $ map Bundle.getNames outputBundles
   return $ allNames DL.\\ (DL.nub $ inputNames ++ outputNames)
   
-
-
-
-
+getDrivenNets modname = "TopLevel.getDrivenNets" <? do
+  unimplemented
+  

@@ -40,6 +40,11 @@ flipTermMap xs = map flipTermAssoc xs
 
 type TermMap = [TermAssoc]
 
+termAssocTgtFromSrcName (TermAssoc _ src tgt) name = if Val.hasIdent src name
+                                                     then Just tgt
+                                                     else Nothing
+
+
 -- replicated submodule.
 data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
                                    -- ^ all inputs for this slice of the 
