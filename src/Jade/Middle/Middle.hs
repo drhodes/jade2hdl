@@ -8,8 +8,10 @@ module Jade.Middle.Middle ( assignConstantNet
                           , subModuleInstances
                           , memUnitInstance
                           , assignBundle
-                          , assignInternalBundle
+                          -- , assignInternalBundle
                           , assignInternalSigFromRep
+                          , getAllOutputNetIdsFromRep
+                          , getAllInputNetIdsFromRep
                           
                           , module Jade.Middle.Types
                           ) where
@@ -37,23 +39,6 @@ import Jade.Middle.Types
   
 flipAssign (ValAssign src tgt) = ValAssign tgt src
 
-assignInternalBundle :: String -> ValBundle -> J [ValAssign]
-assignInternalBundle modname bundle = "Middle.assignInternalBundle" <? do
-  case uniq $ Bundle.getNames bundle of
-    [] -> dief "No name found for this bundle {0}" [show bundle]
-    [name] -> do
-      -- find nets with signame
-      nets <- TopLevel.getNetsWithName modname name
-
-      -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! for all the marbles.
-      drivingNets <- mapM (TopLevel.isNetDriver modname) nets
-      let dir = case DL.nub drivingNets of 
-                  [True] -> In
-                  [False] -> Out
-      -- for each net, assign the signame
-      concatMapM (assignSig dir modname name) nets
-    xs -> impossible "more than one name?? Can't happen"
-  
 
 -----------------------------------------------------------------------------
 
@@ -105,10 +90,11 @@ pickNetValsWithLit (Bundle inVals) (Bundle netVals) =
   [ValAssign v1 v2 | (v1@(Lit n1), v2) <- zip inVals netVals, Val.isLit v1]
   
 replicateOneTerminal :: Int -> Direction -> Terminal -> Net -> J TermMap
-replicateOneTerminal numReplications dir term@(Terminal _ bndl) net =
+replicateOneTerminal numReplications dir term@(Terminal _ bndl) net@(Net nid _) =
   "Middle/Types.replicateOneTerminal" <? do
   netWidth <- fromIntegral <$> Net.width net
-  netId <- Net.name net
+  --netId <- Net.name net
+  
   let termWidth = Bundle.width bndl 
       Bundle termSigs = bndl
       totalWidth = fromIntegral (termWidth * numReplications) :: Int
@@ -119,7 +105,7 @@ replicateOneTerminal numReplications dir term@(Terminal _ bndl) net =
       }
     _ -> do {
       ; cnb "case netWidth <= totalWidth"
-      ; let singles = map (ValIndex netId) $ downFrom (fromIntegral (netWidth - 1))
+      ; let singles = map (NetIndex nid) $ downFrom (fromIntegral (netWidth - 1))
             srcs = concat $ DL.transpose $ chunk numReplications singles
       ; safeSrcs <- safeCycle srcs
       ; safeTerms <- safeCycle termSigs
@@ -184,14 +170,43 @@ memUnitInstance modname memunit = "Middle/Types.memUnitInstance" <? do
   return $ head rep
 
 
+-- | OK. for determining the drivers go through the outputs, and for
+-- each output this is the internal name for the module, this name
+-- will be targeting a (NetIndex nid idx).  Find that net, then see
+-- which 
+
 
 assignInternalSigFromRep :: String -> SubModuleRep -> J TermMap
 assignInternalSigFromRep signame smr = "Middle.assignInternalSigFromRep" <? do
-  let inputs = smrTermMapInput smr
+  let outputs = smrTermMapOutput smr
   enb "LOL -----------------------------------------------------------------------------"
-  enb inputs
+
+ 
+  
+  
+  enb outputs
   return []
 
+
+getAllOutputNetIdsFromRep :: SubModuleRep -> J [NetId]
+getAllOutputNetIdsFromRep rep = "Middle.getOutputsNetIdsFromRep" <? do
+  return $ DL.nub $ concat $ map getOutputNetIdsFromTermMap (smrTermMapOutput rep)
+
+getOutputNetIdsFromTermMap outs = [nid | TermAssoc _ src tgt@(NetIndex nid _) <- outs]
+
+getAllInputNetIdsFromRep :: SubModuleRep -> J [NetId]
+getAllInputNetIdsFromRep rep = "Middle.getInputsNetIdsFromRep" <? do
+  return $ DL.nub $ concat $ map getInputNetIdsFromTermMap (smrTermMapInput rep)
+
+getInputNetIdsFromTermMap ins = [nid | TermAssoc _ src@(NetIndex nid _) tgt <- ins]
+
+
+
+-- getAllOutputNetIdsFromRep :: SubModuleRep -> J [NetId]
+-- getAllOutputNetIdsFromRep rep = "Middle.getOutputsNetIdsFromRep" <? do
+--   return $ DL.nub $ concat $ map getOutputNetIdsFromTermMap (smrTermMapOutput rep)
+
+-- getOutputNetIdsFromTermMap outs = [nid | TermAssoc _ src tgt@(NetIndex nid _) <- outs]
 
 
 

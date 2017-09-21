@@ -232,9 +232,6 @@ mkAllMods modname = "Vhdl.mkAllMods" <? do
   T.concat <$> mapM mkModule (userModNames ++ [modname])
 
 ------------------------------------------------------------------
--- here's another idea, find all nets containing "CO" and see what happens.
---
-
 
 ------------------------------------------------------------------
 comma = T.pack ", \n"
@@ -318,10 +315,10 @@ mkSubModuleInstance modname mem@(SubMemUnit memunit) = "Jade.Vhdl.mkSubModuleIns
   
 ------------------------------------------------------------------
 mkNetName net = "Vhdl.mkNetName" <? do        
-  n <- Net.name net -- get the net name
+  let n = netId net -- get the net name
   w <- Net.width net -- get the width
-  let temp = "signal {0} : std_logic_vector({1} downto 0);"
-  return $ format temp [n, show (w - 1)] -- one less because of zero indexing.
+  let temp = "signal net{0} : std_logic_vector({1} downto 0);"
+  return $ format temp [show n, show (w - 1)] -- one less because of zero indexing.
 
 -- get all node names needed for wiring.
 -- no input names.
@@ -330,12 +327,11 @@ mkNodeDecls modname = "Jade.Vhdl.mkNodeDecls" <? do
   Inputs ins <- TopLevel.getInputs modname
   Outputs outs <- TopLevel.getOutputs modname
   let ignore = concat $ map Bundle.getNames (ins ++ outs)
-  
   nets <- TopLevel.nets modname
-  netNames <- mapM Net.name nets
   
-  let keepers = [net | (n, net) <- zip netNames nets, n `notElem` ignore]
-
+  let netIds = map netId nets
+      keepers = [net | (n, net) <- zip netIds nets, (format "net{0}" [show n]) `notElem` ignore]
+      
   if null (keepers :: [Net])
     then return "-- no node decls"
     else do sigDecls <- mapM mkNetName keepers
@@ -356,31 +352,49 @@ declareInternalSigNames modname = "Vhdl.declareInternalSigNames" <? do
   mapM (declareSigName modname) signames
 
 -----------------------------------------------------------------------------
+
+-- | required inference.  A net can only be an input net or an output net.
+
 assignInternalSigNames :: String -> [SubModule] -> J T.Text
 assignInternalSigNames modname subs = "Vhdl.assignInternalSigNames" <? do
   internalNames <- TopLevel.getInternalSigNames modname
   if modname `contains` "Rep1FA2"
     then do return ()
             reps <- concatMapM (JMM.subModuleInstances modname) subs
-            x <- mapM (JMM.assignInternalSigFromRep modname) reps
-            enb x
-            unimplemented
+            --x <- mapM (JMM.assignInternalSigFromRep modname) reps
+            -- get output nets
+            netsIn <- DL.nub <$> concatMapM JMM.getAllInputNetIdsFromRep reps
+            netsOut <- DL.nub <$> concatMapM JMM.getAllOutputNetIdsFromRep reps
+
+            enb ("NETSOUT", netsOut)
+            -- subtract from all internal sigs.
+            -- assign these as outputs.
+            -- what remains are inputs, and assign those as such.
     
-    --T.concat <$> mapM (assignOneInternalSigName modname) internalNames
+            ins <- T.concat <$> mapM (assignOneInternalSigName modname Out netsOut) internalNames
+            outs <- T.concat <$> mapM (assignOneInternalSigName modname In netsIn) internalNames
+            return $ T.concat [ins, T.pack "\n", outs]
     
     else return (T.pack "")
 
-assignOneInternalSigName :: String -> String -> J T.Text
-assignOneInternalSigName modname signame = "Vhdl.assignOneInternalSigName" <? do
+assignOneInternalSigName :: String -> Direction -> [NetId] -> String -> J T.Text
+assignOneInternalSigName modname direction netids signame  = "Vhdl.assignOneInternalSigName" <? do
   idxs <- TopLevel.getAllIndexesWithName modname signame
-  assignInternalBundles modname [Bundle idxs]
+  assignInternalBundles modname [Bundle idxs] direction netids 
 
-assignInternalBundles :: String -> [ValBundle] -> J T.Text
-assignInternalBundles modname bundle = "Vhdl.assignInternalBundles" <? do
-  assignMap <- concatMapM (JMM.assignInternalBundle modname) bundle
-  withSemiColonNewLines <$> mapM mkTermAssign assignMap
-
-
+assignInternalBundles :: String -> [ValBundle] -> Direction -> [NetId] -> J T.Text
+assignInternalBundles modname bundle dir netids = "Vhdl.assignInternalBundles" <? do
+  assignMap <- concatMapM (JMM.assignBundle dir modname) bundle
+  
+  let keepers = case dir of
+                  Out -> [ ta | ta@(JMM.ValAssign (NetIndex nid _) _) <- assignMap, nid `elem` netids]
+                  In  -> [ ta | ta@(JMM.ValAssign _ (NetIndex nid _)) <- assignMap, nid `elem` netids]
+  
+  enb assignMap
+  --unimplemented
+  
+  withSemiColonNewLines <$> mapM mkTermAssign keepers
+  --mapM mkTermAssign assignMap
 
 
 withSemiColonNewLines txts = T.concat [T.append t (T.pack ";\n") | t <- txts]
@@ -402,19 +416,6 @@ connectConstant :: String -> Net -> J T.Text
 connectConstant modname net = "Vhdl.connectConstant" <? do
   assignMap <- JMM.assignConstantNet net
   withSemiColonNewLines <$> mapM mkTermAssign assignMap
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 -- trash all this stuff hopefully! ---------------------------------

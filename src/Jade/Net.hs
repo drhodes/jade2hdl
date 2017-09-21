@@ -19,6 +19,10 @@ getTerminals (Net gid nodes) = [t | Node _ (TermC t) <- nodes]
 hasTerm :: Net -> Terminal -> Bool
 hasTerm (Net _ nodes) term1 = or [term1 == term2 | Node _ (TermC term2) <- nodes]
 
+
+
+
+
 getLitVals (Net gid nodes) = concat $ map Node.getLitVals nodes
 
 getValsWithIdent :: Net -> String -> J [Val]
@@ -62,11 +66,6 @@ getBundle :: Net -> J ValBundle
 getBundle net@(Net netid _) = "Net.getBundle" <? do
   w <- width net
   return $ Bundle $ map (NetIndex netid)  $ downFrom (fromIntegral (w-1))
-
-name :: Net -> J String
-name net@(Net gid nodes) = "Net.name" <? do
-  let genNameLen = 10
-  return $ take genNameLen $ "net" ++ show gid
 
 containsIdent :: Net -> String -> J Bool
 containsIdent net ident = "Net.containsSigIdent" <? do
