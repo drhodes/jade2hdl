@@ -107,6 +107,7 @@ testTreeNumNets =
   , t "Buffer2" 2
   , t "Nor32Arith5" 6
   , t "RepAnd2" 3
+  , t "Rep1FA2" 5
   ] 
 
 check topl func = case runJ topl func of
@@ -252,8 +253,17 @@ testTreeGetInternalSigNames = TestTree "getinternalsigname" $
   in [ t "Rep1FA2" ["CO"]
      ]
 
+testGetAllIndexesWithName modname name expected = do
+  testExpGot modname expected $ do
+    TopLevel.getAllIndexesWithName (qualifiedModName modname) name
+
+testTreeGetAllIndexesWithName = TestTree "getallIndexesWithName" $
+  let t testname signame exp = TestCase testname (testGetAllIndexesWithName testname signame exp)
+  in [ t "Rep1FA2" "CO" [ValIndex "CO" 0]
+     ]
 
 testTree = TestTree "TopLevel" [ testTreeNumNets
+                               , testTreeIsNetDriver
                                , testTreeNumSubModules
                                , testTreeNumTerminals
                                , testTreeGetNetsWithNameAll
@@ -262,4 +272,20 @@ testTree = TestTree "TopLevel" [ testTreeNumNets
                                , testTreeGetWidthOfSigName
                                , testTreeMiscEtc
                                , testTreeGetInternalSigNames
+                               , testTreeGetAllIndexesWithName
                                ]
+
+testIsNetDriver modname signame expected = do
+  testExpGot modname expected $ do
+    let m = qualifiedModName modname
+    nets <- TopLevel.getNetsWithName m signame
+    them <- mapM (TopLevel.isNetDriver m) nets
+    case DL.nub them of
+      [True] -> return True
+      [False] -> return False
+      [] -> die "No nets found"
+      _ -> impossible "net both drives and is driven"
+
+testTreeIsNetDriver = TestTree "IsDriven" $
+  let t mod signame exp = TestCase mod (testIsNetDriver mod signame exp)
+  in [ t "Rep1FA2" "A" True ]

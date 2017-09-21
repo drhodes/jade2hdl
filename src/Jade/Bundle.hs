@@ -23,7 +23,10 @@ getVals (Bundle xs) = xs
 getLitVals (Bundle xs) = [lit | lit@(Lit _) <- xs]
 
 getNames :: Bundle Val -> [String]
-getNames (Bundle xs) = map Val.getName xs
+getNames (Bundle xs) = [name | name <- map Val.getName xs, not $ null name]
+
+
+getIndexesWithName (Bundle xs) name = [v | v@(ValIndex vname _) <- xs, vname == name]
 
 getName :: Bundle Val -> J String
 getName bundle = do

@@ -15,6 +15,8 @@ module Jade.TopLevel ( getNetsWithName
                      , terminals
                      , connectWiresWithSameSigName
                      , getInternalSigNames
+                     , getAllIndexesWithName
+                     , isNetDriver
                      ) where
 
 import Control.Monad
@@ -299,10 +301,9 @@ getAllSigNames modname = do
 -- | Given a valnal name scour all the nets that contains the
 -- name for the total width of all valnals with the name.
 getWidthOfValName :: String -> String -> J Int
-getWidthOfValName modname valname = do
+getWidthOfValName modname valname = "TopLevel.getWidthOfValName" <? do
   nets <- getNetsWithName modname valname
   vals <- concatMapM (flip Net.getValsWithIdent valname) nets
-  list vals
   return $ length (DL.nub vals)
   
 getInternalSigNames modname = "TopLevel.getInternalSigNames" <? do
@@ -314,8 +315,20 @@ getInternalSigNames modname = "TopLevel.getInternalSigNames" <? do
 
   let inputNames = concat $ map Bundle.getNames inputBundles
       outputNames = concat $ map Bundle.getNames outputBundles
-  return $ allNames DL.\\ (DL.nub $ inputNames ++ outputNames)
+  return $ allNames DL.\\ (inputNames ++ outputNames)
   
-getDrivenNets modname = "TopLevel.getDrivenNets" <? do
-  unimplemented
-  
+getAllIndexesWithName :: String -> String -> J [Val]
+getAllIndexesWithName modname name = "TopLevel.getAllIndexesWithName" <? do
+  allNets <- nets modname
+  return $ DL.nub $ concat $ map (flip Net.getIndexesWithName name) allNets
+
+isNetDriver :: String -> Net -> J Bool
+isNetDriver modname net = "TopLevel.isNetDriven" <? do
+  -- does this net contain names that are included in the .input
+  -- groups?  does this net contain nodes that are connected to the
+  -- output of contradiction. if an internal name is both on the
+  -- output and input of a submodule, then unfortunately this means
+  -- that the net actually belongs to both. but wait. net analysis is pass#1 analysis
+  -- so, no, they actually aren't.
+  -- how many nets are there here?
+  return False

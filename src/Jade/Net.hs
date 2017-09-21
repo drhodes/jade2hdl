@@ -5,13 +5,12 @@ import qualified Data.List as DL
 import Jade.Common
 import qualified Jade.Part as Part
 import qualified Jade.Node as Node
+import qualified Jade.Wire as Wire
 import Data.Maybe
 import Control.Monad
 import Jade.Util
 
 -- | About Net.  A Net has an ID and a collection of nodes that  
-
-
 hasAnyTerm :: Net -> Bool
 hasAnyTerm (Net gid nodes) = or [True | Node _ (TermC _) <- nodes]
 
@@ -60,11 +59,10 @@ parts net = let (Net _ nodes) = removeTerms net
             in map nodePart nodes 
 
 getBundle :: Net -> J ValBundle 
-getBundle net = do w <- width net
-                   n <- name net
-                   return $ Bundle $ map (ValIndex n) $ downFrom (fromIntegral (w-1))
+getBundle net@(Net netid _) = "Net.getBundle" <? do
+  w <- width net
+  return $ Bundle $ map (NetIndex netid)  $ downFrom (fromIntegral (w-1))
 
-  
 name :: Net -> J String
 name net@(Net gid nodes) = "Net.name" <? do
   let genNameLen = 10
@@ -73,3 +71,10 @@ name net@(Net gid nodes) = "Net.name" <? do
 containsIdent :: Net -> String -> J Bool
 containsIdent net ident = "Net.containsSigIdent" <? do
   return $ or $ map (flip Part.containsIdentifier ident) (parts net)
+
+
+--isDriven (Net netid nodes) = "Net.isDriven" <? do
+getIndexesWithName net name = concat $ map (flip Wire.getIndexesWithName name) (getWires net)
+
+
+

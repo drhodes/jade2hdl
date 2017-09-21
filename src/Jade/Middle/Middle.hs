@@ -7,8 +7,7 @@
 module Jade.Middle.Middle ( assignConstantNet
                           , subModuleInstances
                           , memUnitInstance
-                          , assignOutputBundle
-                          , assignInputBundle
+                          , assignBundle
                           
                           , module Jade.Middle.Types
                           ) where
@@ -36,38 +35,58 @@ import Jade.Middle.Types
   
 flipAssign (ValAssign src tgt) = ValAssign tgt src
 
--- | assignOutputBundle reuses assignOneInput here, where the
--- assignments are flipped around
-assignOutputBundle :: String -> ValBundle -> J [ValAssign]
-assignOutputBundle modname outputBundle = "Middle/Types.assignOneOutput" <? do
-  map flipAssign <$> assignInputBundle modname outputBundle
+assignInternalBundle :: String -> ValBundle -> J [ValAssign]
+assignInternalBundle modname bundle = "Middle.assignInternalBundle" <? do
+  case uniq $ Bundle.getNames bundle of
+    [] -> dief "No name found for this bundle {0}" [show bundle]
+    [name] -> do
+      -- find nets with signame
+      nets <- TopLevel.getNetsWithName modname name
 
+      -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! for all the marbles.
+      drivingNets <- mapM (TopLevel.isNetDriver modname) nets
+      let dir = case DL.nub drivingNets of 
+                  [True] -> In
+                  [False] -> Out
+      -- for each net, assign the signame
+      concatMapM (assignSig dir modname name) nets
+    xs -> impossible "more than one name?? Can't happen"
+  
+
+-----------------------------------------------------------------------------
+
+                                      
 -- | take .input(s) then find the nets they belong to and assign them.
-assignInputBundle :: String -> ValBundle -> J [ValAssign]
-assignInputBundle modname inputBundle = "Middle/Types.assignOneInputBundle" <? do
+assignBundle :: Direction -> String -> ValBundle -> J [ValAssign]
+assignBundle dir modname inputBundle = "Middle/Types.assignOneInputBundle" <? do
   case uniq $ Bundle.getNames inputBundle of
     [] -> dief "No input name found for this input bundle {0}" [show inputBundle]
     [inputName] -> do
       -- find nets with signame
       nets <- TopLevel.getNetsWithName modname inputName
       -- for each net, assign the signame
-      concatMapM (assignSig modname inputName) nets
+      concatMapM (assignSig dir modname inputName) nets
     xs -> impossible "A Jade module input has more than one name?? Can't happen"
   
 -- is this net connected to the output terminal of a submodule or
 -- an input terminal?
 
 -- | assign the valname to the net it's connected to 
-assignSig :: String -> String -> Net -> J [ValAssign]
-assignSig modname valname net = "Middle/Types.assignSig" <? do
+assignSig :: Direction -> String -> String -> Net -> J [ValAssign]
+assignSig dir modname valname net = "Middle/Types.assignSig" <? do
   let bundles = DL.nub $ Net.getBundlesWithName net valname
   when (length bundles /= 1) $ die "why is there more than one bundle here?"
   let valBundle = head bundles
   netBundle <- Net.getBundle net
-  return $ pickNetValsWithName valname valBundle netBundle
+  assignments <- pickNetValsWithName valname valBundle netBundle
+  return $ case dir of
+    In -> assignments
+    Out -> map flipAssign assignments
+    
+pickNetValsWithName valname (Bundle inVals) (Bundle netVals) = "Middle.pickNetValsWithName" <? do
+  return [ValAssign v1 v2 | (v1@(ValIndex n _), v2) <- zip inVals netVals, n == valname]
 
-pickNetValsWithName valname (Bundle inVals) (Bundle netVals) =
-  [ValAssign v1 v2 | (v1@(ValIndex n1 _), v2) <- zip inVals netVals, n1 == valname]
+
 
 assignConstantNet :: Net -> J [ValAssign]
 assignConstantNet net = "Middle.Types/connectConstantNet" <? do 

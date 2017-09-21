@@ -2,6 +2,7 @@
 module Jade.Signal ( width
                    , getBundle
                    , explode
+                   , getIndexesWithName
                    ) where
 
 import Jade.Common
@@ -18,6 +19,8 @@ width _ = Nothing
 -- getNames (Signal (Just bundle) _ _) = Bundle.getNames bundle
 -- getNames _ = return []
 
+
+getIndexesWithName (Signal (Just bundle) _ _) name = Bundle.getIndexesWithName bundle name
 
 getBundle (Signal (Just b) _ _) = b
 getBundle (Signal Nothing _ _) = mempty

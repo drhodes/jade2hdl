@@ -20,11 +20,11 @@ import Jade.Note
 
 ------------------------------------------------------------------
 -- Icon Types
-data Line = Line Coord5 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+newtype Line = Line Coord5 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data Terminal = Terminal Coord3 ValBundle deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-data Box = Box Coord5 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+newtype Box = Box Coord5 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data Txt = Txt { txtLoc :: Coord3
                , txtText :: String
@@ -53,9 +53,7 @@ data ModPath = ModPath { modPath :: FilePath
                        , modFile :: String
                        } deriving (Generic, Show, Eq, ToJSON)
 
-data Vdd = Vdd Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
-
-
+newtype Vdd = Vdd Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 ------------------------------------------------------------------
 -- Schematic Types
@@ -98,9 +96,14 @@ data Sig = SigSimple String
 
 -- TODO consider this phantom type.
 -- data Val a = ValIndex String Integer
+type Index = Integer
+
 data Val = ValIndex { valIdxName :: String
-                    , valIdxIdx :: Integer
-                    } 
+                    , valIdxIdx :: Index
+                    }
+         | NetIndex { netIdxId :: NetId
+                    , netIdxIdx :: Index
+                    }
          | Lit { litBinVal :: BinVal }
          deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 
@@ -149,7 +152,7 @@ data SubModule = SubModule { subName :: String
                | SubMemUnit MemUnit
                deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-data Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+newtype Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data MemUnit = MemUnit { memName :: String
                        , memCoord3 :: Coord3
@@ -185,8 +188,7 @@ data Module = Module { moduleName :: String
             | BuiltInModule String
             deriving (Generic, Show, Eq, Hashable, Ord, ToJSON) -- todo add test
 
-data TopLevel = TopLevel (DM.Map String Module)
-              deriving  (Generic, Show, Eq, ToJSON)
+newtype TopLevel = TopLevel (DM.Map String Module) deriving  (Generic, Show, Eq, ToJSON)
 
 data BoundingBox = BB { bbLeft :: Integer
                       , bbTop :: Integer
@@ -202,7 +204,7 @@ instance LocRot Coord5 where locrot (Coord5 x y r _ _) = Coord3 x y r
 ------------------------------------------------------------------
 -- Test Types
 
-data Power = Power { powerVdd :: Double } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+newtype Power = Power { powerVdd :: Double } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
   
 data Thresholds = Thresholds { thVol :: Double
                              , thVil :: Double
@@ -210,8 +212,8 @@ data Thresholds = Thresholds { thVol :: Double
                              , thVoh :: Double
                              } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-data Inputs = Inputs [ValBundle] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
-data Outputs = Outputs [ValBundle] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+newtype Inputs = Inputs [ValBundle] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+newtype Outputs = Outputs [ValBundle] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data Mode = Device | Gate deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
@@ -226,7 +228,7 @@ data Action = Assert String
             | SetSignal ValBundle Double
               deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-data CycleLine = CycleLine [Action] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+newtype CycleLine = CycleLine [Action] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data BinVal = L | H | Z deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 

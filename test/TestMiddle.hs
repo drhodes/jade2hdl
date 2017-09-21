@@ -33,7 +33,7 @@ checkSubModuleInstances modname = do
 checkConnectOneOutput modname outsig = do
   let func = "testSubModuleInstances" <? do
         let modname' = "/user/" ++ modname                
-        result <- assignOutputBundle modname' outsig
+        result <- assignBundle Out modname' outsig
         nb $ show result
         return True
   testSkeleton modname func
