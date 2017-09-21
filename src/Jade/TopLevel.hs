@@ -331,4 +331,6 @@ isNetDriver modname net = "TopLevel.isNetDriven" <? do
   -- that the net actually belongs to both. but wait. net analysis is pass#1 analysis
   -- so, no, they actually aren't.
   -- how many nets are there here?
+  
+  
   return False

@@ -8,6 +8,8 @@ module Jade.Middle.Middle ( assignConstantNet
                           , subModuleInstances
                           , memUnitInstance
                           , assignBundle
+                          , assignInternalBundle
+                          , assignInternalSigFromRep
                           
                           , module Jade.Middle.Types
                           ) where
@@ -180,6 +182,19 @@ memUnitInstance modname memunit = "Middle/Types.memUnitInstance" <? do
   rep <- buildSubModuleReps itms otms (SubMemUnit memunit) 0
   when (length rep /= 1) (impossible "This should contain one memunit representation")
   return $ head rep
+
+
+
+assignInternalSigFromRep :: String -> SubModuleRep -> J TermMap
+assignInternalSigFromRep signame smr = "Middle.assignInternalSigFromRep" <? do
+  let inputs = smrTermMapInput smr
+  enb "LOL -----------------------------------------------------------------------------"
+  enb inputs
+  return []
+
+
+
+
 
 
 

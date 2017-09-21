@@ -182,6 +182,8 @@ mkModule modname = "Vhdl.mkModule" <? do
   schem <- Module.getSchematic m
   subs <- TopLevel.getSubModules modname
   instances <- mapM (mkSubModuleInstance modname) subs
+
+  
   
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
@@ -193,8 +195,15 @@ mkModule modname = "Vhdl.mkModule" <? do
   inputWires <- assignAllInputs modname ins
 
   -- internalAssignments <- mkInternalAssignmentsTxt modname
-  internalAssignments <- assignInternalSigNames modname
+  internalAssignments <- assignInternalSigNames modname subs
   internalNodeDecls <- T.pack <$> concat <$> (DL.intersperse "\n") <$> declareInternalSigNames modname
+
+  -- USE instances to determine the internal assignments.  why? since
+  -- the sub mod reps have been exploded, then internal sigs can't
+  -- simultaneously be on both the inputs and outputs, so it's known
+  -- that on a sub mod rep output that 
+
+
 
   enb ("internalNodeDecls", internalNodeDecls)
   --when (modname `contains` "Rep1FA2") unimplemented
@@ -347,10 +356,18 @@ declareInternalSigNames modname = "Vhdl.declareInternalSigNames" <? do
   mapM (declareSigName modname) signames
 
 -----------------------------------------------------------------------------
-assignInternalSigNames modname = "Vhdl.assignInternalSigNames" <? do
+assignInternalSigNames :: String -> [SubModule] -> J T.Text
+assignInternalSigNames modname subs = "Vhdl.assignInternalSigNames" <? do
   internalNames <- TopLevel.getInternalSigNames modname
   if modname `contains` "Rep1FA2"
-    then T.concat <$> mapM (assignOneInternalSigName modname) internalNames
+    then do return ()
+            reps <- concatMapM (JMM.subModuleInstances modname) subs
+            x <- mapM (JMM.assignInternalSigFromRep modname) reps
+            enb x
+            unimplemented
+    
+    --T.concat <$> mapM (assignOneInternalSigName modname) internalNames
+    
     else return (T.pack "")
 
 assignOneInternalSigName :: String -> String -> J T.Text
