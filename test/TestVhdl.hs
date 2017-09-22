@@ -84,14 +84,33 @@ tree s xs = TestTree s $ map node xs
 
 testTree = TestTree "Vhdl" [ testTreeInnerSignal
                            , testTreeReplication
+                           , testTreeBeta
                            , testTreeJumpers
                            , testTreeMisc
                            , testTreeBuffer
-                           , testTreeBeta
                            --, testTreeMemUnit
                            , testTree1
                            , testTree2
                            ]
+
+
+
+testTreeReplication = tree "Replication" [ "Rep1FA2"
+                                         , "RepAnd2"
+                                         , "RepAnd3"
+                                         , "RepAnd4"
+                                         , "Mux21Rep4"
+                                         , "Mux21Rep32"
+                                         , "Mux4Rep1"
+                                         , "RepWonkyBuffer1Exp"
+                                         , "RepWonkyBuffer1"
+                                         , "ZipReplication"
+                                         , "Bool2"
+                                         , "Buffer7"
+                                         , "Ripple3_1"
+                                         , "Ripple3"
+                                         --, "Ripple32"
+                                         ]
 
 testTreeInnerSignal = tree "InnerSignal" [ "InnerSignal1"
                                          , "InnerSignal2"
@@ -100,9 +119,9 @@ testTreeInnerSignal = tree "InnerSignal" [ "InnerSignal1"
 testTreeBeta = tree "Beta" [ "Bool2" 
                            , "Nor32Arith3"
                            , "Nor32Arith4"
-                           -- , "Nor32Arith5"
-                           -- , "Nor32Arith2"
-                           -- , "Nor32Arith"
+                           , "Nor32Arith5"
+                           , "Nor32Arith2"
+                           , "Nor32Arith"
                            -- , "Shift1"
                            ]
 
@@ -134,6 +153,7 @@ testTreeJumpers = tree "One" [ "Jumper1"
                              , "Jumper41"
                              , "Jumper1Rot90"
                              , "Jumper3"
+                             , "InternalJumper1"
                              ]
 
 testTree1 = tree "One" [ "And41"
@@ -173,22 +193,6 @@ testTree1 = tree "One" [ "And41"
                        -- , "CycleCounter"
                        -- , "GarrInc32"
                        ]
-
-testTreeReplication = tree "Replication" [ "Rep1FA2"
-                                         , "RepAnd2"
-                                         , "RepAnd3"
-                                         , "RepAnd4"
-                                         , "Mux21Rep4"
-                                         , "Mux21Rep32"
-                                         , "Mux4Rep1"
-                                         , "RepWonkyBuffer1Exp"
-                                         , "RepWonkyBuffer1"
-                                         , "ZipReplication"
-                                         , "Bool2"
-                                         
-                                         -- , "Buffer7"
-                                         -- , "Ripple32"
-                                         ]
 
   
 spawn (ModPath path filename) =

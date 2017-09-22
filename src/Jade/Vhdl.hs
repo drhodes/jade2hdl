@@ -373,7 +373,7 @@ assignInternalSigNames modname subs inputAssignments = "Vhdl.assignInternalSigNa
 
             -- remove the intersection from both.
             let netsIn' = netsIn DL.\\ netsOut
-                netsOut' = netsOut DL.\\ netsIn
+                netsOut' = netsOut --DL.\\ netsIn
             
             enb ("NETSOUT", netsOut)
             enb ("netsin", netsIn)

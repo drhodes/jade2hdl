@@ -45,7 +45,7 @@ flipAssign (ValAssign src tgt) = ValAssign tgt src
                                       
 -- | take .input(s) then find the nets they belong to and assign them.
 assignBundle :: Direction -> String -> ValBundle -> J [ValAssign]
-assignBundle dir modname inputBundle = "Middle/Types.assignOneInputBundle" <? do
+assignBundle dir modname inputBundle = "Middle/Middle.assignOneInputBundle" <? do
   case uniq $ Bundle.getNames inputBundle of
     [] -> dief "No input name found for this input bundle {0}" [show inputBundle]
     [inputName] -> do
@@ -60,7 +60,7 @@ assignBundle dir modname inputBundle = "Middle/Types.assignOneInputBundle" <? do
 
 -- | assign the valname to the net it's connected to 
 assignSig :: Direction -> String -> String -> Net -> J [ValAssign]
-assignSig dir modname valname net = "Middle/Types.assignSig" <? do
+assignSig dir modname valname net = "Middle/Middle.assignSig" <? do
   let bundles = DL.nub $ Net.getBundlesWithName net valname
   when (length bundles /= 1) $ die "why is there more than one bundle here?"
   let valBundle = head bundles
@@ -91,7 +91,7 @@ pickNetValsWithLit (Bundle inVals) (Bundle netVals) =
   
 replicateOneTerminal :: Int -> Direction -> Terminal -> Net -> J TermMap
 replicateOneTerminal numReplications dir term@(Terminal _ bndl) net@(Net nid _) =
-  "Middle/Types.replicateOneTerminal" <? do
+  "Middle/Middle.replicateOneTerminal" <? do
   netWidth <- fromIntegral <$> Net.width net
   --netId <- Net.name net
   
@@ -107,8 +107,12 @@ replicateOneTerminal numReplications dir term@(Terminal _ bndl) net@(Net nid _) 
       ; cnb "case netWidth <= totalWidth"
       ; let singles = map (NetIndex nid) $ downFrom (fromIntegral (netWidth - 1))
             srcs = concat $ DL.transpose $ chunk numReplications singles
-      ; safeSrcs <- safeCycle srcs
-      ; safeTerms <- safeCycle termSigs
+      ; enb ("srcs", srcs)
+      ; enb ("netwidth", netWidth)
+      ; enb ("singles", singles)
+      ; enb ("termSigs", termSigs)
+      ; safeSrcs <- safeCycle srcs ? "safeSrcs"
+      ; safeTerms <- safeCycle termSigs ? "termSigs"
       ; let tmap = take totalWidth (zipWith (TermAssoc In) safeSrcs safeTerms)
       ; return $ case dir of
                    In -> tmap
@@ -117,7 +121,7 @@ replicateOneTerminal numReplications dir term@(Terminal _ bndl) net@(Net nid _) 
 
 buildSubModuleReps :: [[TermMap]] -> [[TermMap]] -> SubModule -> Int -> J [SubModuleRep]
 buildSubModuleReps inputTermMaps outputTermMaps submod zidx =
-  "Middle/Types.buildSubModuleRep" <? do
+  "Middle/Middle.buildSubModuleRep" <? do
   if zidx < 0 then return []
     else do let itms = map head inputTermMaps
                 otms = map head outputTermMaps
@@ -149,7 +153,7 @@ subModuleInstances modname (SubMemUnit memunit) = "Middle.Types.subModuleInstanc
   die "This should not be called on SubMemUnit, instead call memUnitInstance"
 
 memUnitInstance :: String -> MemUnit -> J SubModuleRep
-memUnitInstance modname memunit = "Middle/Types.memUnitInstance" <? do
+memUnitInstance modname memunit = "Middle/Middle.memUnitInstance" <? do
   let repd = 1
   m <- TopLevel.getModule modname
   

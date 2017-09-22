@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 module Jade.TopLevel ( getNetsWithName
                      , getModule
                      , replicationDepth
