@@ -99,7 +99,7 @@ testTreeInnerSignal = tree "InnerSignal" [ "InnerSignal1"
            
 testTreeBeta = tree "Beta" [ "Bool2" 
                            , "Nor32Arith3"
-                           -- , "Nor32Arith4"
+                           , "Nor32Arith4"
                            -- , "Nor32Arith5"
                            -- , "Nor32Arith2"
                            -- , "Nor32Arith"

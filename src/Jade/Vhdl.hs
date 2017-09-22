@@ -18,7 +18,6 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as DT
 import qualified Jade.Decode as Decode
 import qualified Jade.Net as Net
---import qualified Jade.Middle.Types as MT
 import qualified Jade.ModTest as ModTest
 import qualified Jade.Module as Module
 import qualified Jade.TopLevel as TopLevel
@@ -182,8 +181,6 @@ mkModule modname = "Vhdl.mkModule" <? do
   schem <- Module.getSchematic m
   subs <- TopLevel.getSubModules modname
   instances <- mapM (mkSubModuleInstance modname) subs
-
-  
   
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
@@ -195,7 +192,10 @@ mkModule modname = "Vhdl.mkModule" <? do
   inputWires <- assignAllInputs modname ins
 
   -- internalAssignments <- mkInternalAssignmentsTxt modname
-  internalAssignments <- assignInternalSigNames modname subs
+  -- inputAssignments :: String -> [ValBundle] -> J T.Text
+  inputWires' <- assignAllInputs' modname ins
+
+  internalAssignments <- assignInternalSigNames modname subs inputWires'
   internalNodeDecls <- T.pack <$> concat <$> (DL.intersperse "\n") <$> declareInternalSigNames modname
 
   -- USE instances to determine the internal assignments.  why? since
@@ -257,6 +257,12 @@ mkTermAssoc (JMM.TermAssoc dir src tgt) = "Vhdl.mkTermAssoc" <? do
   
 mkTermAssign :: JMM.ValAssign -> J T.Text
 mkTermAssign (JMM.ValAssign src tgt) = "Vhdl.mkTermAssign" <? do
+  srcTxt <- mkValName src
+  tgtTxt <- mkValName tgt
+  return $ T.concat [ tgtTxt , T.pack " <= " , srcTxt ]
+
+mkValAssign :: JMM.ValAssign -> J T.Text
+mkValAssign (JMM.ValAssign src tgt) = "Vhdl.mkValAssign" <? do
   srcTxt <- mkValName src
   tgtTxt <- mkValName tgt
   return $ T.concat [ tgtTxt , T.pack " <= " , srcTxt ]
@@ -355,10 +361,9 @@ declareInternalSigNames modname = "Vhdl.declareInternalSigNames" <? do
 
 -- | required inference.  A net can only be an input net or an output net.
 
-assignInternalSigNames :: String -> [SubModule] -> J T.Text
-assignInternalSigNames modname subs = "Vhdl.assignInternalSigNames" <? do
+assignInternalSigNames modname subs inputAssignments = "Vhdl.assignInternalSigNames" <? do
   internalNames <- TopLevel.getInternalSigNames modname
-  if modname `contains` "Rep1FA2"
+  if True -- modname `contains` "Rep1FA2"
     then do return ()
             reps <- concatMapM (JMM.subModuleInstances modname) subs
             --x <- mapM (JMM.assignInternalSigFromRep modname) reps
@@ -366,35 +371,84 @@ assignInternalSigNames modname subs = "Vhdl.assignInternalSigNames" <? do
             netsIn <- DL.nub <$> concatMapM JMM.getAllInputNetIdsFromRep reps
             netsOut <- DL.nub <$> concatMapM JMM.getAllOutputNetIdsFromRep reps
 
+            -- remove the intersection from both.
+            let netsIn' = netsIn DL.\\ netsOut
+                netsOut' = netsOut DL.\\ netsIn
+            
             enb ("NETSOUT", netsOut)
+            enb ("netsin", netsIn)
             -- subtract from all internal sigs.
             -- assign these as outputs.
             -- what remains are inputs, and assign those as such.
     
-            ins <- T.concat <$> mapM (assignOneInternalSigName modname Out netsOut) internalNames
-            outs <- T.concat <$> mapM (assignOneInternalSigName modname In netsIn) internalNames
-            return $ T.concat [ins, T.pack "\n", outs]
+            outs <- concatMapM (assignOneInternalSigName' modname Out netsOut') internalNames
+            ins <- concatMapM (assignOneInternalSigName' modname In netsIn') internalNames
+            
+            let outs' = uniqueTargets outs Out
+                ins' = uniqueTargets (ins ++ inputAssignments) In
+            outs'' <- withSemiColonNewLines <$> mapM mkValAssign outs'
+            ins'' <- withSemiColonNewLines <$> mapM mkValAssign ins'
+            
+            return $ T.concat [ T.pack "\n"
+                              , T.pack "-- inputs\n"
+                              , ins''
+                              , T.pack "\n"
+                              , T.pack "--outputs\n"
+                              , outs'']
     
-    else return (T.pack "")
+    else return (T.pack "// the universe has halted.")
 
-assignOneInternalSigName :: String -> Direction -> [NetId] -> String -> J T.Text
-assignOneInternalSigName modname direction netids signame  = "Vhdl.assignOneInternalSigName" <? do
+
+uniqueTargets keepers dir = case dir of
+                  Out -> let pairs = [(tgt, net) | ta@(JMM.ValAssign net tgt) <- keepers]
+                             m = DM.fromList pairs -- this wipes out the repeats.
+                             pairs' = [JMM.ValAssign net tgt | (tgt, net) <- DM.toList m]
+                         in pairs'
+                  In -> let pairs = [(net, tgt) | ta@(JMM.ValAssign tgt net) <- keepers]
+                            m = DM.fromList pairs -- this wipes out the repeats.
+                            pairs' = [JMM.ValAssign tgt net | (net, tgt) <- DM.toList m]
+                        in pairs'
+
+
+assignOneInternalSigName' modname direction netids signame  = "Vhdl.assignOneInternalSigName" <? do
   idxs <- TopLevel.getAllIndexesWithName modname signame
-  assignInternalBundles modname [Bundle idxs] direction netids 
+  assignInternalBundles' modname [Bundle idxs] direction netids 
 
-assignInternalBundles :: String -> [ValBundle] -> Direction -> [NetId] -> J T.Text
-assignInternalBundles modname bundle dir netids = "Vhdl.assignInternalBundles" <? do
+
+-- assignInternalBundles :: String -> [ValBundle] -> Direction -> [NetId] -> J T.Text
+-- assignInternalBundles modname bundle dir netids = "Vhdl.assignInternalBundles" <? do
+--   assignMap <- concatMapM (JMM.assignBundle dir modname) bundle
+--   let keepers = case dir of
+--                   Out -> [ ta | ta@(JMM.ValAssign (NetIndex nid _) _) <- assignMap, nid `elem` netids]
+--                   In  -> [ ta | ta@(JMM.ValAssign _ (NetIndex nid _)) <- assignMap, nid `elem` netids]
+
+--   -- jumpers associate different names for the same net, so may
+--   -- introduce multiple assignments to the same net.  make sure that
+--   -- each net has only one assignment
+
+--   withSemiColonNewLines <$> mapM mkTermAssign uniqueTargets
+
+
+assignInternalBundles' modname bundle dir netids = "Vhdl.assignInternalBundles" <? do
   assignMap <- concatMapM (JMM.assignBundle dir modname) bundle
-  
   let keepers = case dir of
                   Out -> [ ta | ta@(JMM.ValAssign (NetIndex nid _) _) <- assignMap, nid `elem` netids]
                   In  -> [ ta | ta@(JMM.ValAssign _ (NetIndex nid _)) <- assignMap, nid `elem` netids]
-  
-  enb assignMap
-  --unimplemented
-  
-  withSemiColonNewLines <$> mapM mkTermAssign keepers
-  --mapM mkTermAssign assignMap
+
+  -- jumpers associate different names for the same net, so may
+  -- introduce multiple assignments to the same net.  make sure that
+  -- each net has only one assignment
+
+  let uniqueTargets = case dir of
+        Out -> let pairs = [(tgt, net) | ta@(JMM.ValAssign net tgt) <- keepers]
+                   m = DM.fromList pairs -- this wipes out the repeats.
+                   pairs' = [JMM.ValAssign net tgt | (tgt, net) <- DM.toList m]
+               in pairs'
+        In -> let pairs = [(net, tgt) | ta@(JMM.ValAssign tgt net) <- keepers]
+                  m = DM.fromList pairs -- this wipes out the repeats.
+                  pairs' = [JMM.ValAssign tgt net | (net, tgt) <- DM.toList m]
+              in pairs'
+  return uniqueTargets
 
 
 withSemiColonNewLines txts = T.concat [T.append t (T.pack ";\n") | t <- txts]
@@ -417,79 +471,7 @@ connectConstant modname net = "Vhdl.connectConstant" <? do
   assignMap <- JMM.assignConstantNet net
   withSemiColonNewLines <$> mapM mkTermAssign assignMap
 
-
--- trash all this stuff hopefully! ---------------------------------
-
-
-mkInternalAssignmentsTxt :: String -> J T.Text
-mkInternalAssignmentsTxt modname = "Vhdl.mkInternalAssignmentsTxt" <? do
-  mkTermMap =<< mkInternalAssignments modname
-
-mkInternalAssignments :: String -> J JMM.TermMap
-mkInternalAssignments modname = "Vhdl.mkInternalAssignments" <? do
-  -- ATTENTION. submodule instances have their inside names attached.
-  
-  -- for NAME in internal signal names
-  --   for SUBMOD in submodules (mkisubs)
-  --     for REP in replicated submod (mkiReps)
-  --       for OUTPUT_TERM in REP (mkiTerms)
-  --         ! wrong. output_term here is referring to the output term of the submodule module, NOT
-  --         ! that is, NOT the signals attached to that module.
-  --         ! so, find the net associated with this terminal? Is that possible?
-  --         ! find the nodes of those nets.
-  --         ! look at the signals on those nodes.
-  
-  --         if OUTPUT_TERM contains NAME (mkiCollect1)
-  --            then 1. collect all VALINDEX_SRC with NAME
-  --                 2. determine associatated NETINDEX_SRC
-  --                 3. find all DRIVEN-NETS with NAME
-  --                 4. for each NET in DRIVEN-NETS:
-  --                      1. collect all VALINDEX_TGTS with NAME
-  --                      2. for each VALINDEX_TGT
-  --                         1. determine associated NETINDEX
-  --                         2. BAM! NETINDEX_TGT <= NETINDEX_SRC
-  --                   
-  --            else output terminal doesn't contain name,
-  --                 which means that it's an element of .group output.
-  TopLevel.getInternalSigNames modname >>= concatMapM (mkiSubs modname) 
-
-mkiSubs :: String -> String -> J [JMM.TermAssoc]
-mkiSubs modname name = "Vhdl.mkiSubs" <? do
-  --   for SUBMOD in submodules (mkisubs)
-  allSubModules <- TopLevel.getSubModules modname
-  concatMapM (mkiReps modname name) allSubModules
-
-mkiReps :: String -> String -> SubModule -> J [JMM.TermAssoc]
-mkiReps modname name submod = "Vhdl.mkiReps" <? do
-  --     for REP in replicated submod (mkiReps)
-  reps <- JMM.subModuleInstances modname submod
-  concatMapM (mkiTerms modname name) reps
-
-mkiTerms :: String -> String -> JMM.SubModuleRep -> J [JMM.TermAssoc]
-mkiTerms modname name rep = "Vhdl.mkiTerms" <? do
-  --       for OUTPUT_TERM in REP (mkiTerms)
-  let termMaps = JMM.smrTermMapOutput rep
-  enb ("TAG1", name, rep)
-
-  -- need to get the wire with $name 
-
-  
-  
-  return []
-  --concatMapM (mkiCollect1 modname name) termMaps
-
-
-
-  
--- mkiCollect1 :: String -> String -> JMM.TermMap -> J [JMM.TermAssoc]
--- mkiCollect1 modname name termMap = "Vhdl.mkiCollect1" <? do
---   --         if OUTPUT_TERM contains NAME (mkiCollect1)
---   --            then 1. collect all VALINDEX_SRC with NAME
---   --                 2. determine associatated NETINDEX_SRC
---   let tgts = map (flip JMM.termAssocTgtFromSrcName name) termMap
---   enb (modname, name, termMap)
---   return []
--- --termMapContainsName :: 
-
-
+assignAllInputs' :: String -> [ValBundle] -> J [JMM.ValAssign]
+assignAllInputs' modname modInputBundles = "Vhdl.assignAllInputs" <? do
+  concatMapM (JMM.assignBundle In modname) modInputBundles
   

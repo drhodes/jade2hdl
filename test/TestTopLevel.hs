@@ -39,14 +39,9 @@ testGetNetsWithName modname signame exp = do
 
 testTreeMiscEtc =
   let t name f = TestCase name f
-  in TestTree "MiscEtc" [-- t "testTermDriverAnd23_Wire" testTermDriverAnd23_Wire
-    t "bendyWire1" bendyWire1
-    , t "portTest1" portTest1
-      --, t "testTopLevelGetInputs" testTopLevelGetInputs
-      -- , t "testSigConnectedToSubModuleP1" testSigConnectedToSubModuleP1
-      -- , t "testSigConnectedToSubModuleP2" testSigConnectedToSubModuleP2
-      -- , t "testLoneJumper1" testLoneJumper1
-    ]
+  in TestTree "MiscEtc" [ t "bendyWire1" bendyWire1
+                        , t "portTest1" portTest1
+                        ]
      
 testReplicationDepth :: String -> Int -> IO TestState
 testReplicationDepth modname expDepth = do
@@ -207,8 +202,6 @@ testExpGot modname expected f = do
     Right x -> return Pass
     Left msg -> return $ Fail $ unlines [msg ++ runLog topl func]
 
-
-
 testNumTerminals modname expected = do
   testExpGot modname expected $ do
     let qualModName = "/user/" ++ modname 
@@ -263,7 +256,6 @@ testTreeGetAllIndexesWithName = TestTree "getallIndexesWithName" $
      ]
 
 testTree = TestTree "TopLevel" [ testTreeNumNets
-                               , testTreeIsNetDriver
                                , testTreeNumSubModules
                                , testTreeNumTerminals
                                , testTreeGetNetsWithNameAll
@@ -274,18 +266,3 @@ testTree = TestTree "TopLevel" [ testTreeNumNets
                                , testTreeGetInternalSigNames
                                , testTreeGetAllIndexesWithName
                                ]
-
-testIsNetDriver modname signame expected = do
-  testExpGot modname expected $ do
-    let m = qualifiedModName modname
-    nets <- TopLevel.getNetsWithName m signame
-    them <- mapM (TopLevel.isNetDriver m) nets
-    case DL.nub them of
-      [True] -> return True
-      [False] -> return False
-      [] -> die "No nets found"
-      _ -> impossible "net both drives and is driven"
-
-testTreeIsNetDriver = TestTree "IsDriven" $
-  let t mod signame exp = TestCase mod (testIsNetDriver mod signame exp)
-  in [ t "Rep1FA2" "A" True ]
