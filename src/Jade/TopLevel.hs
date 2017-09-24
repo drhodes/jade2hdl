@@ -72,17 +72,15 @@ makePartEdge wire part = "TopLevel.makePartEdge" <? do
 
 makeWire2WireEdge :: Wire -> Wire -> J (Maybe Edge)
 makeWire2WireEdge w1 w2 = "TopLevel.makeWire2WireEdge" <? 
-  if w1 == w2
-  then return Nothing
-  else let (loc1, loc2) = Wire.ends w1
-           (loc3, loc4) = Wire.ends w2
-           econ p1 v p2 w = Just $ Edge (Node p1 (WireC v)) (Node p2 (WireC w))
-       in return $ case (loc1 == loc3, loc1 == loc4, loc2 == loc3, loc2 == loc4) of
-                     (True, _, _, _) -> econ loc1 w1 loc3 w2
-                     (_, True, _, _) -> econ loc1 w1 loc4 w2
-                     (_, _, True, _) -> econ loc2 w1 loc3 w2
-                     (_, _, _, True) -> econ loc2 w1 loc4 w2
-                     _ -> Nothing
+  let (loc1, loc2) = Wire.ends w1
+      (loc3, loc4) = Wire.ends w2
+      econ p1 v p2 w = Just $ Edge (Node p1 (WireC v)) (Node p2 (WireC w))
+  in return $ case (loc1 == loc3, loc1 == loc4, loc2 == loc3, loc2 == loc4) of
+                (True, _, _, _) -> econ loc1 w1 loc3 w2
+                (_, True, _, _) -> econ loc1 w1 loc4 w2
+                (_, _, True, _) -> econ loc2 w1 loc3 w2
+                (_, _, _, True) -> econ loc2 w1 loc4 w2
+                _ -> Nothing
 
 terminalsOverlapP (Terminal (Coord3 x1 y1 _) _) (Terminal (Coord3 x2 y2 _)  _) = (x1,y1) == (x2,y2)
 
@@ -102,7 +100,7 @@ processEdges wires parts = "TopLevel.processEdges" <? do
   partEdges <- sequence [makePartEdge w p | w <- wires, p <- parts]
   
   let Just edges = sequence $ filter Maybe.isJust partEdges
-  wireNbrs <- sequence [makeWire2WireEdge v w | v <- wires, w <- wires]
+  wireNbrs <- sequence [makeWire2WireEdge v w | (v, w) <- triangleProd wires]
   
   let Just nbrs = sequence $ filter Maybe.isJust wireNbrs
   return $ edges ++ nbrs
@@ -119,12 +117,33 @@ makePortWire (Port (Coord3 x y r) sig)  = "TopLevel.makePortWire" <? do
   nb "create a wire of length zero, that has the signal from the port"
   return $ Wire (Coord5 x y r 0 0) sig
 
+
+
+connectSubWires :: Wire -> Wire -> J (Maybe Wire)
+connectSubWires w1 w2 = "TopLevel.connectSubWires" <? do
+  if w1 `Wire.hasSameSig` w2
+    then do nb "--------------------------------------------"
+            enb w1
+            enb w2
+            return $ Just $ Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2)
+    else return Nothing
+
+explodeConnect :: (Wire, Wire) -> J [Wire]
+explodeConnect (w1, w2) = "TopLevel.explodeConnect" <? do
+  let subwires1 = Wire.explode w1
+      subwires2 = Wire.explode w2
+  catMaybes <$> sequence [connectSubWires sw1 sw2 | sw1 <- subwires1, sw2 <- subwires2 ]
+  
+
 connectWiresWithSameSigName :: [Part] -> J [Wire]
 connectWiresWithSameSigName parts = "TopLevel.connectWiresWithSameSigName" <? do
-  let wires = triangleProd $ catMaybes $ map Part.toWire parts
+  let wires = triangleProd $ filter Wire.hasSigName $ catMaybes $ map Part.toWire parts
   let pairs = [(w1, w2) | (w1, w2) <- wires, w1 `Wire.hasSameSig` w2]              
   return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | (w1, w2) <- pairs]
+  --concat <$> sequence [explodeConnect (w1, w2) | (w1, w2) <- wires] --, w1 `Wire.hasSameSig` w2]              
 
+
+  
 -- | What's going on here? Now that the decoder explodes signal names
 -- out into val bundles immediately, it's possible to connect wire
 -- names at the very beginning, rather it's possible to associate two

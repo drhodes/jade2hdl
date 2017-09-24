@@ -17,7 +17,6 @@ testem xs = sequence $ CPS.runEval $ CPS.parTraversable CPS.rpar xs
 main = do
   putStrLn ""
   putStrLn "Starting test"
-  --testem [ TW.testAll ]
     
   results <- JRT.runTree [] $ JRT.TestTree "T"
              [ --

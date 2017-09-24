@@ -150,6 +150,7 @@ data Port = Port { portCoord3 :: Coord3
 data SubModule = SubModule { subName :: String
                            , subCoord3 :: Coord3 } 
                | SubMemUnit MemUnit
+               | SubJumper
                deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 newtype Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)

@@ -62,28 +62,30 @@ assignBundle dir modname inputBundle = "Middle/Middle.assignOneInputBundle" <? d
 assignSig :: Direction -> String -> String -> Net -> J [ValAssign]
 assignSig dir modname valname net = "Middle/Middle.assignSig" <? do
   let bundles = DL.nub $ Net.getBundlesWithName net valname
-  when (length bundles /= 1) $ die "why is there more than one bundle here?"
-  let valBundle = head bundles
+  --when (length bundles /= 1) $ die "why is there more than one bundle here?"
+  --let valBundle = head bundles
+  concatMapM (foo valname net dir) bundles
+
+foo valname net dir bundle = "Middle.foo" <? do
   netBundle <- Net.getBundle net
-  assignments <- pickNetValsWithName valname valBundle netBundle
+  assignments <- pickNetValsWithName valname bundle netBundle
   return $ case dir of
     In -> assignments
     Out -> map flipAssign assignments
     
+pickNetValsWithName :: String -> Bundle Val -> Bundle Val -> J [ValAssign]
 pickNetValsWithName valname (Bundle inVals) (Bundle netVals) = "Middle.pickNetValsWithName" <? do
   return [ValAssign v1 v2 | (v1@(ValIndex n _), v2) <- zip inVals netVals, n == valname]
-
-
 
 assignConstantNet :: Net -> J [ValAssign]
 assignConstantNet net = "Middle.Types/connectConstantNet" <? do 
   let bundles = Net.getBundlesWithLits net
   if length bundles == 0 then
     return []
-    else do when (length bundles /= 1) $ die "why is there more than one bundle here?"
-            let valBundle = head bundles 
+    else do -- when (length bundles /= 1) $ die "why is there more than one bundle here?"
+            --let valBundle = head bundles 
             netBundle <- Net.getBundle net
-            return $ pickNetValsWithLit valBundle netBundle
+            return $ concat $ map (flip pickNetValsWithLit netBundle) bundles
 
 pickNetValsWithLit :: Bundle Val -> Bundle Val -> [ValAssign]
 pickNetValsWithLit (Bundle inVals) (Bundle netVals) =

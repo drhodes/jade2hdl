@@ -100,7 +100,7 @@ testTreeReplication = tree "Replication" [ "Rep1FA2"
                                          , "RepAnd3"
                                          , "RepAnd4"
                                          , "Mux21Rep4"
-                                         , "Mux21Rep32"
+                                         --, "Mux21Rep32" -- this blows up memory
                                          , "Mux4Rep1"
                                          , "RepWonkyBuffer1Exp"
                                          , "RepWonkyBuffer1"

@@ -1,6 +1,7 @@
 module Jade.Wire ( toEdge
                  , ends
                  , hasSameSig
+                 , hasSigName
                  , width
                  , getBundle
                  , explode
@@ -26,6 +27,9 @@ ends w@(Wire c5 _) = Coord.coord5ends c5
 hasSameSig (Wire _ Nothing) _ = False
 hasSameSig _ (Wire _ Nothing) = False
 hasSameSig (Wire _ s1) (Wire _ s2) = s1 == s2
+
+hasSigName (Wire _ Nothing) = False
+hasSigName _ = True
 
 width :: Wire -> Maybe Int
 width (Wire _ (Just signal)) = Signal.width signal

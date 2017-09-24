@@ -42,7 +42,6 @@ getBundlesWithLits :: Net -> [ValBundle]
 getBundlesWithLits net =
   DL.nub $ catMaybes $ map Node.getBundleWithLit (nodes $ removeTerms net)
 
-
 getWires :: Net -> [Wire]
 getWires (Net _ nodes) = [w | (Node _ (WireC w)) <- nodes]
 
@@ -50,7 +49,6 @@ hasVal :: Net -> Val -> Bool
 hasVal (Net _ nodes) val = or $ map (flip Node.hasVal val) nodes
 
 removeTerms (Net gid nodes) = Net gid (filterOut Node.isTerm nodes)
-
 
 width :: Net -> J Int
 width (Net _ nodes) = "Net.width" <?
