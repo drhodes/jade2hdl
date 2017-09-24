@@ -8,6 +8,7 @@ import qualified TestIcon as TI
 import qualified TestTopLevel as TTL
 import qualified TestSig as TS
 import qualified TestWire as TW
+import qualified TestSchematic 
 import qualified Jade.Rawr.Types as JRT
 import qualified Control.Parallel.Strategies as CPS
 
@@ -21,6 +22,7 @@ main = do
   results <- JRT.runTree [] $ JRT.TestTree "T"
              [ --
                TW.testTree
+             , TestSchematic.testTree
              , TS.testTree
              , TD.testTree
              , TI.testTree

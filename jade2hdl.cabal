@@ -18,6 +18,9 @@ library
   hs-source-dirs:      src, test
   exposed-modules:     Jade.Decode
                      , Jade.Common
+                     , Jade.Port
+                     , Jade.Term
+                     , Jade.SubModule
                      , Jade.Types
                      , Jade.BoundingBox
                      , Jade.TopLevel
@@ -91,6 +94,7 @@ test-suite jade2hdl-test
                      , TestWire
                      , TestSig
                      , TestMiddle
+                     , TestSchematic
                        
   build-depends: aeson >= 1.0.2.1
                , base

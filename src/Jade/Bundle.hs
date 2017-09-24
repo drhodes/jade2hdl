@@ -7,8 +7,6 @@ import Data.Maybe
 import qualified Data.List as DL
 import qualified Jade.Val as Val
 
-
-
 containsIdentifier :: Bundle Val -> String -> Bool
 containsIdentifier (Bundle xs) ident = or $ map (flip Val.hasIdent ident) xs
 
@@ -24,7 +22,6 @@ getLitVals (Bundle xs) = [lit | lit@(Lit _) <- xs]
 
 getNames :: Bundle Val -> [String]
 getNames (Bundle xs) = [name | name <- map Val.getName xs, not $ null name]
-
 
 getIndexesWithName (Bundle xs) name = [v | v@(ValIndex vname _) <- xs, vname == name]
 
@@ -44,7 +41,12 @@ getValsWithIdent :: Bundle Val -> String -> [Val]
 getValsWithIdent (Bundle vals) ident = [v | v <- vals, v `Val.hasIdent` ident]
 
 hasAnyValName :: Bundle Val -> Bool
-hasAnyValName b = null $ getNames b
+hasAnyValName b = null $ getNames b -- TODO is this right? seems to be the opposite of intended.
+                                    -- also, unify this with the function below.
+
+-- check to see if this bundle contains a ValIndex with name. 
+hasSigName :: Bundle Val -> Bool
+hasSigName b = if null $ getNames b then False else True
 
 hasName b name = name `elem` getNames b
 hasLit = not . null . getLitVals 

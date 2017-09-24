@@ -64,6 +64,18 @@ c3y (Coord3 _ y _) = y -- = snd . c3ToPoint
 
 rotate :: LocRot a => a -> Rot -> Integer -> Integer -> Coord3
 
+locs :: Coord5 -> [Coord3]
+locs c5 = let ((x1, y1), (x2, y2)) = coord5ends c5
+          in [ Coord3 x1 y1 Rot0
+             , Coord3 x2 y2 Rot0]
+
+points :: Coord5 -> [Point]
+points c5 = let ((x1, y1), (x2, y2)) = coord5ends c5
+            in [ Point x1 y1 
+               , Point x2 y2 ]
+
+
+
 rotate item rotation cx cy =
   let Coord3 x y r = locrot item
       rx = x - cx

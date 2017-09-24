@@ -84,10 +84,10 @@ tree s xs = TestTree s $ map node xs
 
 testTree = TestTree "Vhdl" [ testTreeInnerSignal
                            , testTreeReplication
+                           , testTreeBuffer
                            , testTreeBeta
                            , testTreeJumpers
                            , testTreeMisc
-                           , testTreeBuffer
                            --, testTreeMemUnit
                            , testTree1
                            , testTree2
@@ -100,7 +100,7 @@ testTreeReplication = tree "Replication" [ "Rep1FA2"
                                          , "RepAnd3"
                                          , "RepAnd4"
                                          , "Mux21Rep4"
-                                         --, "Mux21Rep32" -- this blows up memory
+                                         , "Mux21Rep32" 
                                          , "Mux4Rep1"
                                          , "RepWonkyBuffer1Exp"
                                          , "RepWonkyBuffer1"
@@ -134,6 +134,7 @@ testTreeBuffer = tree "Buffer" [ "Buffer1"
                                , "Buffer5_2"
                                , "Buffer5_3"
                                , "Buffer6"
+                               , "Buffer8"
                                , "WonkyBuffer1"
                                ]
                  

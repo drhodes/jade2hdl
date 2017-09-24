@@ -1,4 +1,4 @@
-module Jade.Module ( getSchematic
+module Jade.Module ( Jade.Module.getSchematic
                    , terminals
                    , getInputs
                    , getOutputs

@@ -9,6 +9,7 @@ module Jade.Wire ( toEdge
                  , portToEdge
                  , mkDegenerate
                  , getIndexesWithName
+                 , points
                  ) where
 
 import Jade.Types
@@ -29,7 +30,10 @@ hasSameSig _ (Wire _ Nothing) = False
 hasSameSig (Wire _ s1) (Wire _ s2) = s1 == s2
 
 hasSigName (Wire _ Nothing) = False
-hasSigName _ = True
+hasSigName (Wire _ (Just s1)) = Signal.hasSigName s1
+
+points (Wire c5 _) = Coord.points c5
+
 
 width :: Wire -> Maybe Int
 width (Wire _ (Just signal)) = Signal.width signal
@@ -38,7 +42,9 @@ width _ = Just 1
 getBundle (Wire _ (Just signal)) = Signal.getBundle signal
 getBundle _ = Bundle []
 
-explode (Wire c (Just signal)) = [Wire c (Just subsig) | subsig <- Signal.explode signal]
+
+
+explode (Wire loc (Just signal)) = [Wire loc (Just subsig) | subsig <- Signal.explode signal]
 explode w = [w]
 
 new (x1, y1) (x2, y2) =

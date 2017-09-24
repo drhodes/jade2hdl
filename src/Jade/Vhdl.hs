@@ -203,8 +203,6 @@ mkModule modname = "Vhdl.mkModule" <? do
   -- simultaneously be on both the inputs and outputs, so it's known
   -- that on a sub mod rep output that 
 
-
-
   enb ("internalNodeDecls", internalNodeDecls)
   --when (modname `contains` "Rep1FA2") unimplemented
 

@@ -129,6 +129,8 @@ data Coord3 = Coord3 { c3x :: Integer
                      , c3r :: Rot
                      } deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 
+data Point = Point Integer Integer deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
+
 data Wire = Wire { wireCoord5 :: Coord5
                  , wireSignal :: Maybe Signal
                  } deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
@@ -150,7 +152,6 @@ data Port = Port { portCoord3 :: Coord3
 data SubModule = SubModule { subName :: String
                            , subCoord3 :: Coord3 } 
                | SubMemUnit MemUnit
-               | SubJumper
                deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 newtype Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)

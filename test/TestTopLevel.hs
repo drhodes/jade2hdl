@@ -255,6 +255,18 @@ testTreeGetAllIndexesWithName = TestTree "getallIndexesWithName" $
   in [ t "Rep1FA2" "CO" [ValIndex "CO" 0]
      ]
 
+
+--explodeConnect :: (Wire, Wire) -> J [Wire]
+
+testExplodeConnect1 = do
+  let c1 = Coord5 0 0 Rot0 0 0
+      c2 = Coord5 8 8 Rot0 8 8
+      valBundle1 = Bundle [ValIndex "A" 1, ValIndex "A" 0]
+      valBundle2 = Bundle [ValIndex "A" 1, ValIndex "B" 0]
+      w1 = Wire c1 (Just $ Signal (Just valBundle1) (Just 2) Nothing)
+      w2 = Wire c2 (Just $ Signal (Just valBundle2) (Just 2) Nothing)
+  TopLevel.explodeConnect (w1, w2) 
+
 testTree = TestTree "TopLevel" [ testTreeNumNets
                                , testTreeNumSubModules
                                , testTreeNumTerminals

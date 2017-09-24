@@ -11,7 +11,7 @@ import Jade.Note
 import Jade.Util
 
 import qualified Data.Map as DM
-import GHC.Generics
+--import GHC.Generics
 import qualified Data.Vector as V
 import qualified Data.Map as DM
 import qualified Data.List as DL
@@ -102,6 +102,9 @@ nb :: String -> J ()
 nb s = tell [Note $ DBL8.unpack $ encode s]
 nbf s xs = nb $ format s xs
 
+
+assert cond reason = unless cond (die reason)
+
 enb :: ToJSON a => a -> J ()
 enb x = tell [Note $ DBL8.unpack $ encode x]
 list xs = enb xs
@@ -122,5 +125,29 @@ bailWhen cond = when cond bail
 
 safeCycle [] = "Jade/Types.safeCycle" <? die "empty list"
 safeCycle xs = return $ cycle xs
+
+
+
+
+
+------------------------------------------------------------------
+-- RESOLVING CIRCUILAR IMPORTS :/
+
+
+-- |Get a module from a TopLevel given a module name
+getModule :: String -> J Module
+getModule name = do -- "TopLevel.getModule" <? do  
+  -- if name `startsWith` "/gate"
+  -- then return $ BuiltInModule name
+  TopLevel m <- getTop
+  case DM.lookup name m of
+    Just mod -> return mod{moduleName = name}
+    Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
+
+getSchematic name = do
+  m <- getModule name
+  case moduleSchem m of
+    Just s -> return s
+    Nothing -> dief "No schematic found in module" [name]
 
 

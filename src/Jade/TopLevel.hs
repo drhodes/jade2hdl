@@ -18,6 +18,8 @@ module Jade.TopLevel ( getNetsWithName
                      , getInternalSigNames
                      , getAllIndexesWithName
                      , isNetDriver
+                     , explodeConnect
+                     , getSchematic
                      ) where
 
 import Control.Monad
@@ -34,6 +36,7 @@ import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Module as Module
 import qualified Jade.Net as Net
 import qualified Jade.Part as Part
+import qualified Jade.Term as Term
 import qualified Jade.Schematic as Schem
 import Jade.Common
 import qualified Jade.UnionFindST as UF
@@ -41,15 +44,6 @@ import qualified Jade.Wire as Wire
 import qualified Web.Hashids as WH
 import qualified Jade.Bundle as Bundle
 
--- |Get a module from a TopLevel given a module name
-getModule :: String -> J Module
-getModule name = do -- "TopLevel.getModule" <? do  
-  -- if name `startsWith` "/gate"
-  -- then return $ BuiltInModule name
-  TopLevel m <- getTop
-  case DM.lookup name m of
-    Just mod -> return mod{moduleName = name}
-    Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
 
 getSubModules :: String -> J [SubModule]
 getSubModules modname = do --"TopLevel.getSubModules" <? do
@@ -117,10 +111,13 @@ makePortWire (Port (Coord3 x y r) sig)  = "TopLevel.makePortWire" <? do
   nb "create a wire of length zero, that has the signal from the port"
   return $ Wire (Coord5 x y r 0 0) sig
 
-
-
 connectSubWires :: Wire -> Wire -> J (Maybe Wire)
 connectSubWires w1 w2 = "TopLevel.connectSubWires" <? do
+  assert (Wire.width w1 == (Just 1)) "this function assumes wires are width 1"
+  assert (Wire.width w2 == (Just 1)) "this function assumes wires are width 1"
+  assert (Wire.hasSigName w1) "can't be literal"
+  assert (Wire.hasSigName w2) "can't be literal"
+  
   if w1 `Wire.hasSameSig` w2
     then do nb "--------------------------------------------"
             enb w1
@@ -129,20 +126,19 @@ connectSubWires w1 w2 = "TopLevel.connectSubWires" <? do
     else return Nothing
 
 explodeConnect :: (Wire, Wire) -> J [Wire]
-explodeConnect (w1, w2) = "TopLevel.explodeConnect" <? do
+explodeConnect (w1, w2) = "TopLevel.explodeConnect" <? do 
   let subwires1 = Wire.explode w1
       subwires2 = Wire.explode w2
+  enb (subwires1)
+  enb (subwires2)  
   catMaybes <$> sequence [connectSubWires sw1 sw2 | sw1 <- subwires1, sw2 <- subwires2 ]
-  
 
 connectWiresWithSameSigName :: [Part] -> J [Wire]
 connectWiresWithSameSigName parts = "TopLevel.connectWiresWithSameSigName" <? do
   let wires = triangleProd $ filter Wire.hasSigName $ catMaybes $ map Part.toWire parts
   let pairs = [(w1, w2) | (w1, w2) <- wires, w1 `Wire.hasSameSig` w2]              
   return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | (w1, w2) <- pairs]
-  --concat <$> sequence [explodeConnect (w1, w2) | (w1, w2) <- wires] --, w1 `Wire.hasSameSig` w2]              
-
-
+  -- concat <$> sequence [explodeConnect (w1, w2) | (w1, w2) <- wires] --, w1 `Wire.hasSameSig` w2]              
   
 -- | What's going on here? Now that the decoder explodes signal names
 -- out into val bundles immediately, it's possible to connect wire
@@ -189,7 +185,6 @@ getEdges modname = "TopLevel.getEdges" <? do
       termcs = map TermC $ concat terms
 
   ssnw <- connectWiresWithSameSigName parts
-
   jumperWires <- mapM makeJumperWire jumpers
   portWires <- mapM makePortWire ports
   ts <- getOverlappingTerminals modname
@@ -305,7 +300,50 @@ replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
   -- if the width of a net is undeclared, this may mean that
   guesses <- mapM determineWidthFromTerm terms
   return $ maximum guesses
+
+getPartsConnectedToTerminal modname terminal = "TopLevel.getPartsConnectedToTerminal" <? do
+  -- testthis.
+  let (Terminal loc _) = terminal
+  Schem.getAllPartsAtPoint <$> getSchematic modname
+
+getTerminalRatio terminal part = "TopLevel.getTerminalRatio" <? do
+  tw <- Part.width terminal
+  pw <- Part.width part
+  return (tw, pw)
   
+{-
+replicationDepth :: String -> SubModule -> J Int
+replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
+  -- GOAL infer replication depth without needing to involve net.
+  -- Why? What does this solve?
+  -- hypothesis: If replication depth can be known without nets, 
+  --             then all signal names can be exploded before unions find
+  --                  and the entire program becomes much, much smaller.
+  --                  why? because nets would no longer be bundles of wires
+  --                  they would be single layers with indexes. far fewer edges cases.
+  --             I still don't buy it.
+  --             so maybe the problem is that wires aren't a good method for connecting
+  --             nets, maybe it would be better to use an abstract concept of edge connection
+  
+  -- get the terminals of the submodule
+  terms <- terminals submod
+  -- get the parts connected to this submodule
+  --getPartsConnectedToTerminal terms
+
+  -- find max part width of parts, use that to compute replication upper limit
+  
+  
+  -- many terms, many parts per term
+  -- for each TERM
+  --  for each PART in parts at TERM
+  --    if PART shares location with TERM
+  --    then collect PART WIDTH.
+  --    else collect 0.
+  -- for each (termWidth, partWidth)
+  return (-1)
+-}
+
+
 getNetsWithName :: String -> String -> J [Net]
 getNetsWithName modname signame = "TopLevel.getNetsWithName" <? do
   ns <- nets modname
@@ -351,6 +389,4 @@ isNetDriver modname net = "TopLevel.isNetDriven" <? do
   -- that the net actually belongs to both. but wait. net analysis is pass#1 analysis
   -- so, no, they actually aren't.
   -- how many nets are there here?
-  
-  
   return False

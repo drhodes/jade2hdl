@@ -11,13 +11,20 @@ module Jade.Part ( isTerm
                  , getNames
                  , loc
                  , toWire
+                 , hasPoint
                  ) where
 
 import Jade.Common
 import Control.Monad
 import Data.Maybe
+import qualified Jade.Port as Port
+import qualified Jade.Jumper as Jumper
+import qualified Jade.SubModule as SubModule
+import qualified Jade.Module as Moduile
+import qualified Jade.Wire as Wire
 import qualified Jade.Signal as Signal
 import qualified Jade.Bundle as Bundle
+import qualified Jade.Term as Term
 
 bundle :: Part -> ValBundle
 bundle part =
@@ -34,7 +41,6 @@ getBundleWithIdent part ident = if Bundle.hasName (bundle part) ident
 getBundleWithLit part = if Bundle.hasLit (bundle part)
                         then Just $ bundle part
                         else Nothing
-
 
 getLitVals part = Bundle.getLitVals (bundle part)
 
@@ -72,6 +78,26 @@ loc part =
     WireC _ -> die "Part.loc doesn't support Wire"
     TermC (Terminal (Coord3 x y _) _) -> return (x, y)
     x -> die $ "Part.loc: doesn't support: " ++ show x
+
+
+points :: Part -> J [Point]
+points part = "Part.points" <? do
+  case part of 
+    PortC x -> return $ Port.points x
+    SubModuleC x -> SubModule.points x 
+    WireC x -> return $ Wire.points x
+    JumperC x -> return $ Jumper.points x
+    TermC x -> return $ Term.points x
+    UnusedPart -> return []
+
+
+hasPoint :: Part -> Point -> J Bool
+hasPoint part point = "Part.hasPoint" <? do
+  enb ("PART!", part)
+  asdf <- points part
+  enb (point, asdf)
+  (point `elem`) <$> (points part)
+
 
 width :: Part -> J (Maybe Int)
 width part = do
