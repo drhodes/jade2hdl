@@ -129,6 +129,10 @@ data Coord3 = Coord3 { c3x :: Integer
                      , c3r :: Rot
                      } deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 
+-- instance Eq Coord3 where
+--   (Coord3 x1 y1 _) == (Coord3 x2 y2 _) = (x1 == x2) && (y1 == y2)
+
+
 data Point = Point Integer Integer deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 
 data Wire = Wire { wireCoord5 :: Coord5

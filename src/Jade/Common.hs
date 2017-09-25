@@ -88,8 +88,13 @@ runJIO topl x =
     (Left msg, log) -> return $ DBL8.unpack $ encode (uniq log ++ [Note msg])
     (Right f, log) -> f >> (return $ DBL8.unpack $ encode (uniq log))
 
-die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
+--die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
+die msg = throwError msg
 dief msg xs = die (format msg xs)
+
+silentBail :: J ()
+silentBail = throwError ("" :: String)
+
 
 impossible msg = die $ "The impossible happened: " ++ msg
 
@@ -112,6 +117,8 @@ list xs = enb xs
 bail :: J a
 bail = die "bailing!"
 bailWhen cond = when cond bail
+
+
 
 (?) x msg = let crash e = throwError $ e ++ "\n" ++ "! " ++ msg
             in x `catchError` crash

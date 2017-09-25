@@ -60,6 +60,25 @@ testReplicationDepth modname expDepth = do
     Right _ -> return Pass
     Left msg -> return $ Fail $ runLog topl func ++ msg
 
+
+testReplicationDepth' :: String -> Int -> IO TestState
+testReplicationDepth' modname expDepth = do
+  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+  let func = do
+        let parentModuleName = "/user/" ++ modname
+        subs <- TopLevel.getSubModules parentModuleName
+        let sub = subs !! 0
+        d <- TopLevel.replicationDepth' ("/user/" ++ modname) sub
+        nb $ show d
+        if (expDepth == d)
+          then return ()
+          else die $ format "expected: {0}, got: {1}" [show expDepth, show d]
+        
+  case runJ topl func of
+    Right _ -> return Pass
+    Left msg -> return $ Fail $ runLog topl func ++ msg
+
+
 testNumNets2 modname numcomps = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   
@@ -149,6 +168,20 @@ testTreeReplicationDepth =
                                     , t "RangeStep2" 8
                                     ]
 
+testTreeReplicationDepth' =
+  let t modname exp = TestCase modname (testReplicationDepth' modname exp)
+  in TestTree "getReplicationDepth'" [ t "And2Ports" 1 
+                                     , t "And2Ports2" 1
+                                     , t "And2Ports3" 1
+                                     , t "And2Ports4" 1
+                                     , t "RepAnd2" 2
+                                     , t "RepAnd3" 4
+                                     , t "RepAnd4" 4
+                                     , t "RepWonkyBuffer1" 2
+                                     , t "RangeStep2" 8
+                                     ]
+
+
 testGetWidthOfSigName modname signame expectedWidth = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   let func = do
@@ -165,7 +198,6 @@ testGetWidthOfSigName modname signame expectedWidth = do
   case runJ topl func of
     Right state -> return state
     Left msg -> return $ Fail $ runLog topl func ++ msg
-  
      
 testTreeGetWidthOfSigName = 
   let t modname signame exp = TestCase modname (testGetWidthOfSigName modname signame exp)
@@ -188,7 +220,7 @@ portTest1 = do
                   1 -> return Pass
                   x -> return $ Fail $ show (runLog topl $ die $ "hmm, found: " ++ show x)
     Left msg -> return $ Fail msg
-    
+
 testExpGot modname expected f = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   let func = do
@@ -201,7 +233,7 @@ testExpGot modname expected f = do
   case runJ topl func of
     Right x -> return Pass
     Left msg -> return $ Fail $ unlines [msg ++ runLog topl func]
-
+                           
 testNumTerminals modname expected = do
   testExpGot modname expected $ do
     let qualModName = "/user/" ++ modname 
@@ -255,9 +287,6 @@ testTreeGetAllIndexesWithName = TestTree "getallIndexesWithName" $
   in [ t "Rep1FA2" "CO" [ValIndex "CO" 0]
      ]
 
-
---explodeConnect :: (Wire, Wire) -> J [Wire]
-
 testExplodeConnect1 = do
   let c1 = Coord5 0 0 Rot0 0 0
       c2 = Coord5 8 8 Rot0 8 8
@@ -266,15 +295,29 @@ testExplodeConnect1 = do
       w1 = Wire c1 (Just $ Signal (Just valBundle1) (Just 2) Nothing)
       w2 = Wire c2 (Just $ Signal (Just valBundle2) (Just 2) Nothing)
   TopLevel.explodeConnect (w1, w2) 
-
+     
 testTree = TestTree "TopLevel" [ testTreeNumNets
                                , testTreeNumSubModules
                                , testTreeNumTerminals
                                , testTreeGetNetsWithNameAll
                                , testTreeConnectWiresWithSameSigName
+                               , testTreeReplicationDepth'
                                , testTreeReplicationDepth
                                , testTreeGetWidthOfSigName
                                , testTreeMiscEtc
                                , testTreeGetInternalSigNames
                                , testTreeGetAllIndexesWithName
+                               , testTreeGetTerminalsAtPoint
                                ]
+
+testGetTerminalsAtPoint modname point expected = do
+  testExpGot modname expected $ do    
+    length <$> TopLevel.getTerminalsAtPoint (qualifiedModName modname) point
+
+testTreeGetTerminalsAtPoint = TestTree "getTerminalsAtPoint" $
+  let t modname point expNumPoints = TestCase modname (testGetTerminalsAtPoint modname point expNumPoints)
+  in [ t "Buffer8" (Point 0 0) 0
+     , t "Buffer8" (Point 0 0) 0
+     , t "Buffer8" (Point 8 0) 1
+     , t "CL" (Point 48 56) 2
+     ]

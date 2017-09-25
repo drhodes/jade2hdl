@@ -2,24 +2,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Jade.TopLevel ( getNetsWithName
+                     , connectWiresWithSameSigName
+                     , dependencyOrder
+                     , explodeConnect
+                     , getAllIndexesWithName
+                     , getAllSigNames
+                     , getInputs
+                     , getInternalSigNames
                      , getModule
-                     , replicationDepth
+                     , getOutputs
+                     , getSchematic
+                     , getSubModules
+                     , getTerminalsAtPoint
+                     , getWidthOfValName
+                     , isNetDriver
                      , netWithTerminal
                      , nets
-                     , getSubModules
-                     , getInputs
-                     , getOutputs
-                     , getAllSigNames
                      , numNets
-                     , dependencyOrder
-                     , getWidthOfValName
+                     , replicationDepth
+                     , replicationDepth'
                      , terminals
-                     , connectWiresWithSameSigName
-                     , getInternalSigNames
-                     , getAllIndexesWithName
-                     , isNetDriver
-                     , explodeConnect
-                     , getSchematic
                      ) where
 
 import Control.Monad
@@ -43,7 +45,6 @@ import qualified Jade.UnionFindST as UF
 import qualified Jade.Wire as Wire
 import qualified Web.Hashids as WH
 import qualified Jade.Bundle as Bundle
-
 
 getSubModules :: String -> J [SubModule]
 getSubModules modname = do --"TopLevel.getSubModules" <? do
@@ -76,13 +77,16 @@ makeWire2WireEdge w1 w2 = "TopLevel.makeWire2WireEdge" <?
                 (_, _, _, True) -> econ loc2 w1 loc4 w2
                 _ -> Nothing
 
-terminalsOverlapP (Terminal (Coord3 x1 y1 _) _) (Terminal (Coord3 x2 y2 _)  _) = (x1,y1) == (x2,y2)
+terminalsOverlapP (Terminal (Coord3 x1 y1 _) _) (Terminal (Coord3 x2 y2 _)  _)
+  = (x1,y1) == (x2,y2)
 
 getOverlappingTerminals :: String -> J [(Terminal, Terminal)]
 getOverlappingTerminals modname = "TopLevel.collectOverlappingTerminals" <? do
   allsubs <- getSubModules modname
   ts <- concatMapM terminals allsubs
-  return $ DL.nub $ DL.sort [(min t1 t2, max t1 t2) | t1 <- ts, t2 <- ts, terminalsOverlapP t1 t2, t1 /= t2]
+  return $ DL.nub $ DL.sort [ (min t1 t2, max t1 t2) | t1 <- ts, t2 <- ts,
+                              terminalsOverlapP t1 t2,
+                              t1 /= t2 ]
 
 connectOverlappingTerminals :: [(Terminal, Terminal)] -> J [Wire]
 connectOverlappingTerminals termPairs = "TopLevel.connectOverlappingTerminals" <? do
@@ -279,6 +283,7 @@ getNetWithTerminal modname term  = "getNetWithTerminal" <? do
               return c
     _ -> impossible $ "More than one net found with terminal: " ++ show term
 
+{-
 replicationDepth :: String -> SubModule -> J Int
 replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
   -- get the terminals of the submodule
@@ -300,20 +305,44 @@ replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
   -- if the width of a net is undeclared, this may mean that
   guesses <- mapM determineWidthFromTerm terms
   return $ maximum guesses
+-}
 
+getPartsConnectedToTerminal :: String -> Terminal -> J [Part]
 getPartsConnectedToTerminal modname terminal = "TopLevel.getPartsConnectedToTerminal" <? do
-  -- testthis.
-  let (Terminal loc _) = terminal
-  Schem.getAllPartsAtPoint <$> getSchematic modname
+  let (Terminal (Coord3 x y _) _) = terminal
+  schem <- getSchematic modname
+  Schem.getAllPartsAtPoint schem (Point x y)
 
-getTerminalRatio terminal part = "TopLevel.getTerminalRatio" <? do
-  tw <- Part.width terminal
+getWidthOfPartsAtTerminal :: String -> Terminal -> J Int
+getWidthOfPartsAtTerminal modname terminal = "TopLevel.getWidthOfPartsAtTerminal" <? do
+  parts <- getPartsConnectedToTerminal modname terminal
+  maximum <$> catMaybes <$> mapM Part.width (Part.removeTerms parts)
+
+getTerminalsAtPoint :: String -> Point -> J [Terminal]
+getTerminalsAtPoint modname point@(Point x1 y1) = "TopLevel.getTerminalAtPoint" <? do
+  schem <- getSchematic modname
+  let subs = Schem.getSubModules schem
+  allTerms <- concatMapM terminals subs
+  return $ filter (flip Term.atPoint point) allTerms
+
+
+getRatio :: Terminal -> Part -> J (Int, Int)
+getRatio terminal part = "TopLevel.getTerminalRatio" <? do
+  let tw = Term.width terminal        
   pw <- Part.width part
-  return (tw, pw)
-  
-{-
-replicationDepth :: String -> SubModule -> J Int
-replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
+  --TODO refactor Part.width to not use Maybe.
+  case pw of
+    Just pw -> return (tw, pw)
+    Nothing -> die "TODO refactor Part.width to not use Maybe."
+
+getRatios modname term = do
+  parts <- getPartsConnectedToTerminal modname term
+  mapM (getRatio term) (filter (not . Part.isSubModule) parts)
+
+replicationDepth = replicationDepth'
+
+replicationDepth' :: String -> SubModule -> J Int
+replicationDepth' modname submod  = "TopLevel.replicationDepth" <? do
   -- GOAL infer replication depth without needing to involve net.
   -- Why? What does this solve?
   -- hypothesis: If replication depth can be known without nets, 
@@ -325,24 +354,10 @@ replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
   --             so maybe the problem is that wires aren't a good method for connecting
   --             nets, maybe it would be better to use an abstract concept of edge connection
   
-  -- get the terminals of the submodule
   terms <- terminals submod
-  -- get the parts connected to this submodule
-  --getPartsConnectedToTerminal terms
-
-  -- find max part width of parts, use that to compute replication upper limit
-  
-  
-  -- many terms, many parts per term
-  -- for each TERM
-  --  for each PART in parts at TERM
-  --    if PART shares location with TERM
-  --    then collect PART WIDTH.
-  --    else collect 0.
-  -- for each (termWidth, partWidth)
-  return (-1)
--}
-
+  ratios <- concatMapM (getRatios modname) terms
+  let numReps = [if tw >= pw then 1 else pw `div` tw | (tw, pw) <- ratios]
+  return $ maximum numReps
 
 getNetsWithName :: String -> String -> J [Net]
 getNetsWithName modname signame = "TopLevel.getNetsWithName" <? do

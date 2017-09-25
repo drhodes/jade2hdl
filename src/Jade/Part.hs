@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Jade.Part ( isTerm
+                 , isSubModule
+                 , removeTerms
                  , bundle
                  , getValsWithIdent
                  , getBundleWithIdent
@@ -61,14 +63,17 @@ hasVal part val = Bundle.hasVal (bundle part) val
 toWire (WireC w) = Just w
 toWire _ = Nothing
 
--- isSubModule (SubModuleC _) = True
--- isSubModule _ = False
+isSubModule (SubModuleC _) = True
+isSubModule _ = False
+
 
 isTerm (TermC _) = True
 isTerm _ = False
 
 getValsWithIdent :: Part -> String -> [Val]
 getValsWithIdent part ident = Bundle.getValsWithIdent (bundle part) ident
+
+removeTerms parts = filter (not . isTerm) parts
 
 getNames part = Bundle.getNames (bundle part)
 
@@ -78,7 +83,6 @@ loc part =
     WireC _ -> die "Part.loc doesn't support Wire"
     TermC (Terminal (Coord3 x y _) _) -> return (x, y)
     x -> die $ "Part.loc: doesn't support: " ++ show x
-
 
 points :: Part -> J [Point]
 points part = "Part.points" <? do
@@ -90,14 +94,12 @@ points part = "Part.points" <? do
     TermC x -> return $ Term.points x
     UnusedPart -> return []
 
-
 hasPoint :: Part -> Point -> J Bool
 hasPoint part point = "Part.hasPoint" <? do
   enb ("PART!", part)
   asdf <- points part
   enb (point, asdf)
   (point `elem`) <$> (points part)
-
 
 width :: Part -> J (Maybe Int)
 width part = do

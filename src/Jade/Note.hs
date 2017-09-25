@@ -34,6 +34,7 @@ isNote _ = False
 notesToString :: [Note] -> String
 notesToString notes = format "[{0}]" $ [DL.intercalate "," (map notesToString' notes)]
 
+
 notesToString' :: Note -> String
 
 notesToString' (Func name) =
