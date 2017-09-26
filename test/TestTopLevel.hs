@@ -60,25 +60,6 @@ testReplicationDepth modname expDepth = do
     Right _ -> return Pass
     Left msg -> return $ Fail $ runLog topl func ++ msg
 
-
-testReplicationDepth' :: String -> Int -> IO TestState
-testReplicationDepth' modname expDepth = do
-  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
-  let func = do
-        let parentModuleName = "/user/" ++ modname
-        subs <- TopLevel.getSubModules parentModuleName
-        let sub = subs !! 0
-        d <- TopLevel.replicationDepth' ("/user/" ++ modname) sub
-        nb $ show d
-        if (expDepth == d)
-          then return ()
-          else die $ format "expected: {0}, got: {1}" [show expDepth, show d]
-        
-  case runJ topl func of
-    Right _ -> return Pass
-    Left msg -> return $ Fail $ runLog topl func ++ msg
-
-
 testNumNets2 modname numcomps = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
   
@@ -168,18 +149,6 @@ testTreeReplicationDepth =
                                     , t "RangeStep2" 8
                                     ]
 
-testTreeReplicationDepth' =
-  let t modname exp = TestCase modname (testReplicationDepth' modname exp)
-  in TestTree "getReplicationDepth'" [ t "And2Ports" 1 
-                                     , t "And2Ports2" 1
-                                     , t "And2Ports3" 1
-                                     , t "And2Ports4" 1
-                                     , t "RepAnd2" 2
-                                     , t "RepAnd3" 4
-                                     , t "RepAnd4" 4
-                                     , t "RepWonkyBuffer1" 2
-                                     , t "RangeStep2" 8
-                                     ]
 
 
 testGetWidthOfSigName modname signame expectedWidth = do
@@ -292,8 +261,8 @@ testExplodeConnect1 = do
       c2 = Coord5 8 8 Rot0 8 8
       valBundle1 = Bundle [ValIndex "A" 1, ValIndex "A" 0]
       valBundle2 = Bundle [ValIndex "A" 1, ValIndex "B" 0]
-      w1 = Wire c1 (Just $ Signal (Just valBundle1) (Just 2) Nothing)
-      w2 = Wire c2 (Just $ Signal (Just valBundle2) (Just 2) Nothing)
+      w1 = Wire c1 (Just $ Signal (Just valBundle1) 2 Nothing)
+      w2 = Wire c2 (Just $ Signal (Just valBundle2) 2 Nothing)
   TopLevel.explodeConnect (w1, w2) 
      
 testTree = TestTree "TopLevel" [ testTreeNumNets
@@ -301,7 +270,6 @@ testTree = TestTree "TopLevel" [ testTreeNumNets
                                , testTreeNumTerminals
                                , testTreeGetNetsWithNameAll
                                , testTreeConnectWiresWithSameSigName
-                               , testTreeReplicationDepth'
                                , testTreeReplicationDepth
                                , testTreeGetWidthOfSigName
                                , testTreeMiscEtc

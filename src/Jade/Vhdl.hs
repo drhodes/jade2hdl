@@ -194,8 +194,11 @@ mkModule modname = "Vhdl.mkModule" <? do
   -- internalAssignments <- mkInternalAssignmentsTxt modname
   -- inputAssignments :: String -> [ValBundle] -> J T.Text
   inputWires' <- assignAllInputs' modname ins
+  outputWires' <- assignAllOutputs' modname outs
 
   internalAssignments <- assignInternalSigNames modname subs inputWires'
+
+  
   internalNodeDecls <- T.pack <$> concat <$> (DL.intersperse "\n") <$> declareInternalSigNames modname
 
   -- USE instances to determine the internal assignments.  why? since
@@ -228,8 +231,6 @@ mkModule modname = "Vhdl.mkModule" <? do
 mkAllMods modname = "Vhdl.mkAllMods" <? do
   userModNames <- TopLevel.dependencyOrder modname
   T.concat <$> mapM mkModule (userModNames ++ [modname])
-
-------------------------------------------------------------------
 
 ------------------------------------------------------------------
 comma = T.pack ", \n"
@@ -364,17 +365,12 @@ assignInternalSigNames modname subs inputAssignments = "Vhdl.assignInternalSigNa
   if True -- modname `contains` "Rep1FA2"
     then do return ()
             reps <- concatMapM (JMM.subModuleInstances modname) subs
-            --x <- mapM (JMM.assignInternalSigFromRep modname) reps
-            -- get output nets
             netsIn <- DL.nub <$> concatMapM JMM.getAllInputNetIdsFromRep reps
             netsOut <- DL.nub <$> concatMapM JMM.getAllOutputNetIdsFromRep reps
 
             -- remove the intersection from both.
             let netsIn' = netsIn DL.\\ netsOut
                 netsOut' = netsOut --DL.\\ netsIn
-            
-            enb ("NETSOUT", netsOut)
-            enb ("netsin", netsIn)
             -- subtract from all internal sigs.
             -- assign these as outputs.
             -- what remains are inputs, and assign those as such.
@@ -412,7 +408,6 @@ assignOneInternalSigName' modname direction netids signame  = "Vhdl.assignOneInt
   idxs <- TopLevel.getAllIndexesWithName modname signame
   assignInternalBundles' modname [Bundle idxs] direction netids 
 
-
 -- assignInternalBundles :: String -> [ValBundle] -> Direction -> [NetId] -> J T.Text
 -- assignInternalBundles modname bundle dir netids = "Vhdl.assignInternalBundles" <? do
 --   assignMap <- concatMapM (JMM.assignBundle dir modname) bundle
@@ -423,9 +418,7 @@ assignOneInternalSigName' modname direction netids signame  = "Vhdl.assignOneInt
 --   -- jumpers associate different names for the same net, so may
 --   -- introduce multiple assignments to the same net.  make sure that
 --   -- each net has only one assignment
-
 --   withSemiColonNewLines <$> mapM mkTermAssign uniqueTargets
-
 
 assignInternalBundles' modname bundle dir netids = "Vhdl.assignInternalBundles" <? do
   assignMap <- concatMapM (JMM.assignBundle dir modname) bundle
@@ -447,7 +440,6 @@ assignInternalBundles' modname bundle dir netids = "Vhdl.assignInternalBundles" 
                   pairs' = [JMM.ValAssign tgt net | (net, tgt) <- DM.toList m]
               in pairs'
   return uniqueTargets
-
 
 withSemiColonNewLines txts = T.concat [T.append t (T.pack ";\n") | t <- txts]
 
@@ -472,4 +464,8 @@ connectConstant modname net = "Vhdl.connectConstant" <? do
 assignAllInputs' :: String -> [ValBundle] -> J [JMM.ValAssign]
 assignAllInputs' modname modInputBundles = "Vhdl.assignAllInputs" <? do
   concatMapM (JMM.assignBundle In modname) modInputBundles
+
+assignAllOutputs' :: String -> [ValBundle] -> J [JMM.ValAssign]
+assignAllOutputs' modname modInputBundles = "Vhdl.assignAllOutputs" <? do
+  concatMapM (JMM.assignBundle Out modname) modInputBundles
   

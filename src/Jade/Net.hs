@@ -54,9 +54,9 @@ width :: Net -> J Int
 width (Net _ nodes) = "Net.width" <?
   do w <- maximum <$> mapM Node.width nodes
      case w of
-       Just 0 -> return 1 -- todo find out why Node.width is returning 0.
-       Just w -> return w
-       Nothing -> die "Got nothing for width? How does that happen?"
+       0 -> return 1 -- todo find out why Node.width is returning 0.
+       w -> return w
+       --Nothing -> die "Got nothing for width? How does that happen?"
 
 parts net = let (Net _ nodes) = removeTerms net
             in map nodePart nodes 

@@ -64,24 +64,24 @@ instance FromJSON Direction where
 instance FromJSON Signal where
   parseJSON (Object o) = "Decode.Signal.Object" <?? do
     sigString <- o .:? "signal"
-    w <- (o .:? "width")  -- ?? "ASDFASDF" -- this could fail obstrusively.
+    userLabeledWidth <- (o .:? "width") :: Parser (Maybe String)
     dir <-  o .:? "direction"
 
-    let width = case w of
-                  Nothing -> Just 1
-                  Just str -> TR.readMaybe str
-      
-    when (M.isNothing width) (fail "Couldn't read width in Decode.Signal")
-
+    let inferredWidth = case userLabeledWidth of
+                          Nothing -> 1 
+                          Just str -> case TR.readMaybe str :: (Maybe Int) of
+                                        Just v -> v
+                                        Nothing -> -1
+    when (inferredWidth == -1) (fail $ "Couldn't parse: " ++ (show userLabeledWidth))
+    
     case sigString of
-      Nothing -> return $ Signal Nothing width dir
+      Nothing -> return $ Signal Nothing inferredWidth dir
       Just s -> case Sig.parseSig s of
                   Right sig -> do
-                    let w' = case w of Nothing -> Just $ Bundle.width sig
-                                       Just str -> TR.readMaybe str
-                    case w' of
-                      (Just w'') -> return $ Signal (Just sig) (Just (fromIntegral w'')) dir
-                      Nothing -> fail "Not sure what's going on here"
+                    let w' = case userLabeledWidth of
+                          Nothing -> Bundle.width sig
+                          Just str -> inferredWidth
+                    return $ Signal (Just sig) inferredWidth dir
                   Left msg -> fail (show msg ++ "\n" ++ s)
 
 instance FromJSON Coord3 where
@@ -251,7 +251,7 @@ instance FromJSON Part where
       "memory" -> SubModuleC . SubMemUnit <$> parseJSON v
       "vdd" -> do
         Vdd (Coord3 x y r) <- parseJSON v
-        let signal = Just $ Signal (Just $ Bundle [Lit H]) (Just 1) Nothing
+        let signal = Just $ Signal (Just $ Bundle [Lit H]) 1 Nothing
             w = Wire (Coord5 x y r 0 0) signal
         return $ WireC w
       txt -> if txt `startsWith` "text"

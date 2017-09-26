@@ -35,9 +35,9 @@ hasSigName (Wire _ (Just s1)) = Signal.hasSigName s1
 points (Wire c5 _) = Coord.points c5
 
 
-width :: Wire -> Maybe Int
+width :: Wire -> Int
 width (Wire _ (Just signal)) = Signal.width signal
-width _ = Just 1
+width _ = 1
 
 getBundle (Wire _ (Just signal)) = Signal.getBundle signal
 getBundle _ = Bundle []

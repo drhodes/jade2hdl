@@ -15,12 +15,12 @@ module Jade.TopLevel ( getNetsWithName
                      , getSubModules
                      , getTerminalsAtPoint
                      , getWidthOfValName
+                     , getWidthOfPartsAtTerminal
                      , isNetDriver
                      , netWithTerminal
                      , nets
                      , numNets
                      , replicationDepth
-                     , replicationDepth'
                      , terminals
                      ) where
 
@@ -117,8 +117,8 @@ makePortWire (Port (Coord3 x y r) sig)  = "TopLevel.makePortWire" <? do
 
 connectSubWires :: Wire -> Wire -> J (Maybe Wire)
 connectSubWires w1 w2 = "TopLevel.connectSubWires" <? do
-  assert (Wire.width w1 == (Just 1)) "this function assumes wires are width 1"
-  assert (Wire.width w2 == (Just 1)) "this function assumes wires are width 1"
+  assert (Wire.width w1 == 1) "this function assumes wires are width 1"
+  assert (Wire.width w2 == 1) "this function assumes wires are width 1"
   assert (Wire.hasSigName w1) "can't be literal"
   assert (Wire.hasSigName w2) "can't be literal"
   
@@ -142,8 +142,7 @@ connectWiresWithSameSigName parts = "TopLevel.connectWiresWithSameSigName" <? do
   let wires = triangleProd $ filter Wire.hasSigName $ catMaybes $ map Part.toWire parts
   let pairs = [(w1, w2) | (w1, w2) <- wires, w1 `Wire.hasSameSig` w2]              
   return [Wire.new (fst $ Wire.ends w1) (fst $ Wire.ends w2) | (w1, w2) <- pairs]
-  -- concat <$> sequence [explodeConnect (w1, w2) | (w1, w2) <- wires] --, w1 `Wire.hasSameSig` w2]              
-  
+  -- concat <$> sequence [explodeConnect (w1, w2) | (w1, w2) <- wires] --, w1 `Wire.hasSameSig` w2]          
 -- | What's going on here? Now that the decoder explodes signal names
 -- out into val bundles immediately, it's possible to connect wire
 -- names at the very beginning, rather it's possible to associate two
@@ -283,30 +282,6 @@ getNetWithTerminal modname term  = "getNetWithTerminal" <? do
               return c
     _ -> impossible $ "More than one net found with terminal: " ++ show term
 
-{-
-replicationDepth :: String -> SubModule -> J Int
-replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
-  -- get the terminals of the submodule
-  terms <- terminals submod
-
-  let determineWidthFromTerm t = do
-        net <- getNetWithTerminal modname t
-        nb "know the width of the terminals?"
-        termWidth <- Part.width (TermC t)
-        nb "remove terms from net and guess its width"
-        cw <- Net.width (Net.removeTerms net)
-        case (termWidth, cw) of
-          (Just tw, cw) -> do
-            nb "found guesses for terminal width and net width"
-            nb $ show (tw, cw)
-            return $ cw `div` tw
-          (_, _) -> return 1 -- die $ "Couldn't find guess for terminal width nor net width."
-
-  -- if the width of a net is undeclared, this may mean that
-  guesses <- mapM determineWidthFromTerm terms
-  return $ maximum guesses
--}
-
 getPartsConnectedToTerminal :: String -> Terminal -> J [Part]
 getPartsConnectedToTerminal modname terminal = "TopLevel.getPartsConnectedToTerminal" <? do
   let (Terminal (Coord3 x y _) _) = terminal
@@ -316,7 +291,7 @@ getPartsConnectedToTerminal modname terminal = "TopLevel.getPartsConnectedToTerm
 getWidthOfPartsAtTerminal :: String -> Terminal -> J Int
 getWidthOfPartsAtTerminal modname terminal = "TopLevel.getWidthOfPartsAtTerminal" <? do
   parts <- getPartsConnectedToTerminal modname terminal
-  maximum <$> catMaybes <$> mapM Part.width (Part.removeTerms parts)
+  maximum <$> mapM Part.width (Part.removeTerms parts)
 
 getTerminalsAtPoint :: String -> Point -> J [Terminal]
 getTerminalsAtPoint modname point@(Point x1 y1) = "TopLevel.getTerminalAtPoint" <? do
@@ -325,35 +300,18 @@ getTerminalsAtPoint modname point@(Point x1 y1) = "TopLevel.getTerminalAtPoint" 
   allTerms <- concatMapM terminals subs
   return $ filter (flip Term.atPoint point) allTerms
 
-
 getRatio :: Terminal -> Part -> J (Int, Int)
 getRatio terminal part = "TopLevel.getTerminalRatio" <? do
   let tw = Term.width terminal        
   pw <- Part.width part
-  --TODO refactor Part.width to not use Maybe.
-  case pw of
-    Just pw -> return (tw, pw)
-    Nothing -> die "TODO refactor Part.width to not use Maybe."
+  return (tw, pw)
 
 getRatios modname term = do
   parts <- getPartsConnectedToTerminal modname term
   mapM (getRatio term) (filter (not . Part.isSubModule) parts)
 
-replicationDepth = replicationDepth'
-
-replicationDepth' :: String -> SubModule -> J Int
-replicationDepth' modname submod  = "TopLevel.replicationDepth" <? do
-  -- GOAL infer replication depth without needing to involve net.
-  -- Why? What does this solve?
-  -- hypothesis: If replication depth can be known without nets, 
-  --             then all signal names can be exploded before unions find
-  --                  and the entire program becomes much, much smaller.
-  --                  why? because nets would no longer be bundles of wires
-  --                  they would be single layers with indexes. far fewer edges cases.
-  --             I still don't buy it.
-  --             so maybe the problem is that wires aren't a good method for connecting
-  --             nets, maybe it would be better to use an abstract concept of edge connection
-  
+replicationDepth :: String -> SubModule -> J Int
+replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
   terms <- terminals submod
   ratios <- concatMapM (getRatios modname) terms
   let numReps = [if tw >= pw then 1 else pw `div` tw | (tw, pw) <- ratios]

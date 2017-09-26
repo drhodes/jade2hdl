@@ -110,7 +110,7 @@ data Val = ValIndex { valIdxName :: String
 type ValBundle = Bundle Val
 
 data Signal = Signal { signalName :: Maybe ValBundle
-                     , signalWidth :: Maybe Int
+                     , signalWidth :: Int
                      , signalDirection :: Maybe Direction
                      } deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 

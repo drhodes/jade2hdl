@@ -40,10 +40,6 @@ getIndexedNames (Bundle xs) = map Val.getIndexedName xs
 getValsWithIdent :: Bundle Val -> String -> [Val]
 getValsWithIdent (Bundle vals) ident = [v | v <- vals, v `Val.hasIdent` ident]
 
-hasAnyValName :: Bundle Val -> Bool
-hasAnyValName b = null $ getNames b -- TODO is this right? seems to be the opposite of intended.
-                                    -- also, unify this with the function below.
-
 -- check to see if this bundle contains a ValIndex with name. 
 hasSigName :: Bundle Val -> Bool
 hasSigName b = if null $ getNames b then False else True

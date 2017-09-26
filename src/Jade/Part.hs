@@ -101,16 +101,16 @@ hasPoint part point = "Part.hasPoint" <? do
   enb (point, asdf)
   (point `elem`) <$> (points part)
 
-width :: Part -> J (Maybe Int)
+width :: Part -> J Int
 width part = do
   nb $ show part
   case part of
     PortC (Port _ (Just s)) -> return $ Signal.width s
-    PortC (Port _ Nothing) -> return Nothing
+    PortC (Port _ Nothing) -> return 1
     WireC (Wire _ (Just s)) -> do
       nb $ "For this wire: " ++ show part
       nb $ "Found width:   " ++ (show $ Signal.width s)
       return $ Signal.width s
-    WireC (Wire _ Nothing) -> return $ Just 1
-    TermC (Terminal _ s) -> return $ Just $ Bundle.width s
+    WireC (Wire _ Nothing) -> return 1
+    TermC (Terminal _ s) -> return $ Bundle.width s
     x -> die $ "Part.width: Not implemented for: " ++ show x
