@@ -3,14 +3,14 @@ module TestSchematic (testTree) where
 import qualified Data.List as DL
 import qualified Data.ByteString as DB
 import qualified Jade.TopLevel as TopLevel
-import qualified Jade.Decode as Decode
+import qualified Jade.Decode.Decode as Decode
 import qualified Jade.Schematic as Schem
 import qualified Jade.Net as Net
 import qualified Jade.Wire as Wire
 import Text.Format
 import TestUtil
 import Control.Monad
-import Jade.Rawr.Types 
+import Rawr.Types 
 import Jade.Common
 
 testExpGot modname expected f = do

@@ -5,7 +5,7 @@ import Options.Applicative
 import Data.Semigroup ((<>))
 import Control.Monad
 import qualified Jade.Back.Viz as Viz
-import qualified Jade.Decode as Decode
+import qualified Jade.Decode.Decode as Decode
 import qualified Data.Text.IO as TIO
 import qualified Data.Text as T
 

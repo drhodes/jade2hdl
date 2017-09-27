@@ -3,14 +3,15 @@ module TestTopLevel (testTree) where
 import qualified Data.List as DL
 import qualified Data.ByteString as DB
 import qualified Jade.TopLevel as TopLevel
-import qualified Jade.Decode as Decode
+import qualified Jade.Decode.Decode as Decode
 import qualified Jade.Module as Modul
 import qualified Jade.Net as Net
 import qualified Jade.Wire as Wire
 import Text.Format
 import TestUtil
 import Control.Monad
-import Jade.Rawr.Types 
+import Rawr.Types 
+import Rawr.Rawr
 import Jade.Common
 
 bendyWire1 :: IO TestState

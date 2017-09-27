@@ -25,7 +25,7 @@ import qualified Jade.SubModule as SubModule
 import qualified Jade.Module as Moduile
 import qualified Jade.Wire as Wire
 import qualified Jade.Signal as Signal
-import qualified Jade.Bundle as Bundle
+import qualified Jade.Decode.Bundle as Bundle
 import qualified Jade.Term as Term
 
 bundle :: Part -> ValBundle

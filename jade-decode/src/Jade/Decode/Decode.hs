@@ -1,22 +1,20 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
-module Jade.Decode (decodeTopLevel) where
+module Jade.Decode.Decode where
 
 import Control.Monad
 import Data.Aeson
 import Data.Aeson.Types
 import Data.ByteString.Lazy.Internal
-import Data.FileEmbed
 import Data.Text.Encoding
+import Data.FileEmbed
 import Data.Traversable
 import GHC.Generics
-import Jade.Types
-import Jade.Util
-import Text.Format
+import Jade.Decode.Types
+import Jade.Decode.Util
+import qualified Jade.Decode.Sig as Sig
+import qualified Jade.Decode.Bundle as Bundle
 import qualified Data.ByteString.Lazy as DBL
 import qualified Data.ByteString as DB
 import qualified Data.Map as DM
@@ -25,9 +23,7 @@ import qualified Data.Char as DC
 import qualified Data.Scientific as DS
 import qualified Data.String.Class as DSC
 import qualified Data.Vector as V
-import qualified Jade.ModTest as MT
-import qualified Jade.Sig as Sig
-import qualified Jade.Bundle as Bundle
+import qualified Jade.Decode.ModTest as MT
 import qualified System.Environment as SE
 import qualified Text.Read as TR
 
@@ -60,7 +56,7 @@ instance FromJSON Direction where
                "in" -> In
                "out" -> Out
                "inout" -> InOut
-
+               
 instance FromJSON Signal where
   parseJSON (Object o) = "Decode.Signal.Object" <?? do
     sigString <- o .:? "signal"

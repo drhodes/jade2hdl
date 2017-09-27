@@ -1,17 +1,23 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 module Jade.Common
   ( module Jade.Common
   , module Jade.Types
-  , module Jade.Note
+  , module Rawr.Note
   , module Jade.Util
+  , module Jade.Decode.Types
+  
   ) where
 
 import Jade.Types
-import Jade.Note
+import Rawr.Note
 import Jade.Util
-
+import Jade.Decode.Types
+import Data.FileEmbed as DF
+import qualified Data.Text.Encoding as DTE
+ 
+import qualified Data.String.Class as DSC
 import qualified Data.Map as DM
---import GHC.Generics
 import qualified Data.Vector as V
 import qualified Data.Map as DM
 import qualified Data.List as DL
@@ -21,9 +27,6 @@ import qualified Data.ByteString.Lazy.Char8 as DBL8
 import Data.Aeson
 import Data.Hashable
 import Text.Format
-import Jade.Note
-
-
 
 import Control.Monad.Except 
 import Control.Monad.Writer
@@ -133,10 +136,6 @@ bailWhen cond = when cond bail
 safeCycle [] = "Jade/Types.safeCycle" <? die "empty list"
 safeCycle xs = return $ cycle xs
 
-
-
-
-
 ------------------------------------------------------------------
 -- RESOLVING CIRCUILAR IMPORTS :/
 
@@ -156,5 +155,4 @@ getSchematic name = do
   case moduleSchem m of
     Just s -> return s
     Nothing -> dief "No schematic found in module" [name]
-
 

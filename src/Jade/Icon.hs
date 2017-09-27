@@ -5,8 +5,8 @@ import Control.Monad
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.Vector as DV
-import qualified Jade.Decode as D
-import qualified Jade.Coord as Coord
+import qualified Jade.Decode.Decode as D
+import qualified Jade.Decode.Coord as Coord
 import Jade.Common
 
 xMin :: IconPart -> J (Maybe Integer)

@@ -1,0 +1,12 @@
+flags: {}
+extra-package-dbs: []
+packages:
+- .
+- ../rawr
+
+extra-deps:
+- hashids-1.0.2.3
+- parsec3-numbers-0.1.0
+- rawr-0.1.0
+
+resolver: lts-9.4

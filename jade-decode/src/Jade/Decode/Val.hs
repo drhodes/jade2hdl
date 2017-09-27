@@ -1,10 +1,10 @@
-module Jade.Val ( getName
-                , hasIdent
-                , isLit
-                , getIndexedName
-                ) where
+module Jade.Decode.Val ( getName
+                       , hasIdent
+                       , isLit
+                       , getIndexedName
+                       ) where
 
-import Jade.Types
+import Jade.Decode.Types
 
 getName (ValIndex n _) = n
 getName (Lit _) = "" -- this is also no good. this should be a Maybe String.

@@ -4,15 +4,15 @@ import qualified Data.Map as DM
 import qualified Data.List as DL
 import Jade.Common
 import qualified Jade.TopLevel as TopLevel
-import qualified Jade.Decode as Decode
+import qualified Jade.Decode.Decode as Decode
 import qualified Jade.Module as Module
 import qualified Jade.Icon as Icon
 import qualified Data.Hashable as H
-import qualified Jade.Bundle as Bundle
+import qualified Jade.Decode.Bundle as Bundle
 import Text.Format
 import Control.Monad
 import TestUtil
-import Jade.Rawr.Types 
+import Rawr.Types 
 
 testSubModBoundingBox :: String -> BoundingBox -> IO TestState
 testSubModBoundingBox modname exp = do 

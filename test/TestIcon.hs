@@ -5,15 +5,16 @@ import qualified Data.Map as DM
 import Jade.Common
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Icon as Icon
-import qualified Jade.Decode as Decode
+import qualified Jade.Decode.Decode as Decode
 import qualified Jade.Module as Module
-import qualified Jade.Coord as Coord
+import qualified Jade.Decode.Coord as Coord
 import qualified Jade.Vhdl as Vhdl
 import qualified Data.Hashable as H
 import Text.Format
 import TestUtil
 import Control.Monad
-import Jade.Rawr.Types 
+import Rawr.Rawr
+import Rawr.Types
 
 withTopLevelTest modname f = 
   liftM f $ Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])

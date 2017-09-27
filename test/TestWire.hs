@@ -2,14 +2,14 @@ module TestWire (testTree) where
 
 import Jade.Common
 import qualified Jade.TopLevel as TopLevel
-import qualified Jade.Decode as Decode
+import qualified Jade.Decode.Decode as Decode
 import qualified Jade.Module as Modul
 import qualified Jade.Net as Net
 import qualified Jade.Wire as Wire
 import Text.Format
 import Control.Monad
 import TestUtil
-import Jade.Rawr.Types 
+import Rawr.Types 
 
 check topl result = case runJ topl result of
                       Right _ -> return Pass

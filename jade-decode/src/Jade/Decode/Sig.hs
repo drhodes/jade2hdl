@@ -1,19 +1,19 @@
-module Jade.Sig ( sigBundle
-                , explode
-                , parseSig
-                , width
-                , twosComplement
-                ) where
+module Jade.Decode.Sig ( sigBundle
+                       , explode
+                       , parseSig
+                       , width
+                       , twosComplement
+                       ) where
 
 import Control.Monad
 import Data.Char as DC
-import Jade.Common
-import Text.Format
+import Text.Printf
+import Jade.Decode.Types
 import Text.Parsec
 import Text.Parsec.String
 import qualified Numeric as N
 import qualified Text.Parsec.Number as TPN
-import qualified Jade.Bundle as Bundle
+import qualified Jade.Decode.Bundle as Bundle
 
 {-
 signal names need to be parsed.
@@ -41,7 +41,7 @@ sigHash :: Parser ValBundle
 sigHash = do name <- symbol
              char '#'
              n <- many1 digit -- this may start with zero!
-             return $ runExplode $ SigHash name (read n)
+             return $ explode $ SigHash name (read n)
 
 -- := sig[idx] 
 sigIndex :: Parser ValBundle
@@ -50,7 +50,7 @@ sigIndex = do
   char '['
   idx <- many1 digit
   char ']'
-  return $ runExplode $ SigIndex name (read idx)
+  return $ explode $ SigIndex name (read idx)
 
 -- := sig[start:stop]   expands to sig[start],sig[start+step],...,sig[end]
 sigRange :: Parser ValBundle
@@ -61,11 +61,11 @@ sigRange = do
   char ':'
   to <- many1 digit
   char ']'
-  return $ runExplode (SigRange name (read from) (read to)) 
+  return $ explode (SigRange name (read from) (read to)) 
     
-runExplode s = case runX emptyTopl $ explode s of
-                 (Left msg, log) -> fail $ msg ++ (show log)
-                 (Right xs, _) -> xs
+-- explode s = case explode s of
+--                  Left msg -> fail $ msg ++ (show log)
+--                  Right xs -> xs
 
 -- := sig[start:stop:step]   expands to sig[start],sig[start+step],...,sig[end]
 sigRangeStep :: Parser ValBundle
@@ -77,7 +77,7 @@ sigRangeStep = do name <- symbol
                   char ':'
                   step <- many1 digit
                   char ']'
-                  return $ runExplode $ SigRangeStep name (read from) (read to) (read step)
+                  return $ explode $ SigRangeStep name (read from) (read to) (read step)
 
 hex :: Parser Integer
 hex = do string "0"
@@ -103,11 +103,11 @@ sigQuote :: Parser ValBundle
 sigQuote = do val <- number
               char '\''
               width <- many1 digit
-              return $ runExplode (SigQuote val (read width))
+              return $ explode (SigQuote val (read width))
 
 sigSimple :: Parser ValBundle
 sigSimple = do s <- symbol
-               return $ runExplode (SigSimple s)
+               return $ explode (SigSimple s)
 
 oneBundle :: Parser ValBundle
 oneBundle = choice $ map try [ sigQuote
@@ -145,24 +145,23 @@ width sig = case sig of
                                              in fromIntegral $ length range
               SigQuote _ w -> fromIntegral w
 
-explode :: Sig -> J ValBundle
-explode sig = "Sig.explode" <? do
-  result <- case sig of 
-    SigSimple name -> return $ [ValIndex name 0]
-    SigIndex name x -> return $ [ValIndex name x]
-    SigHash name x -> die "explode doesn't handle SigHash yet"
-    SigRange name from to ->
-      return $ map (ValIndex name) (range from to 1)
-    SigRangeStep name from to step ->
-      return $ map (ValIndex name) (range from to step)
-    SigQuote val width -> do
-      -- need to convert val to twos complement and make a bundle
-      return $ map Lit $ twosComplement val width
-  return $ Bundle result
+explode :: Sig -> ValBundle
+explode sig =
+  let result =
+        case sig of 
+          SigSimple name -> [ValIndex name 0]
+          SigIndex name x -> [ValIndex name x]
+          SigHash name x -> error "Decode.Decode.Sig.explode doesn't handle SigHash yet"
+          SigRange name from to ->
+            map (ValIndex name) (range from to 1)
+          SigRangeStep name from to step ->
+            map (ValIndex name) (range from to step)
+          SigQuote val width -> map Lit $ twosComplement val width
+  in Bundle result
 
 range from to step = if from < to 
                      then [from, from+step .. to] -- ascending
-                     else [from, from-step .. to] -- descengind
+                     else [from, from-step .. to] -- descending
 
 genbits n | n == 0 = []
           | n `mod` 2 == 0 = L : (genbits next)

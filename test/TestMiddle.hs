@@ -1,11 +1,11 @@
 module TestMiddle (testTree) where
 
 import Jade.Middle.Middle
-import Jade.Rawr.Types 
+import Rawr.Types 
 import Jade.Common
 import Text.Format
 import qualified Data.List as DL
-import qualified Jade.Decode as Decode
+import qualified Jade.Decode.Decode as Decode
 import qualified Jade.Module as Modul
 import qualified Jade.Net as Net
 import qualified Jade.TopLevel as TopLevel

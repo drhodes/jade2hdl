@@ -12,9 +12,9 @@ module Jade.Wire ( toEdge
                  , points
                  ) where
 
-import Jade.Types
+import Jade.Common
 import qualified Jade.Signal as Signal
-import qualified Jade.Coord as Coord
+import qualified Jade.Decode.Coord as Coord
 
 toEdge w@(Wire (Coord5 x y rot dx dy) _) =
   let x' = x + (Coord.transformX rot dx dy)

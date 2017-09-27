@@ -3,18 +3,19 @@
 
 module TestDecode (testTree) where
 
-import Jade.ModTest
-import Jade.Types
-import Jade.Decode
-import Data.Aeson
 import Control.Monad
-import Text.Format
-import Jade.Rawr.Types
-import Jade.Util
-import qualified System.IO as SIO
+import Control.Monad.Writer
+
+import Data.Aeson
+import Jade.Decode.ModTest
+import Jade.Decode.Decode
+import Jade.Decode.Types
+import Jade.Decode.Util
+import Rawr.Types
+import Text.Printf
 import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
-import Control.Monad.Writer
+import qualified System.IO as SIO
 
 testWire1 :: Either String Wire
 testWire1 = eitherDecode "[\"wire\", [136, 64, 1, 0, 0], {\"signal\": \"wd\"}]" 

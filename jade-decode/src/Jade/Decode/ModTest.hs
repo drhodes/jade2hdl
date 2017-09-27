@@ -1,20 +1,20 @@
-module Jade.ModTest ( parseModTestString
-                    , setSignals
-                    , assertBitVals
-                    , sampleBitVals
-                    , getTestlineComment
-                    )where
+module Jade.Decode.ModTest ( parseModTestString
+                           , setSignals
+                           , assertBitVals
+                           , sampleBitVals
+                           , getTestlineComment
+                           ) where
 
-import Text.Parsec.String
-import qualified Text.Parsec.Number as TPN
-import Text.Parsec
-import Jade.Common
-import qualified Numeric as N
-import qualified Jade.Sig as Sig
-import qualified Jade.Bundle as Bundle
 import Control.Monad
-import Jade.Util
+import Jade.Decode.Types
+import Jade.Decode.Util
+import Text.Parsec
+import Text.Parsec.String
 import qualified Data.List as DL
+import qualified Jade.Decode.Bundle as Bundle
+import qualified Jade.Decode.Sig as Sig
+import qualified Numeric as N
+import qualified Text.Parsec.Number as TPN
 
 ident :: Parser String
 ident = do start <- letter <|> char '_'

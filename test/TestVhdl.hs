@@ -5,26 +5,31 @@
 
 module TestVhdl (testTree) where
 
-import Text.Format
-import qualified Jade.TopLevel as TopLevel
-import qualified Jade.Decode as Decode
-import qualified Jade.Module as Module
-import qualified Jade.Part as Part
-import qualified Jade.Vhdl as Vhdl
-import qualified Data.Text.IO as TIO
-import qualified Data.Text as T
-import qualified System.Directory as SD
+import Data.Aeson
+import Data.Aeson.Types
 import Control.Monad
 import Data.FileEmbed
 import Data.Text.Encoding 
-import TestUtil
 import Jade.Common
-
-import System.Process 
+import Rawr.Types
 import System.Exit      
-import Control.Exception.Base as CEB
-import Jade.Rawr.Types
+import System.Process 
+import TestUtil
+import Text.Format
+import qualified Control.Exception.Base as CEB
+import qualified Data.ByteString.Lazy as DBL
+import qualified Data.Map as DM
+import qualified Data.String.Class as DSC
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+import qualified Jade.Decode.Decode as Decode
+import qualified Jade.Module as Module
+import qualified Jade.Part as Part
+import qualified Jade.TopLevel as TopLevel
+import qualified Jade.Vhdl as Vhdl
+import qualified System.Directory as SD
 import qualified System.IO as SIO
+
        
 spawnOneTest jadefile modname = do
   let autoTestPath = format "test-data/auto-vhdl/{0}/" [hashid modname]
@@ -80,7 +85,7 @@ spawnOneTest jadefile modname = do
                               ]
 
 node s = TestCase s (spawn (ModPath "./test-data" s))
-tree s xs = TestTree s $ map node xs
+tree s xs = TestTree s $ Prelude.map node xs
 
 testTree = TestTree "Vhdl" [ testTreeInnerSignal
                            , testTreeReplication
@@ -208,9 +213,9 @@ testTree2 =
                     , testcase "./test-data/SubmodAnd6.json" "/user/submod/and6"
                     ]
 
-
+{-
 testDUT_UseAnd23 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/use-and2-3.json"
+  Right topl <- decodeTopLevel "./test-data/use-and2-3.json"
   runJIO topl $ "testDUT" <? do
     let modname = "/user/UseAND2_3"
     m <- TopLevel.getModule modname 
@@ -261,3 +266,4 @@ testGenMakeModule = do
       TIO.writeFile outfile (T.concat [ prelude, moduleCode, testCode ])
 
 
+-}

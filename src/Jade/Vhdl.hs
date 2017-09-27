@@ -16,12 +16,12 @@ import qualified Data.List as DL
 import qualified Data.Map as DM
 import qualified Data.Text as T
 import qualified Data.Text.IO as DT
-import qualified Jade.Decode as Decode
+import qualified Jade.Decode.Decode as Decode
 import qualified Jade.Net as Net
-import qualified Jade.ModTest as ModTest
+import qualified Jade.Decode.ModTest as ModTest
 import qualified Jade.Module as Module
 import qualified Jade.TopLevel as TopLevel
-import qualified Jade.Bundle as Bundle
+import qualified Jade.Decode.Bundle as Bundle
 import qualified Data.ByteString.Lazy.Char8 as DBL8
 import Data.Aeson
 

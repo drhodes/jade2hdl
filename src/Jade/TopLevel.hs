@@ -32,7 +32,7 @@ import Data.Maybe
 import qualified Data.Maybe as Maybe
 import qualified Data.Set as DS
 import qualified Data.Vector as DV
-import qualified Jade.Decode as D
+import qualified Jade.Decode.Decode as D
 import qualified Jade.Jumper as Jumper
 import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Module as Module
@@ -44,7 +44,7 @@ import Jade.Common
 import qualified Jade.UnionFindST as UF
 import qualified Jade.Wire as Wire
 import qualified Web.Hashids as WH
-import qualified Jade.Bundle as Bundle
+import qualified Jade.Decode.Bundle as Bundle
 
 getSubModules :: String -> J [SubModule]
 getSubModules modname = do --"TopLevel.getSubModules" <? do

@@ -1,11 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Jade.Bundle where
+module Jade.Decode.Bundle where
 
-import Jade.Common
 import Control.Monad
+import Jade.Decode.Types
 import Data.Maybe
 import qualified Data.List as DL
-import qualified Jade.Val as Val
+import qualified Jade.Decode.Val as Val
 
 containsIdentifier :: Bundle Val -> String -> Bool
 containsIdentifier (Bundle xs) ident = or $ map (flip Val.hasIdent ident) xs
@@ -25,13 +25,13 @@ getNames (Bundle xs) = [name | name <- map Val.getName xs, not $ null name]
 
 getIndexesWithName (Bundle xs) name = [v | v@(ValIndex vname _) <- xs, vname == name]
 
-getName :: Bundle Val -> J String
+getName :: Bundle Val -> Either String String
 getName bundle = do
   let names = DL.nub $ getNames bundle
   case names of
-    [name] -> return name
-    [] -> die "no names found"
-    _ -> die "too many names found"
+    [name] -> Right name
+    [] -> Left "no names found"
+    _ -> Left "too many names found"
 
 reverse (Bundle xs) = Bundle (DL.reverse  xs)
 

@@ -29,6 +29,6 @@ module Jade.Middle.SubModuleRed where
 --                                  } deriving (Generic, ToJSON, Show, Eq)
 
 
-getWireWithName smr = "SubModuleRep.getWireWithName" <? do
-  smrTermMapInput 
+-- getWireWithName smr = "SubModuleRep.getWireWithName" <? do
+--   smrTermMapInput 
   

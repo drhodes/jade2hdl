@@ -1,13 +1,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Jade.Arbitrary where
 
+{-
 import Jade.Types
 import Test.QuickCheck.Arbitrary
 import qualified Test.QuickCheck.Property as TQP
 import Test.QuickCheck
 import Control.Monad
 import Data.Word as DW
-import qualified Jade.Sig as Sig
+import qualified Jade.Decode.Sig as Sig
 
 oneOf xs = do
   if (length xs == 0)
@@ -144,3 +145,4 @@ testAll = do
                        , hasCommutative pixelSub ]
   mapM testForPropFunc [ hasAssociative pixelAdd
                        , hasAssociative pixelSub ]
+-}

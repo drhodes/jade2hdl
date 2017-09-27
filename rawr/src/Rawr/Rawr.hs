@@ -1,44 +1,23 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
+module Rawr.Rawr where
 
-module Jade.Rawr.Types ( allPass
-                       , runTree
-                       , TestTree(..)
-                       , TestState(..)
-                       , test
-                       , doTree
-                       , report
-                       ) where
-
+import Rawr.Types 
 import Prelude hiding (pow)
 import Control.Monad
 import Control.Monad.Writer
 import Control.Monad.Identity
 import Data.Functor.Identity
 import qualified System.IO as SIO
-import Text.Format
 import qualified Control.Parallel.Strategies as CPS
 import qualified Data.List as DL
 import qualified System.Console.ANSI as SCA
-          
-data TestTree = TestTree String [TestTree]
-              | TestCase String (IO TestState)
-              
-data TestState = Pass
-               | Fail String
-               deriving (Show, Eq)
-
-type TestPath = [String]
 
 isTestCase (TestCase _ _) = True
 isTestCase _ = False
 
 showTestPath tp = DL.intercalate "/" tp
-
 runTree tp t = runTree' "?" tp t
-
 parMap f xs = map f xs `CPS.using` CPS.parList CPS.rseq
-
 allPass xs = length [Pass | Pass <- xs] == length xs
 
 runTree' :: String -> TestPath -> TestTree -> IO [TestState]
@@ -74,9 +53,7 @@ passes = do
   SCA.setSGR [SCA.Reset]
 
 fails = do
-  --SCA.setSGR [SCA.SetColor SCA.Foreground SCA.Vivid SCA.Red]
   SCA.setSGR [SCA.SetBlinkSpeed SCA.SlowBlink]
-  
   putStr "X" >> SIO.hFlush SIO.stdout
   SCA.setSGR [SCA.Reset]
     
