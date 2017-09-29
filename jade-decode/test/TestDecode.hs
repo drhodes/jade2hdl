@@ -12,9 +12,10 @@ import Jade.Decode.Decode
 import Jade.Decode.Types
 import Jade.Decode.Util
 import Rawr.Types
+import Rawr.Rawr
 import Text.Printf
 import qualified Data.ByteString as DB
-import qualified Data.ByteString.Lazy as DBL
+--import qualified Data.ByteString.Lazy as DBL
 import qualified System.IO as SIO
 
 testWire1 :: Either String Wire

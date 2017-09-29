@@ -1,18 +1,17 @@
 module Main where
 
-import qualified TestDecode as TD
-import qualified TestSig as TS
-import qualified Jade.Rawr.Types as JRT
-
+import qualified Rawr.Types as JRT
+import qualified Rawr.Rawr as JRR
+import qualified TestDecode
+import qualified TestSig
 
 main = do
   putStrLn ""
   putStrLn "Starting test"
     
-  results <- JRT.runTree [] $ JRT.TestTree "T"
-             [ --
-             , TS.testTree
-             , TD.testTree
+  results <- JRR.runTree [] $ JRT.TestTree "T"
+             [ TestSig.testTree
+             , TestDecode.testTree
              ]
 
   putStrLn "" -- newline

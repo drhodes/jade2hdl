@@ -16,7 +16,6 @@ module Jade.Middle.Middle ( assignConstantNet
                           , module Jade.Middle.Types
                           ) where
 
-
 import Control.Monad
 import Data.Aeson
 import GHC.Generics
@@ -182,3 +181,5 @@ getAllInputNetIdsFromRep rep = "Middle.getInputsNetIdsFromRep" <? do
   return $ DL.nub $ concat $ map getInputNetIdsFromTermMap (smrTermMapInput rep)
 
 getInputNetIdsFromTermMap ins = [nid | TermAssoc _ src@(NetIndex nid _) tgt <- ins]
+
+

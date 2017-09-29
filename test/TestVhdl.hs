@@ -29,7 +29,6 @@ import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Vhdl as Vhdl
 import qualified System.Directory as SD
 import qualified System.IO as SIO
-
        
 spawnOneTest jadefile modname = do
   let autoTestPath = format "test-data/auto-vhdl/{0}/" [hashid modname]
@@ -61,10 +60,10 @@ spawnOneTest jadefile modname = do
       (ecode', stdout', stderr') <- readCreateProcessWithExitCode cmd2 ""
       case ecode' of
         ExitSuccess -> do
-          writeCallGraph (format "/tmp/dots/{0}-PASS.dot" [hashid modname]) topl func
+          --writeCallGraph (format "logs/dots/{0}-PASS.dot" [hashid modname]) topl func
           return Pass        
         ExitFailure err' -> do
-          writeCallGraph (format "/tmp/dots/{0}-FAIL.dot" [hashid modname]) topl func
+          --writeCallGraph (format "logs/dots/{0}-FAIL.dot" [hashid modname]) topl func
           return $ Fail $ unlines [ format "[{ \"module\": {0}}, " [show modname]
                                   , format "{ \"hashcode\": {0}}, " [show $ hashid modname]
                                   , format "{ \"ecode\":  {0}}, " [show $ show ecode']
@@ -75,7 +74,7 @@ spawnOneTest jadefile modname = do
                                   ]
                                  
     ExitFailure err -> do
-      writeCallGraph (format "/tmp/dots/{0}-FAIL.dot" [hashid modname]) topl func
+      --writeCallGraph (format "/tmp/dots/{0}-FAIL.dot" [hashid modname]) topl func
       return $ Fail $ unlines [ format "[{ \"module\": {0}}, " [show modname]
                               , format "{ \"ecode\":  {0}}, " [show $ show ecode]
                               , format "{ \"errlog\": {0}}, " [errlog]
@@ -97,8 +96,6 @@ testTree = TestTree "Vhdl" [ testTreeInnerSignal
                            , testTree1
                            , testTree2
                            ]
-
-
 
 testTreeReplication = tree "Replication" [ "Rep1FA2"
                                          , "RepAnd2"

@@ -1,19 +1,14 @@
 module TestSig (testTree) where
 
-import Jade.Types
-import qualified Data.List as DL
-import qualified Data.ByteString as DB
-import qualified Jade.TopLevel as TopLevel
-import qualified Jade.Sig as Sig
-
-import qualified Jade.Decode as Decode
-import qualified Jade.Module as Modul
-import qualified Jade.Net as Net
-import qualified Jade.Wire as Wire
-import Text.Format
+import Text.Printf
 import Control.Monad
-import Jade.Rawr.Types 
-import Jade.Util
+import Jade.Decode.Util
+import Rawr.Types 
+import qualified Data.ByteString as DB
+import qualified Data.List as DL
+import qualified Jade.Decode.Decode as Decode
+import qualified Jade.Decode.Sig as Sig
+import Jade.Decode.Types
 
 --------------------------------------------------------------------------------
 testSigWidth :: Monad m => Sig -> Integer -> m TestState
@@ -21,7 +16,7 @@ testSigWidth sig expectedWidth = do
   let w = Sig.width sig
   if w == expectedWidth
     then return Pass
-    else return (Fail (fmt "expected {0}, got {1}, sig: {2}" (expectedWidth, w, sig)))
+    else return $ Fail $ printf "expected %d, got %d, sig: %s" expectedWidth w (show sig)
                
 testTreeSigWidth :: TestTree
 testTreeSigWidth = 
@@ -42,7 +37,7 @@ testTwosCompement val w exp = do
   let tc = Sig.twosComplement val w
   if tc == exp
     then return Pass
-    else return (Fail (fmt "expected {0}, got {1}" (exp, tc)))
+    else return $ Fail $ printf "expected %s, got %s" (show exp) (show tc)
 
 testTreeTwosComplement :: TestTree
 testTreeTwosComplement = 
