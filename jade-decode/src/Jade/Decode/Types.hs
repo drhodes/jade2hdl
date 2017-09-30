@@ -21,7 +21,7 @@ import Data.Aeson
 -- Icon Types
 newtype Line = Line Coord5 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-data Terminal = Terminal Coord3 ValBundle deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+data Terminal = Terminal Coord3 Sig deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 newtype Box = Box Coord5 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
@@ -61,13 +61,9 @@ type ModuleName = String
 data Direction = In | Out | InOut
                deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-data SigNum = Bin String
-            | Num Integer
-            deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
-
-data SigType = OneSig Sig
-             | ManySig [Sig]
-             deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
+-- data SigNum = Bin String
+--             | Num Integer
+--             deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data Sig = SigSimple String
          | SigIndex String Integer
@@ -75,43 +71,14 @@ data Sig = SigSimple String
          | SigRange String Integer Integer
          | SigRangeStep String Integer Integer Integer
          | SigQuote Integer Integer
+         | SigConcat [Sig]
          deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
-
-newtype Bundle a = Bundle [a] deriving (Show, Eq, Generic, Hashable, Ord, Foldable, ToJSON)
-
-instance Functor Bundle where
-  fmap f (Bundle xs) = Bundle (map f xs) 
-instance Applicative Bundle where
-  pure x = Bundle [x]
-  (<*>) (Bundle fs) (Bundle xs) = Bundle (fs <*> xs)
-instance Monad Bundle where
-  (>>=) (Bundle xs) f = Bundle $ concat [ys | Bundle ys <- map f xs]
-instance Monoid (Bundle a) where
-  mconcat bs = Bundle $ concat [x | Bundle x <- bs]
-  mappend (Bundle x) (Bundle y) = Bundle (x ++ y)
-  mempty = Bundle []
-
--- TODO refactor name Val to SubSig
--- TODO consider this phantom type.
--- data Val a = ValIndex String Integer
 
 type Index = Integer
-type NetId = Integer
 
+--newtype SignalName = SignalName String deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 
-
-data Val = ValIndex { valIdxName :: String
-                    , valIdxIdx :: Index
-                    }
-         | NetIndex { netIdxId :: NetId
-                    , netIdxIdx :: Index
-                    }
-         | Lit { litBinVal :: BinVal }
-         deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
-
-type ValBundle = Bundle Val
-
-data Signal = Signal { signalName :: Maybe ValBundle
+data Signal = Signal { signalName :: Maybe Sig
                      , signalWidth :: Int
                      , signalDirection :: Maybe Direction
                      } deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
@@ -181,6 +148,7 @@ data Schematic = Schematic [Part] deriving (Generic, Show, Eq, Ord, ToJSON)
 instance Hashable Schematic where
   hash (Schematic v) = hash v
 
+
 data Module = Module { moduleName :: String
                      , moduleSchem :: Maybe Schematic
                      , moduleTest :: Maybe ModTest
@@ -213,8 +181,8 @@ data Thresholds = Thresholds { thVol :: Double
                              , thVoh :: Double
                              } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-newtype Inputs = Inputs [ValBundle] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
-newtype Outputs = Outputs [ValBundle] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+newtype Inputs = Inputs [Sig] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+newtype Outputs = Outputs [Sig] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data Mode = Device | Gate deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
@@ -226,7 +194,7 @@ data Action = Assert String
             | Deassert String
             | Sample String
             | Tran Duration
-            | SetSignal ValBundle Double
+            | SetSignal Sig Double
               deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 newtype CycleLine = CycleLine [Action] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
@@ -237,13 +205,13 @@ data TestLine = TestLine { testLineBinVals :: [BinVal]
                          , testLineComment :: Maybe String
                          } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-data PlotDef = PlotDef ValBundle [String] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+data PlotDef = PlotDef Sig [String] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-data PlotStyle = BinStyle ValBundle
-               | HexStyle ValBundle
-               | DecStyle ValBundle
-               | SimplePlot ValBundle
-               | PlotDefStyle String ValBundle
+data PlotStyle = BinStyle Sig
+               | HexStyle Sig
+               | DecStyle Sig
+               | SimplePlot Sig
+               | PlotDefStyle String Sig
                  deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data ModTest = ModTest { modPower :: Maybe Power

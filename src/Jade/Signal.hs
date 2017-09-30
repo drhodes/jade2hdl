@@ -7,7 +7,7 @@ module Jade.Signal ( width
                    ) where
 
 import Jade.Common
-import qualified Jade.Decode.Bundle as Bundle
+import qualified Jade.Bundle as Bundle
 import Control.Monad
 import Data.Maybe
 

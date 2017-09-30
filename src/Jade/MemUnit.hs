@@ -12,7 +12,7 @@ import qualified Data.Maybe as Maybe
 import qualified Jade.Decode.Decode as D
 import qualified Jade.Decode.Sig as Sig
 import qualified Jade.Decode.Coord as Coord
-import qualified Jade.Decode.Bundle as Bundle
+import qualified Jade.Bundle as Bundle
 import Jade.Common
 import Jade.Util
 import Control.Monad
@@ -51,12 +51,12 @@ buildPort mem@(MemUnit name loc _ nports naddr ndata) portno = "MemUnit.buildPor
       Coord3 x y r = loc
       withOffset x' y' = Coord.rotate (Coord3 (x+x') (offsetY(y+y')) Rot0) r (x+0) (y+0)
 
-      addrSig = Sig.explode $ if naddr == 1
-                              then simple "ADDR"
-                              else SigRange (sigport "ADDR") (naddr - 1) 0
-      dataSig = Sig.explode $ if naddr == 1
-                              then simple "DATA"
-                              else SigRange (sigport "DATA") (naddr - 1) 0
+      addrSig = Bundle.explode $ if naddr == 1
+                                 then simple "ADDR"
+                                 else SigRange (sigport "ADDR") (naddr - 1) 0
+      dataSig = Bundle.explode $ if naddr == 1
+                                 then simple "DATA"
+                                 else SigRange (sigport "DATA") (naddr - 1) 0
 
       
   nb $ format "memunit location {0}, {1}" [show x, show y]

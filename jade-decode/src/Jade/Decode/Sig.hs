@@ -1,6 +1,5 @@
-module Jade.Decode.Sig ( sigBundle
-                       , explode
-                       , parseSig
+module Jade.Decode.Sig ( parseSig
+                       , oneSig
                        , width
                        , twosComplement
                        ) where
@@ -13,7 +12,8 @@ import Text.Parsec
 import Text.Parsec.String
 import qualified Numeric as N
 import qualified Text.Parsec.Number as TPN
-import qualified Jade.Decode.Bundle as Bundle
+import Jade.Decode.Types
+--import qualified Jade.Decode.Bundle as Bundle
 
 {-
 signal names need to be parsed.
@@ -37,23 +37,23 @@ symbol = do
     x -> return x
 
 -- := sig#count         replicate sig specified number of times 
-sigHash :: Parser ValBundle
+sigHash :: Parser Sig
 sigHash = do name <- symbol
              char '#'
              n <- many1 digit -- this may start with zero!
-             return $ explode $ SigHash name (read n)
+             return $ SigHash name (read n)
 
 -- := sig[idx] 
-sigIndex :: Parser ValBundle
+sigIndex :: Parser Sig
 sigIndex = do
   name <- symbol
   char '['
   idx <- many1 digit
   char ']'
-  return $ explode $ SigIndex name (read idx)
+  return $ SigIndex name (read idx)
 
 -- := sig[start:stop]   expands to sig[start],sig[start+step],...,sig[end]
-sigRange :: Parser ValBundle
+sigRange :: Parser Sig
 sigRange = do
   name <- symbol
   char '['
@@ -61,14 +61,14 @@ sigRange = do
   char ':'
   to <- many1 digit
   char ']'
-  return $ explode (SigRange name (read from) (read to)) 
+  return $ SigRange name (read from) (read to)
     
 -- explode s = case explode s of
 --                  Left msg -> fail $ msg ++ (show log)
 --                  Right xs -> xs
 
 -- := sig[start:stop:step]   expands to sig[start],sig[start+step],...,sig[end]
-sigRangeStep :: Parser ValBundle
+sigRangeStep :: Parser Sig
 sigRangeStep = do name <- symbol
                   char '['
                   from <- many1 digit
@@ -77,7 +77,7 @@ sigRangeStep = do name <- symbol
                   char ':'
                   step <- many1 digit
                   char ']'
-                  return $ explode $ SigRangeStep name (read from) (read to) (read step)
+                  return $ SigRangeStep name (read from) (read to) (read step)
 
 hex :: Parser Integer
 hex = do string "0"
@@ -99,17 +99,17 @@ number = choice [ try hex
                 ]
   
 -- := number'size // generate appropriate list of vdd, gnd to represent number
-sigQuote :: Parser ValBundle
+sigQuote :: Parser Sig
 sigQuote = do val <- number
               char '\''
               width <- many1 digit
-              return $ explode (SigQuote val (read width))
+              return $ SigQuote val (read width)
 
-sigSimple :: Parser ValBundle
+sigSimple :: Parser Sig
 sigSimple = do s <- symbol
-               return $ explode (SigSimple s)
+               return $ SigSimple s
 
-oneBundle :: Parser ValBundle
+oneBundle :: Parser Sig
 oneBundle = choice $ map try [ sigQuote
                              , sigHash
                              , sigRange
@@ -118,19 +118,19 @@ oneBundle = choice $ map try [ sigQuote
                              , sigSimple
                              ] 
 
-sigConcat :: Parser ValBundle
+sigConcat :: Parser Sig
 sigConcat = do x <- oneBundle
                xs <- many1 $ do hspaces
                                 char ','
                                 hspaces
                                 oneBundle
-               return $ mconcat (x:xs)
+               return $ SigConcat (x:xs)
 
-sigBundle :: Parser ValBundle
-sigBundle = choice $ map try [ sigConcat, oneBundle ]
+oneSig :: Parser Sig
+oneSig = choice $ map try [ sigConcat, oneBundle ]
 
-parseSig :: String -> Either ParseError ValBundle
-parseSig s = parse sigBundle "signal" s
+parseSig :: String -> Either ParseError Sig
+parseSig s = parse oneSig "signal" s
 
 width :: Sig -> Integer
 width sig = case sig of
@@ -145,7 +145,8 @@ width sig = case sig of
                                              in fromIntegral $ length range
               SigQuote _ w -> fromIntegral w
 
-explode :: Sig -> ValBundle
+{-
+explode :: Sig -> Sig
 explode sig =
   let result =
         case sig of 
@@ -158,6 +159,7 @@ explode sig =
             map (ValIndex name) (range from to step)
           SigQuote val width -> map Lit $ twosComplement val width
   in Bundle result
+-}
 
 range from to step = if from < to 
                      then [from, from+step .. to] -- ascending

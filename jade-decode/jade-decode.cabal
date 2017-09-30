@@ -19,9 +19,7 @@ library
                      , Jade.Decode.Util
                      , Jade.Decode.Types
                      , Jade.Decode.ModTest
-                     , Jade.Decode.Bundle
                      , Jade.Decode.Sig
-                     , Jade.Decode.Val
                      , Jade.Decode.Coord
                        
   build-depends:       aeson >= 1.1.2.0
@@ -42,11 +40,11 @@ library
 
 test-suite jade-decode-test
   type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
+  hs-source-dirs:      test/Jade/Decoder/Test/
   main-is:             TestAll.hs
   
   other-modules: TestDecode
-               , TestSig
+                 TestSig
   
   build-depends:       aeson >= 1.1.2.0
                      , rawr

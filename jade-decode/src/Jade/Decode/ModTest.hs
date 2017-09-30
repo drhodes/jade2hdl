@@ -1,7 +1,7 @@
 module Jade.Decode.ModTest ( parseModTestString
-                           , setSignals
-                           , assertBitVals
-                           , sampleBitVals
+                           -- , setSignals      these will probably have to move out to another module.
+                           -- , assertBitVals
+                           -- , sampleBitVals
                            , getTestlineComment
                            ) where
 
@@ -10,9 +10,9 @@ import Jade.Decode.Types
 import Jade.Decode.Util
 import Text.Parsec
 import Text.Parsec.String
-import qualified Data.List as DL
-import qualified Jade.Decode.Bundle as Bundle
+
 import qualified Jade.Decode.Sig as Sig
+import qualified Data.List as DL
 import qualified Numeric as N
 import qualified Text.Parsec.Number as TPN
 
@@ -40,14 +40,14 @@ power = do string ".power"
 plotDef :: Parser PlotDef
 plotDef = do string ".plotdef"
              hspaces
-             sig <- Sig.sigBundle
+             sig <- Sig.oneSig
              labels <- many1 $ try (hspaces >> (many1 alphaNum <|> string "?"))
              return $ PlotDef sig labels
 
 simplePlot :: Parser PlotStyle
 simplePlot = do string ".plot"
                 hspaces
-                SimplePlot <$> Sig.sigBundle
+                SimplePlot <$> Sig.oneSig
 
 
 basePlot :: Parser PlotStyle
@@ -56,7 +56,7 @@ basePlot = do string ".plot"
               base <- oneOf "XDB"
               char '('
               hspaces
-              sig <- Sig.sigBundle
+              sig <- Sig.oneSig
               hspaces
               char ')'
               return $ case base of
@@ -70,7 +70,7 @@ plotDefStyle = do string ".plot"
                   name <- ident
                   char '('
                   hspaces
-                  sig <- Sig.sigBundle
+                  sig <- Sig.oneSig
                   hspaces 
                   char ')'
                   return $ PlotDefStyle name sig
@@ -92,7 +92,7 @@ inputs :: Parser Inputs
 inputs = do string ".group"
             hspaces
             string "inputs"
-            ins <- many1 $ try (hspaces >> Sig.sigBundle)
+            ins <- many1 $ try (hspaces >> Sig.oneSig)
             return $ Inputs ins
 
 outputs :: Parser Outputs
@@ -100,7 +100,7 @@ outputs = do string ".group"
              hspaces
              string "outputs"
              hspaces
-             outs <- many1 $ try (hspaces >> Sig.sigBundle)
+             outs <- many1 $ try (hspaces >> Sig.oneSig)
              return $ Outputs outs
 
 mode :: Parser Mode
@@ -145,7 +145,7 @@ actionTran = do
 
 actionSetSignal :: Parser Action
 actionSetSignal = do
-  sigName <- Sig.sigBundle
+  sigName <- Sig.oneSig
   spaces
   string "="
   spaces 
@@ -288,21 +288,26 @@ parseModTestString s =
       linePairs = zip [1..] xs
   in acreteAll "change-me" defaultModTest linePairs
 
+{-
 assertBitVals modt (TestLine bvs _) = do
   let Just (Inputs inSigs) = modInputs modt
       inWidths = map Bundle.width inSigs
       totalInWidth = sum inWidths
   return $ take (fromIntegral totalInWidth) bvs
+-}
 
-sampleBitVals modt testline@(TestLine bvs _) = do
-  assertBvs <- assertBitVals modt testline
-  return $ drop (length assertBvs) bvs
 
+-- sampleBitVals modt testline@(TestLine bvs _) = do
+--   assertBvs <- assertBitVals modt testline
+--   return $ drop (length assertBvs) bvs
+
+{-
 setSignals :: ModTest -> [ValBundle]
 setSignals modt =
   case modCycleLine modt of
     Just (CycleLine actions) -> DL.nub [bndl | SetSignal bndl _ <- actions]
     Nothing -> []
-  
+-}
+
 getTestlineComment (TestLine _ (Just s)) = s
 getTestlineComment _ = "empty comment"

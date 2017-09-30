@@ -19,6 +19,47 @@ import Data.Aeson
 import Rawr.Note
 import Jade.Decode.Types
 
+
+
+newtype Bundle a = Bundle [a] deriving (Show, Eq, Generic, Hashable, Ord, Foldable, ToJSON)
+
+type NetId = Integer
+
+data Val = ValIndex { valIdxName :: String
+                    , valIdxIdx :: Index
+                    }
+         | NetIndex { netIdxId :: NetId
+                    , netIdxIdx :: Index
+                    }
+         | Lit { litBinVal :: BinVal }
+         deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
+
+type ValBundle = Bundle Val
+
+
+instance Functor Bundle where
+  fmap f (Bundle xs) = Bundle (map f xs) 
+instance Applicative Bundle where
+  pure x = Bundle [x]
+  (<*>) (Bundle fs) (Bundle xs) = Bundle (fs <*> xs)
+instance Monad Bundle where
+  (>>=) (Bundle xs) f = Bundle $ concat [ys | Bundle ys <- map f xs]
+instance Monoid (Bundle a) where
+  mconcat bs = Bundle $ concat [x | Bundle x <- bs]
+  mappend (Bundle x) (Bundle y) = Bundle (x ++ y)
+  mempty = Bundle []
+
+
+------------------------------------------------------------------
+-- introducing another stage for inferring wire size and things.
+
+
+data PostSignal = PostSignal { postSignalBundle :: Maybe ValBundle
+                             , postSignalWidth :: Int
+                             , postSignalDirection :: Maybe Direction
+                             } deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
+
+
 ------------------------------------------------------------------
 data Node = Node { nodeLocation :: (Integer, Integer)
                  , nodePart :: Part 

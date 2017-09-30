@@ -7,23 +7,22 @@ import Control.Monad
 import Data.Aeson
 import Data.Aeson.Types
 import Data.ByteString.Lazy.Internal
-import Data.Text.Encoding
 import Data.FileEmbed
+import Data.Text.Encoding
 import Data.Traversable
 import GHC.Generics
 import Jade.Decode.Types
 import Jade.Decode.Util
-import qualified Jade.Decode.Sig as Sig
-import qualified Jade.Decode.Bundle as Bundle
-import qualified Data.ByteString.Lazy as DBL
 import qualified Data.ByteString as DB
+import qualified Data.ByteString.Lazy as DBL
+import qualified Data.Char as DC
 import qualified Data.Map as DM
 import qualified Data.Maybe as M
-import qualified Data.Char as DC
 import qualified Data.Scientific as DS
 import qualified Data.String.Class as DSC
 import qualified Data.Vector as V
 import qualified Jade.Decode.ModTest as MT
+import qualified Jade.Decode.Sig as Sig
 import qualified System.Environment as SE
 import qualified Text.Read as TR
 
@@ -75,8 +74,8 @@ instance FromJSON Signal where
       Just s -> case Sig.parseSig s of
                   Right sig -> do
                     let w' = case userLabeledWidth of
-                          Nothing -> Bundle.width sig
-                          Just str -> inferredWidth
+                          Nothing -> Sig.width sig
+                          Just str -> fromIntegral inferredWidth
                     return $ Signal (Just sig) inferredWidth dir
                   Left msg -> fail (show msg ++ "\n" ++ s)
 
@@ -96,14 +95,15 @@ instance FromJSON Coord5 where
 instance FromJSON Wire where
   parseJSON (Array v) = "Decode.Wire" <?? do
     if V.length v == 2
-    then do
-      c5 <- parseJSON $ v V.! 1
-      return $ Wire c5 Nothing -- no signal 
-    else do
-      c5 <- (parseJSON $ v V.! 1)
-      sig <- (parseJSON $ v V.! 2)
-      return $ Wire c5 (Just sig)
-
+      then do c5 <- parseJSON $ v V.! 1
+              -- need to make up a wire name.
+              -- since there is no
+              return $ Wire c5 Nothing -- no signal
+                    
+      else do c5 <- (parseJSON $ v V.! 1)
+              sig <- (parseJSON $ v V.! 2)
+              return $ Wire c5 (Just sig)
+  
 -- [ "line", [ 40, 8, 0, -4, 0 ] ]
 instance FromJSON Line where
   parseJSON (Array v) = "Decode.Line.Array" <??
@@ -166,7 +166,6 @@ instance FromJSON Terminal where
     
         c3 <- parseJSON v1
         Object o <- parseJSON v2
-    
         s <- o .: "name" -- signal name
     
         case Sig.parseSig s of
@@ -247,7 +246,7 @@ instance FromJSON Part where
       "memory" -> SubModuleC . SubMemUnit <$> parseJSON v
       "vdd" -> do
         Vdd (Coord3 x y r) <- parseJSON v
-        let signal = Just $ Signal (Just $ Bundle [Lit H]) 1 Nothing
+        let signal = Just $ Signal (Just (SigQuote 1 1)) 1 Nothing
             w = Wire (Coord5 x y r 0 0) signal
         return $ WireC w
       txt -> if txt `startsWith` "text"
