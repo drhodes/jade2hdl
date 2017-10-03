@@ -1,21 +1,25 @@
-module Jade.Wire ( toEdge
-                 , ends
-                 , hasSameSig
-                 , hasSigName
-                 , width
-                 , getBundle
-                 , explode
-                 , new
-                 , portToEdge
-                 , mkDegenerate
-                 , getIndexesWithName
-                 , points
-                 ) where
+module Jade.Wire where
 
 import Jade.Common
 import qualified Jade.Signal as Signal
 import qualified Jade.Decode.Coord as Coord
 
+ends w@(Wire c5 _) = Coord.coord5ends c5
+points (Wire c5 _) = Coord.points c5
+
+isAnon (Wire _ Nothing) = True
+isAnon _ = False
+
+getSig (Wire _ Nothing) = Nothing
+getSig (Wire _ (Just s1)) = Signal.getSig s1
+
+
+
+-- hasSigName (Wire _ Nothing) = False
+-- hasSigName (Wire _ (Just s1)) = Signal.hasSigName s1
+
+
+{-
 toEdge w@(Wire (Coord5 x y rot dx dy) _) =
   let x' = x + (Coord.transformX rot dx dy)
       y' = y + (Coord.transformY rot dx dy)
@@ -23,16 +27,12 @@ toEdge w@(Wire (Coord5 x y rot dx dy) _) =
       n2 = Node (x', y') (WireC w)
   in Edge n1 n2
 
-ends w@(Wire c5 _) = Coord.coord5ends c5
 
 hasSameSig (Wire _ Nothing) _ = False
 hasSameSig _ (Wire _ Nothing) = False
 hasSameSig (Wire _ s1) (Wire _ s2) = s1 == s2
 
-hasSigName (Wire _ Nothing) = False
-hasSigName (Wire _ (Just s1)) = Signal.hasSigName s1
 
-points (Wire c5 _) = Coord.points c5
 
 
 width :: Wire -> Int
@@ -62,3 +62,4 @@ mkDegenerate c = new (Coord.c3ToPoint c) (Coord.c3ToPoint c)
 
 getIndexesWithName (Wire _ (Just signal)) name = Signal.getIndexesWithName signal name
 getIndexesWithName _ _ = []
+-}

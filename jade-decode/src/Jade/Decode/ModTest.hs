@@ -1,5 +1,5 @@
 module Jade.Decode.ModTest ( parseModTestString
-                           -- , setSignals      these will probably have to move out to another module.
+                           , setSignals      --these will probably have to move out to another module.
                            -- , assertBitVals
                            -- , sampleBitVals
                            , getTestlineComment
@@ -308,6 +308,14 @@ setSignals modt =
     Just (CycleLine actions) -> DL.nub [bndl | SetSignal bndl _ <- actions]
     Nothing -> []
 -}
+setSignals :: ModTest -> [Action]
+setSignals modt =
+  case modCycleLine modt of
+    Just (CycleLine actions) -> actions --DL.nub [bndl | SetSignal bndl _ <- actions]
+    Nothing -> []
+
+
+
 
 getTestlineComment (TestLine _ (Just s)) = s
 getTestlineComment _ = "empty comment"

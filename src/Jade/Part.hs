@@ -1,33 +1,78 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Jade.Part ( isTerm
-                 , isSubModule
-                 , removeTerms
-                 , bundle
-                 , getValsWithIdent
-                 , getBundleWithIdent
-                 , getBundleWithLit
-                 , width
-                 , hasVal
-                 , getLitVals
-                 , containsIdentifier
-                 , getNames
-                 , loc
-                 , toWire
-                 , hasPoint
-                 ) where
+module Jade.Part where
 
 import Jade.Common
 import Control.Monad
 import Data.Maybe
 import qualified Jade.Port as Port
 import qualified Jade.Jumper as Jumper
-import qualified Jade.SubModule as SubModule
-import qualified Jade.Module as Moduile
+import qualified Jade.Term as Term
 import qualified Jade.Wire as Wire
+import qualified Jade.SubModule as SubModule
+
+{-
+import qualified Jade.Module as Moduile
 import qualified Jade.Signal as Signal
 import qualified Jade.Decode.Bundle as Bundle
-import qualified Jade.Term as Term
+-}
 
+
+loc part =
+  case part of
+    PortC (Port (Coord3 x y _) _) -> return (x, y)
+    WireC _ -> die "Part.loc doesn't support Wire"
+    TermC (Terminal (Coord3 x y _) _) -> return (x, y)
+    x -> die $ "Part.loc: doesn't support: " ++ show x
+
+
+points :: Part -> J [Point]
+points part = "Part.points" <? do
+  case part of 
+    PortC x -> return $ Port.points x
+    SubModuleC x -> SubModule.points x 
+    WireC x -> return $ Wire.points x
+    JumperC x -> return $ Jumper.points x
+    TermC x -> return $ Term.points x
+    UnusedPart -> return []
+
+
+hasPoint :: Part -> Point -> J Bool
+hasPoint part point = "Part.hasPoint" <? do
+  (point `elem`) <$> (points part)
+
+
+getSig :: Part -> Maybe Sig
+getSig part = case part of
+                PortC x -> Port.getSig x
+                SubModuleC x -> Nothing
+                WireC x -> Wire.getSig x
+                JumperC x -> Nothing
+                TermC x -> Just $ Term.getSig x
+                UnusedPart -> Nothing
+    
+  
+hasSig = isNothing . getSig
+
+
+isJumper (JumperC _) = True
+isJumper _ = False
+
+isWire (WireC _) = True
+isWire _ = False
+
+isPort (PortC _) = True
+isPort _ = False
+
+isTerm (TermC _) = True
+isTerm _ = False
+
+isNamedConnector :: Part -> Bool
+isNamedConnector = forSome [isWire, isJumper, isPort] 
+
+filterConnectors = filter isNamedConnector 
+
+
+{-
 bundle :: Part -> ValBundle
 bundle part =
   case part of
@@ -54,11 +99,6 @@ containsIdentifier part ident = Bundle.containsIdentifier (bundle part) ident
 
 hasVal part val = Bundle.hasVal (bundle part) val
 
--- isJumper (JumperC _) = True
--- isJumper _ = False
-
--- isWire (WireC _) = True
--- isWire _ = False
 
 toWire (WireC w) = Just w
 toWire _ = Nothing
@@ -77,29 +117,6 @@ removeTerms parts = filter (not . isTerm) parts
 
 getNames part = Bundle.getNames (bundle part)
 
-loc part =
-  case part of
-    PortC (Port (Coord3 x y _) _) -> return (x, y)
-    WireC _ -> die "Part.loc doesn't support Wire"
-    TermC (Terminal (Coord3 x y _) _) -> return (x, y)
-    x -> die $ "Part.loc: doesn't support: " ++ show x
-
-points :: Part -> J [Point]
-points part = "Part.points" <? do
-  case part of 
-    PortC x -> return $ Port.points x
-    SubModuleC x -> SubModule.points x 
-    WireC x -> return $ Wire.points x
-    JumperC x -> return $ Jumper.points x
-    TermC x -> return $ Term.points x
-    UnusedPart -> return []
-
-hasPoint :: Part -> Point -> J Bool
-hasPoint part point = "Part.hasPoint" <? do
-  enb ("PART!", part)
-  asdf <- points part
-  enb (point, asdf)
-  (point `elem`) <$> (points part)
 
 width :: Part -> J Int
 width part = do
@@ -114,3 +131,6 @@ width part = do
     WireC (Wire _ Nothing) -> return 1
     TermC (Terminal _ s) -> return $ Bundle.width s
     x -> die $ "Part.width: Not implemented for: " ++ show x
+-}
+
+

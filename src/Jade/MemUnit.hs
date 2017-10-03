@@ -1,8 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Jade.MemUnit ( terminals
-                    , getInputTerminals
-                    , getOutputTerminals
-                    ) where
+module Jade.MemUnit (
+  -- terminals
+  -- , getInputTerminals
+  -- , getOutputTerminals
+  ) where
 
 import qualified Data.Map as DM
 import qualified Data.Set as DS
@@ -26,7 +27,10 @@ import Text.Format
 {- how to make the machine understand the protocols of 2 or 3 port
  memory.  Can idris know about this, can the protocol be described in
  the type system? -}
-  
+
+
+
+{-  
 -- | Get a list of input and output terminals in a memunit submodule
 
 terminals :: MemUnit -> J [Terminal]
@@ -72,3 +76,4 @@ buildPort mem@(MemUnit name loc _ nports naddr ndata) portno = "MemUnit.buildPor
   return terms
 
 
+-}

@@ -183,3 +183,4 @@ flycheck_*.el
 TAGS
 test-data/auto-vhdl/
 logs/
+test-data/union-find/

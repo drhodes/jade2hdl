@@ -133,13 +133,19 @@ data MemUnit = MemUnit { memName :: String
                          -- ^ width of the output data terminal
                        } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
+type PartId = Integer
+
+data Stage = StageDecode
+           | StageWire
+
+
 data Part = PortC Port
           | SubModuleC SubModule
           | WireC Wire
           | JumperC Jumper
-          | TermC Terminal
+          | TermC Terminal 
           | UnusedPart
-          deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+  deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 type Test = String
 
@@ -147,7 +153,6 @@ data Schematic = Schematic [Part] deriving (Generic, Show, Eq, Ord, ToJSON)
 
 instance Hashable Schematic where
   hash (Schematic v) = hash v
-
 
 data Module = Module { moduleName :: String
                      , moduleSchem :: Maybe Schematic

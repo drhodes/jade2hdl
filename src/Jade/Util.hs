@@ -116,3 +116,14 @@ triangleProd [] = []
 triangleProd (x:xs) = zip (repeat x) xs ++ (triangleProd xs)
 
 replace x y str = [if c == x then y else c | c <- str]
+
+
+takeFirst f xs =
+  let part1 = takeWhile (not . f) xs
+  in if part1 == xs
+     then (Nothing, xs)          
+     else let rest = drop (length part1) xs
+          in (Just $ head rest, part1 ++ (drop 1 rest))
+
+forSome fs x = or [f x | f <- fs]
+forAll fs x = and [f x | f <- fs]

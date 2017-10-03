@@ -1,17 +1,4 @@
-module Jade.Module ( Jade.Module.getSchematic
-                   , terminals
-                   , getInputs
-                   , getOutputs
-                   , getInputTerminals
-                   , getOutputTerminals
-                   , getInputsNoSetSigs
-                   , mangleModName
-                   , testLines
-                   , cycleLine
-                   , boundingBox
-                   , testBenchName
-                   , getSamplesWithName
-                   ) where
+module Jade.Module where
 
 import Control.Monad
 import qualified Data.Map as DM
@@ -24,11 +11,8 @@ import qualified Jade.Decode.ModTest as ModTest
 import qualified Jade.BoundingBox as BoundingBox
 import Jade.Common hiding (replace)
 import Text.Format
-import qualified Jade.Decode.Bundle as Bundle
+import qualified Jade.Bundle as Bundle
 
-getIcon :: Module -> J Icon
-getIcon (Module _ _ _ (Just x)) = return x
-getIcon _ = die "No icon found in module"
 
 terminals :: Module -> Coord3 -> J [Terminal]
 terminals mod p@(Coord3 mx my mr) = do --"Module.terminals" <? do
@@ -37,6 +21,12 @@ terminals mod p@(Coord3 mx my mr) = do --"Module.terminals" <? do
         let (Coord3 dx dy _) = Coord.rotate (Coord3 tx ty Rot0) mr 0 0
         in Terminal (Coord3 (mx + dx) (my + dy) (Coord.composeRot mr tr)) sig
   return $ [rotateTerm t | IconTerm t <- iconParts icon]
+
+getIcon :: Module -> J Icon
+getIcon (Module _ _ _ (Just x)) = return x
+getIcon _ = die "No icon found in module"
+
+{-
 
 getSchematic :: Module -> J Schematic
 getSchematic (Module name schem _ __) = "Module.getSchematic" <?
@@ -131,3 +121,4 @@ mangleModName modname = "mod" ++ replace "/" "_" modname
 
 testBenchName modname = mangleModName modname ++ "_tb"
 
+-}

@@ -15,10 +15,19 @@ import Prelude hiding (id)
 data UnionFind s = UnionFind { ids :: STUArray s Int Int
                              , szs :: STUArray s Int Int }
 
-newUnionFind :: Int -> ST s (UnionFind s)
+
+newUnionFind :: Int
+             -- ^ specify the max number of elements.
+             -> ST s (UnionFind s)
 newUnionFind n = liftM2 UnionFind (newListArray (0, n-1) [0..n-1]) (newArray (0, n-1) 1)
 
-find :: UnionFind s -> Int -> Int -> ST s Bool
+find :: UnionFind s
+     -- ^ a union find object
+     -> Int
+     -- ^ an index into the id array
+     -> Int
+     -- ^ an index into the id array
+     -> ST s Bool
 find uf p q = liftM2 (==) (root uf p) (root uf q)
 
 root :: UnionFind s -> Int -> ST s Int
@@ -44,8 +53,6 @@ unite uf p q = do
               writeArray (szs uf) i (szj + szi)
 -- end of swipe from
 -- https://gist.github.com/kseo/8693028
-
-
 
 components :: [Edge] -> [Net]
 components edges = runST $ do

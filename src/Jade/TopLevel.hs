@@ -1,28 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Jade.TopLevel ( getNetsWithName
-                     , connectWiresWithSameSigName
-                     , dependencyOrder
-                     , explodeConnect
-                     , getAllIndexesWithName
-                     , getAllSigNames
-                     , getInputs
-                     , getInternalSigNames
-                     , getModule
-                     , getOutputs
-                     , getSchematic
-                     , getSubModules
-                     , getTerminalsAtPoint
-                     , getWidthOfValName
-                     , getWidthOfPartsAtTerminal
-                     , isNetDriver
-                     , netWithTerminal
-                     , nets
-                     , numNets
-                     , replicationDepth
-                     , terminals
-                     ) where
+module Jade.TopLevel where
 
 import Control.Monad
 import Control.Monad.State
@@ -33,26 +12,113 @@ import qualified Data.Map as DM
 import qualified Data.Maybe as Maybe
 import qualified Data.Set as DS
 import qualified Data.Vector as DV
+import qualified Jade.Schematic as Schematic
+import qualified Jade.Part as Part
+import qualified Jade.Wire as Wire
+import qualified Jade.Module as Module
+import qualified Jade.QUF as QUF
+
+{-
 import qualified Jade.Decode.Bundle as Bundle
 import qualified Jade.Decode.Decode as D
 import qualified Jade.Jumper as Jumper
 import qualified Jade.MemUnit as MemUnit
-import qualified Jade.Module as Module
 import qualified Jade.Net as Net
-import qualified Jade.Part as Part
-import qualified Jade.Schematic as Schem
 import qualified Jade.Term as Term
 import qualified Jade.UnionFindST as UF
-import qualified Jade.Wire as Wire
 import qualified Web.Hashids as WH
+-}
 
 getSubModules :: String -> J [SubModule]
 getSubModules modname = do --"TopLevel.getSubModules" <? do
   (Module _ schem _ _) <- getModule modname
   case schem of 
-    Just schem -> return $ Schem.getSubModules schem
+    Just schem -> return $ Schematic.getSubModules schem
     Nothing -> die "No schematics found"
+
+-- deanonymizeWire :: Wire -> [Part] -> J Wire
+-- deanonymizeWire wire parts = do
+--   when (not $ Wire.isAnon wire) (die "wire already has a name")
+--   unimplemented
+
+type Id = Int
+type PointConnection = (Point, Point)
+type IdConnection = (Id, Id)
+type IdPointTable = DM.Map Point Id
+type PointIdTable = DM.Map Id Point 
+type PointPartTable = DM.Map Point (DS.Set Part) -- parts at point
+
+wirePass :: String -> J TopLevel
+wirePass modname = "TopLevel.wirePass" <? do
+  schem <- getSchematic modname
+  let parts = Schematic.getAllParts schem
+      anonWires = Schematic.getAnonWires schem
+  unimplemented
+
+addPointPartToTable :: (Point, Part) -> PointPartTable -> PointPartTable
+addPointPartToTable (point, part) table =
+  case DM.lookup point table of
+    Nothing -> DM.insert point (DS.singleton part) table
+    Just set -> DM.insert point (DS.insert part set) table
+
+buildPointPartTable :: [Part] -> J PointPartTable
+buildPointPartTable [] = return DM.empty
+buildPointPartTable (part:parts) = "TopLevel.buildPointPartTable" <? do
+  let f key table = addPointPartToTable (key, part) table
+  ps <- Part.points part
+  case ps of
+    [p] -> f p <$> buildPointPartTable parts
+    [p1, p2] -> f p2 <$> f p1 <$> buildPointPartTable parts
+    _ -> die "undefined behavior"
+
+lookupPointPartTable table point =
+  case DM.lookup point table of
+    Just set -> set
+    Nothing -> DS.empty
+
+buildPointConnection part = "TopLevel.buildPointConnection" <? do
+  ps <- Part.points part
+  case ps of 
+    [p] -> return $ (p, p)
+    [p1, p2] -> return $ (p1, p2)
+    _ -> die "undefined behavior"
+    
+buildPointConnections parts = "TopLevel.buildPointConnections" <? do
+  mapM buildPointConnection parts
+ 
+wireComponents modname = do
+  parts <- Part.filterConnectors <$> getAllPartsNoTerms modname
+  connections <- buildPointConnections parts
+  ppt <- buildPointPartTable parts
   
+  let lookupComponent net = DS.unions $ map (lookupPointPartTable ppt) net 
+  let nets = QUF.components connections
+  return $ map lookupComponent nets
+
+getAllPartsNoTerms modname = Schematic.getAllParts <$> getSchematic modname
+
+getAllPartsAndTerms modname = do
+  terms <- map TermC <$> getAllTerminals modname
+  parts <- getAllPartsNoTerms modname
+  return $ parts ++ terms
+
+getAllTerminals :: String -> J [Terminal]
+getAllTerminals modname = do
+  schem <- getSchematic modname
+  concatMapM terminals $ Schematic.getSubModules schem
+
+-- | Get a list of input and output terminals in a submodule offset by
+-- the position of the submodule
+terminals :: SubModule -> J [Terminal]
+terminals (SubModule modname offset) = do --"TopLevel.terminals" <? do
+  nb $ show ("TopLevel.terminals checks submodule: " ++ modname)
+  mod <- getModule modname
+  Module.terminals mod offset
+
+-- terminals (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
+--   MemUnit.terminals memunit
+
+    {-
 -- a function to possible create an edge given a wire and a part
 makePartEdge :: Wire -> Part -> J (Maybe Edge)
 makePartEdge wire part = "TopLevel.makePartEdge" <? do
@@ -64,6 +130,7 @@ makePartEdge wire part = "TopLevel.makePartEdge" <? do
     else if ploc == loc2
          then return $ Just $ Edge (Node loc2 (WireC wire)) (Node ploc part)
          else return Nothing
+
 
 makeWire2WireEdge :: Wire -> Wire -> J (Maybe Edge)
 makeWire2WireEdge w1 w2 = "TopLevel.makeWire2WireEdge" <? 
@@ -227,16 +294,6 @@ netWithTerminal modname term@(Terminal c3@(Coord3 x y _) _) = "TopLevel.netWithT
                       , " This should not be possible, because all such nets should"
                       , " be connected if they contain the same node" ]
 
--- | Get a list of input and output terminals in a submodule offset by
--- the position of the submodule
-terminals :: SubModule -> J [Terminal]
-terminals (SubModule modname offset) = do --"TopLevel.terminals" <? do
-  nb $ show ("TopLevel.terminals checks submodule: " ++ modname)
-  mod <- getModule modname
-  Module.terminals mod offset
-
-terminals (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
-  MemUnit.terminals memunit
 
 -- | Get the number of distinct nodes in the schematic
 numNets :: String -> J Int
@@ -361,3 +418,6 @@ isNetDriver modname net = "TopLevel.isNetDriven" <? do
   -- so, no, they actually aren't.
   -- how many nets are there here?
   return False
+
+
+-}

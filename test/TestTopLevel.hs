@@ -3,17 +3,51 @@ module TestTopLevel (testTree) where
 import qualified Data.List as DL
 import qualified Data.ByteString as DB
 import qualified Jade.TopLevel as TopLevel
+import qualified Jade.Part as Part
 import qualified Jade.Decode.Decode as Decode
-import qualified Jade.Module as Modul
-import qualified Jade.Net as Net
-import qualified Jade.Wire as Wire
-import Text.Format
-import TestUtil
+-- import qualified Jade.Module as Modul
+-- import qualified Jade.Net as Net
+-- import qualified Jade.Wire as Wire
+-- import Text.Format
+-- import TestUtil
 import Control.Monad
 import Rawr.Types 
 import Rawr.Rawr
 import Jade.Common
 
+testTree = TestTree "TopLevel" [
+  --testTreeNumNets
+  -- , testTreeNumSubModules
+  -- , testTreeNumTerminals
+  -- , testTreeGetNetsWithNameAll
+  -- , testTreeConnectWiresWithSameSigName
+  -- , testTreeReplicationDepth
+  -- , testTreeGetWidthOfSigName
+  -- , testTreeMiscEtc
+  -- , testTreeGetInternalSigNames
+  -- , testTreeGetAllIndexesWithName
+  -- , testTreeGetTerminalsAtPoint
+                               ]
+
+           
+foo2 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/AnonWire1.json"
+  let func = do parts <- TopLevel.getAllPartsNoTerms "/user/AnonWire1"
+                let connectors = filter Part.isNamedConnector parts
+                TopLevel.buildPointPartTable connectors
+  case runJ topl func of
+    Right thing -> print ("RESULT", thing :: TopLevel.PointPartTable)
+    Left msg -> error msg
+
+foo3 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/AnonWire1.json"
+  let func = do cs <- TopLevel.wireComponents "/user/AnonWire1"
+                return cs
+  case runJ topl func of
+    Right thing -> print ("RESULT", thing)
+    Left msg -> error msg
+
+{-
 bendyWire1 :: IO TestState
 bendyWire1 = do
   Right topl <- Decode.decodeTopLevel "./test-data/bendy-wire-1.json"
@@ -266,18 +300,6 @@ testExplodeConnect1 = do
       w2 = Wire c2 (Just $ Signal (Just valBundle2) 2 Nothing)
   TopLevel.explodeConnect (w1, w2) 
      
-testTree = TestTree "TopLevel" [ testTreeNumNets
-                               , testTreeNumSubModules
-                               , testTreeNumTerminals
-                               , testTreeGetNetsWithNameAll
-                               , testTreeConnectWiresWithSameSigName
-                               , testTreeReplicationDepth
-                               , testTreeGetWidthOfSigName
-                               , testTreeMiscEtc
-                               , testTreeGetInternalSigNames
-                               , testTreeGetAllIndexesWithName
-                               , testTreeGetTerminalsAtPoint
-                               ]
 
 testGetTerminalsAtPoint modname point expected = do
   testExpGot modname expected $ do    
@@ -290,3 +312,4 @@ testTreeGetTerminalsAtPoint = TestTree "getTerminalsAtPoint" $
      , t "Buffer8" (Point 8 0) 1
      , t "CL" (Point 48 56) 2
      ]
+-}
