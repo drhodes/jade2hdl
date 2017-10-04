@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Jade.Net where
-
+{-
 import qualified Data.List as DL
 import Jade.Common
 import qualified Jade.Part as Part
@@ -76,3 +76,4 @@ getIndexesWithName net name = concat $ map (flip Wire.getIndexesWithName name) (
 
 
 
+-}

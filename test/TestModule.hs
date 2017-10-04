@@ -1,5 +1,5 @@
-module TestModule (testTree) where
-
+module TestModule where
+{-
 import qualified Data.Map as DM
 import qualified Data.List as DL
 import Jade.Common
@@ -124,3 +124,4 @@ testGetSamplesWithName sampleName modname exp = do
     Left msg -> return $ Fail $ unlines [msg, runLog topl func]
 
   
+-}

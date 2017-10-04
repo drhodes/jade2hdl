@@ -39,7 +39,10 @@ library
                      , Jade.Util
                      , Jade.Vhdl
                      , Jade.Wire
-
+                     , Jade.Bundle
+                     , Jade.QUF
+                     , Jade.Val
+                     
                      , TestModule
                      , TestUtil
 

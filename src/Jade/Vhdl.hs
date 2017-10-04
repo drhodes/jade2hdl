@@ -4,7 +4,7 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 
 module Jade.Vhdl where
-
+{-
 import Control.Monad
 import Data.FileEmbed
 import Data.Text.Encoding
@@ -469,3 +469,4 @@ assignAllOutputs' :: String -> [ValBundle] -> J [JMM.ValAssign]
 assignAllOutputs' modname modInputBundles = "Vhdl.assignAllOutputs" <? do
   concatMapM (JMM.assignBundle Out modname) modInputBundles
   
+-}

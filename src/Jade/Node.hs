@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Jade.Node where
+{-
 
 import qualified Data.List as DL
 import Jade.Common
@@ -20,3 +21,4 @@ width (Node _ part) = Part.width part
 hasVal (Node _ part) sig = Part.hasVal part sig
 
 getLitVals (Node _ part) = Part.getLitVals part
+-}

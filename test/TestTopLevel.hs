@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module TestTopLevel (testTree) where
 
 import qualified Data.List as DL
@@ -14,49 +15,82 @@ import Control.Monad
 import Rawr.Types 
 import Rawr.Rawr
 import Jade.Common
+import Text.Printf
 
-testTree = TestTree "TopLevel" [
-  --testTreeNumNets
-  -- , testTreeNumSubModules
-  -- , testTreeNumTerminals
-  -- , testTreeGetNetsWithNameAll
-  -- , testTreeConnectWiresWithSameSigName
-  -- , testTreeReplicationDepth
-  -- , testTreeGetWidthOfSigName
-  -- , testTreeMiscEtc
-  -- , testTreeGetInternalSigNames
-  -- , testTreeGetAllIndexesWithName
-  -- , testTreeGetTerminalsAtPoint
+testTree = TestTree "TopLevel" [ testTreeMiscEtc
+                               --testTreeNumNets
+                               -- , testTreeNumSubModules
+                               -- , testTreeNumTerminals
+                               -- , testTreeGetNetsWithNameAll
+                               -- , testTreeConnectWiresWithSameSigName
+                               -- , testTreeReplicationDepth
+                               -- , testTreeGetWidthOfSigName
+                               -- , testTreeMiscEtc
+                               -- , testTreeGetInternalSigNames
+                               -- , testTreeGetAllIndexesWithName
+                               -- , testTreeGetTerminalsAtPoint
                                ]
 
-foo2 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/AnonWire1.json"
-  let func = do parts <- TopLevel.getAllPartsNoTerms "/user/AnonWire1"
-                let connectors = filter Part.isNamedConnector parts
-                TopLevel.buildPointPartTable connectors
-  case runJ topl func of
-    Right thing -> do print "RESULT"
-                      print thing
-    Left msg -> error msg
-
-foo3 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/AnonWire1.json"
-  let func = do cs <- TopLevel.wireComponents "/user/AnonWire1"
+testNumWireComponents modname exp = do
+  Right topl <- Decode.decodeTopLevel (printf "./test-data/%s.json" modname)
+  let func = do cs <- TopLevel.wireComponents (printf "/user/%s" modname)
                 return (length cs)
-  case runJ topl func of
-    Right x -> if x == 2
-               then print "ok"
-               else print $  "Expected 2: got " ++ (show x)
-    Left msg -> error msg
+  return $ case runJ topl func of
+    Right x -> if x == exp
+               then Pass
+               else Fail $ printf "Expected %d: got: %d" exp x
+    Left msg -> Fail msg
 
-foo4 = do
-  Right topl <- Decode.decodeTopLevel "./test-data/AnonWire1.json"
-  let func = do cs <- TopLevel.wireComponents "/user/AnonWire1"
-                fullyNamed <- mapM TopLevel.deanonymizeWires cs
-                return fullyNamed
-  case runJ topl func of
-    Right thing -> print ("RESULT", thing)
-    Left msg -> error msg
+testTreeMiscEtc =
+  let t modname exp = TestCase modname (testNumWireComponents modname exp)
+  in TestTree "MiscEtc" $ [ t "Jumper21" 4
+                          , t "Jumper3" 3
+                          , t "Jumper41" 13                          
+                          , t "Jumper41Rot90" 13
+                          , t "Jumper5" 2 
+                          , t "Jumper6" 2
+                          , t "Jumper7" 1
+                          , t "Jumper8" 1
+                          , t "AnonWire3" 1
+                          , t "JumperPort1" 1
+                          , t "JumperPort2" 1
+                          , t "Mux21Rep32" 4
+                          , t "Mux4Rep1" 6
+                          , t "NoRepFA2" 9
+                          , t "Nor32Arith" 15
+                          , t "Nor32Arith2" 15
+                          , t "Nor32Arith4" 10
+                          , t "Nor32Arith5" 6
+                          , t "PortTest1" 1                          
+                          , t "RepBuffer1" 3
+                          , t "ShiftL1" 24
+                          , t "WireConnectMid2" 2 
+                          ]
+
+
+
+
+
+-- foo2 = do
+--   Right topl <- Decode.decodeTopLevel "./test-data/AnonWire1.json"
+--   let func = do parts <- TopLevel.getAllPartsNoTerms "/user/AnonWire1"
+--                 let connectors = filter Part.isNamedConnector parts
+--                 TopLevel.buildPointPartTable connectors
+--   case runJ topl func of
+--     Right thing -> do print "RESULT"
+--                       print thing
+--     Left msg -> error msg
+
+-- foo3 :: String -> Int -> IO ()
+-- foo3 modname exp = do
+--   Right topl <- Decode.decodeTopLevel (printf "./test-data/%s.json" modname)
+--   let func = do cs <- TopLevel.wireComponents (printf "/user/%s" modname)
+--                 return (length cs)
+--   case runJ topl func of
+--     Right x -> if x == exp
+--                then print "ok"
+--                else putStrLn $ printf "Expected %d: got: %d" exp x
+--     Left msg -> error msg
 
 
 

@@ -28,12 +28,11 @@ runTree' c tp (TestTree s trees) = do
       leaves = filter isTestCase trees :: [TestTree]
       notLeaves = filter (not . isTestCase) trees
 
-  xs <- concat <$> (sequence $ parMap (runLeaf (tp ++ [s])) leaves)
-  if allPass xs
-    then SCA.clearLine >> SCA.cursorUpLine 1
-    else return ()
+  xs <- concat <$> sequence (parMap (runLeaf (tp ++ [s])) leaves)
   
-  ys <- join <$> sequence  [runTree' c (tp ++ [s]) t | (c, t) <- zip nums notLeaves]
+  when (allPass xs) (SCA.clearLine >> SCA.cursorUpLine 1)
+  
+  ys <- join <$> sequence  [runTree' x (tp ++ [s]) t | (x, t) <- zip nums notLeaves]
   return $ xs ++ ys
   
 runTree' c tp (TestCase s f) = do
@@ -45,7 +44,7 @@ runTree' c tp (TestCase s f) = do
   return [result]
 
 runLeaf :: TestPath -> TestTree -> IO [TestState]
-runLeaf tp tc@(TestCase s f) = runTree' "." tp tc
+runLeaf tp tc = runTree' "." tp tc
 
 passes = do
   SCA.setSGR [SCA.SetColor SCA.Foreground SCA.Vivid SCA.Green] 
@@ -60,9 +59,9 @@ fails = do
 rawrLog tp name state =  
   case state of
     Pass -> return ()
-    Fail log -> do let fname = DL.intercalate "_" (tp ++ [name])
-                   let logPath = "./logs/" ++ fname ++ ".log"
-                   writeFile logPath log
+    Fail logmsg -> do let fname = DL.intercalate "_" (tp ++ [name])
+                      let logPath = "./logs/" ++ fname ++ ".log"
+                      writeFile logPath logmsg
 
 doTree :: String -> Writer [TestTree] a -> TestTree
 doTree name doblock = TestTree name  $ execWriter doblock

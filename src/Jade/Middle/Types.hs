@@ -4,7 +4,7 @@
 {-# LANGUAGE DeriveTraversable #-}
 
 module Jade.Middle.Types where
-
+{-
 import GHC.Generics
 import Data.Aeson
 import Control.Monad
@@ -54,3 +54,4 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
 
 data ModOutput = ModOutput TermMap deriving (Generic, ToJSON, Show, Eq)
 
+-}

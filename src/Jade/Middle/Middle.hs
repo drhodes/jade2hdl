@@ -4,18 +4,9 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveTraversable #-}
 
-module Jade.Middle.Middle ( assignConstantNet
-                          , subModuleInstances
-                          , memUnitInstance
-                          , assignBundle
-                          -- , assignInternalBundle
-                          , assignInternalSigFromRep
-                          , getAllOutputNetIdsFromRep
-                          , getAllInputNetIdsFromRep
-                          
-                          , module Jade.Middle.Types
-                          ) where
 
+module Jade.Middle.Middle where
+{-
 import Control.Monad
 import Data.Aeson
 import GHC.Generics
@@ -26,9 +17,9 @@ import qualified Data.List as DL
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.Vector as V
-import qualified Jade.Decode.Bundle as Bundle
+import qualified Jade.Bundle as Bundle
 import qualified Jade.Decode.Decode as Decode
-import qualified Jade.Decode.Val as Val
+import qualified Jade.Val as Val
 import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Module as Module
 import qualified Jade.Net as Net
@@ -183,3 +174,4 @@ getAllInputNetIdsFromRep rep = "Middle.getInputsNetIdsFromRep" <? do
 getInputNetIdsFromTermMap ins = [nid | TermAssoc _ src@(NetIndex nid _) tgt <- ins]
 
 
+-}

@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
-module TestIcon (testTree) where
-
+module TestIcon where
+{-
 import qualified Data.Map as DM
 import Jade.Common
 import qualified Jade.TopLevel as TopLevel
@@ -83,3 +83,4 @@ testTree = let tbbb2 s bb = test s $ testBuiltInBoundingBox s bb
               
  
     
+}
