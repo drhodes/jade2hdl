@@ -29,24 +29,38 @@ testTree = TestTree "TopLevel" [
   -- , testTreeGetTerminalsAtPoint
                                ]
 
-           
 foo2 = do
   Right topl <- Decode.decodeTopLevel "./test-data/AnonWire1.json"
   let func = do parts <- TopLevel.getAllPartsNoTerms "/user/AnonWire1"
                 let connectors = filter Part.isNamedConnector parts
                 TopLevel.buildPointPartTable connectors
   case runJ topl func of
-    Right thing -> print ("RESULT", thing :: TopLevel.PointPartTable)
+    Right thing -> do print "RESULT"
+                      print thing
     Left msg -> error msg
 
 foo3 = do
   Right topl <- Decode.decodeTopLevel "./test-data/AnonWire1.json"
   let func = do cs <- TopLevel.wireComponents "/user/AnonWire1"
-                return cs
+                return (length cs)
+  case runJ topl func of
+    Right x -> if x == 2
+               then print "ok"
+               else print $  "Expected 2: got " ++ (show x)
+    Left msg -> error msg
+
+foo4 = do
+  Right topl <- Decode.decodeTopLevel "./test-data/AnonWire1.json"
+  let func = do cs <- TopLevel.wireComponents "/user/AnonWire1"
+                fullyNamed <- mapM TopLevel.deanonymizeWires cs
+                return fullyNamed
   case runJ topl func of
     Right thing -> print ("RESULT", thing)
     Left msg -> error msg
 
+
+
+    
 {-
 bendyWire1 :: IO TestState
 bendyWire1 = do

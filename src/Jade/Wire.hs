@@ -14,6 +14,11 @@ getSig (Wire _ Nothing) = Nothing
 getSig (Wire _ (Just s1)) = Signal.getSig s1
 
 
+putSignal (Wire c _) signal = Wire c signal
+getSignal (Wire _ s) = s
+
+
+
 
 -- hasSigName (Wire _ Nothing) = False
 -- hasSigName (Wire _ (Just s1)) = Signal.hasSigName s1

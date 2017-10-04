@@ -2,15 +2,15 @@
 module Jade.Signal where
 
 import Jade.Common
-import qualified Jade.Bundle as Bundle
+--import qualified Jade.Bundle as Bundle
+import qualified Jade.Decode.Sig as Sig
 import Control.Monad
 import Data.Maybe
 
-{-
 width :: Signal -> Int
-width (Signal (Just sigb) _ _) = Bundle.width sigb
+-- TODO change Sig.width to return Int
+width (Signal (Just sig) _ _) = fromIntegral $ Sig.width sig
 width (Signal _ w _) = w
--}
 
 getSig :: Signal -> Maybe Sig
 getSig (Signal ms _ _) = ms

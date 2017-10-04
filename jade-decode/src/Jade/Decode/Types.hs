@@ -120,7 +120,7 @@ data SubModule = SubModule { subName :: String
                | SubMemUnit MemUnit
                deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-newtype Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+data Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data MemUnit = MemUnit { memName :: String
                        , memCoord3 :: Coord3

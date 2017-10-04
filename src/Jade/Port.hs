@@ -9,3 +9,6 @@ points (Port (Coord3 x y _) _) = [Point x y]
 
 getSig :: Port -> Maybe Sig
 getSig (Port _ s) = join $ liftM Signal.getSig s
+
+
+getSignal (Port _ s) = s

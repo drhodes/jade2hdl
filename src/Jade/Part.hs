@@ -9,6 +9,8 @@ import qualified Jade.Jumper as Jumper
 import qualified Jade.Term as Term
 import qualified Jade.Wire as Wire
 import qualified Jade.SubModule as SubModule
+import qualified Jade.Decode.Sig as Sig
+import qualified Jade.Signal as Signal
 
 {-
 import qualified Jade.Module as Moduile
@@ -16,14 +18,12 @@ import qualified Jade.Signal as Signal
 import qualified Jade.Decode.Bundle as Bundle
 -}
 
-
 loc part =
   case part of
     PortC (Port (Coord3 x y _) _) -> return (x, y)
     WireC _ -> die "Part.loc doesn't support Wire"
     TermC (Terminal (Coord3 x y _) _) -> return (x, y)
     x -> die $ "Part.loc: doesn't support: " ++ show x
-
 
 points :: Part -> J [Point]
 points part = "Part.points" <? do
@@ -35,24 +35,29 @@ points part = "Part.points" <? do
     TermC x -> return $ Term.points x
     UnusedPart -> return []
 
-
 hasPoint :: Part -> Point -> J Bool
 hasPoint part point = "Part.hasPoint" <? do
   (point `elem`) <$> (points part)
 
-
 getSig :: Part -> Maybe Sig
 getSig part = case part of
                 PortC x -> Port.getSig x
-                SubModuleC x -> Nothing
                 WireC x -> Wire.getSig x
-                JumperC x -> Nothing
                 TermC x -> Just $ Term.getSig x
-                UnusedPart -> Nothing
-    
+                _ -> Nothing
+
+getSignal :: Part -> Maybe Signal
+getSignal part = case part of
+                   PortC x -> Port.getSignal x
+                   WireC x -> Wire.getSignal x
+                   _ -> Nothing
+
+putSignal part signal =
+  case part of
+    WireC w -> WireC $ Wire.putSignal w signal
+    x -> x
   
 hasSig = isNothing . getSig
-
 
 isJumper (JumperC _) = True
 isJumper _ = False
@@ -70,6 +75,18 @@ isNamedConnector :: Part -> Bool
 isNamedConnector = forSome [isWire, isJumper, isPort] 
 
 filterConnectors = filter isNamedConnector 
+
+width :: Part -> J Int
+width part = do
+  case part of
+    PortC (Port _ (Just s)) -> return $ Signal.width s
+    PortC (Port _ Nothing) -> return 1
+    WireC (Wire _ (Just s)) -> return $ Signal.width s
+    WireC (Wire _ Nothing) -> return 1
+    JumperC _ -> return (-1)
+    TermC (Terminal _ s) -> return $ fromIntegral $ Sig.width s
+    x -> die $ "Part.width: Not implemented for: " ++ show x
+
 
 
 {-

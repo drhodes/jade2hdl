@@ -36,11 +36,6 @@ getSubModules modname = do --"TopLevel.getSubModules" <? do
     Just schem -> return $ Schematic.getSubModules schem
     Nothing -> die "No schematics found"
 
--- deanonymizeWire :: Wire -> [Part] -> J Wire
--- deanonymizeWire wire parts = do
---   when (not $ Wire.isAnon wire) (die "wire already has a name")
---   unimplemented
-
 type Id = Int
 type PointConnection = (Point, Point)
 type IdConnection = (Id, Id)
@@ -72,9 +67,7 @@ buildPointPartTable (part:parts) = "TopLevel.buildPointPartTable" <? do
     _ -> die "undefined behavior"
 
 lookupPointPartTable table point =
-  case DM.lookup point table of
-    Just set -> set
-    Nothing -> DS.empty
+  fromMaybe DS.empty $ DM.lookup point table
 
 buildPointConnection part = "TopLevel.buildPointConnection" <? do
   ps <- Part.points part
@@ -86,16 +79,47 @@ buildPointConnection part = "TopLevel.buildPointConnection" <? do
 buildPointConnections parts = "TopLevel.buildPointConnections" <? do
   mapM buildPointConnection parts
  
-wireComponents modname = do
+wireComponents :: String -> J [DS.Set Part]
+wireComponents modname = "TopLevel.wireComponents" <? do
   parts <- Part.filterConnectors <$> getAllPartsNoTerms modname
   connections <- buildPointConnections parts
-  ppt <- buildPointPartTable parts
+  table <- buildPointPartTable parts
   
-  let lookupComponent net = DS.unions $ map (lookupPointPartTable ppt) net 
-  let nets = QUF.components connections
-  return $ map lookupComponent nets
+  let lookupComponent net = DS.unions $ map (lookupPointPartTable table) net 
+  let components = QUF.components connections
+  return $ map lookupComponent components
 
+putSignal parts signal = [Part.putSignal p signal | p <- parts]
+
+getSignals :: [Part] -> [Signal]
+getSignals parts = mapMaybe Part.getSignal parts
+
+getWidths :: [Part] -> J [Int]
+getWidths parts = mapM Part.width parts
+
+deanonymizeWires :: DS.Set Part -> J [Part]
+deanonymizeWires componentSet = "TopLevel.deanonymizeWires" <? do
+  let component = DS.toList componentSet
+      name = "wire_" ++ hashid component :: String
+  compWidths <- getWidths component
+  signal <- case getSignals component of
+    [s] -> return s
+    [] -> case compWidths of
+            [] -> return $ Signal (Just $ SigSimple name) 1 Nothing
+            xs -> if DL.nub xs == xs
+                  then let w = fromIntegral $ head xs
+                           -- todo: Sig data constructors should take Int not Integer.
+                       in return $ Signal (Just $ SigRange name (w-1) 0) (fromIntegral w) Nothing
+                     else die "Found more than one signal width in this component"
+    _ -> die "Found more than one signal in this component"
+  return $ putSignal component (Just signal)
+
+getAllPartsNoTerms :: String -> J [Part]
 getAllPartsNoTerms modname = Schematic.getAllParts <$> getSchematic modname
+
+-- do the most you can with simple things while they're simple.
+-- don't wait to do simple things after it's complex.
+-- what's it?
 
 getAllPartsAndTerms modname = do
   terms <- map TermC <$> getAllTerminals modname
@@ -115,9 +139,10 @@ terminals (SubModule modname offset) = do --"TopLevel.terminals" <? do
   mod <- getModule modname
   Module.terminals mod offset
 
--- terminals (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
---   MemUnit.terminals memunit
-
+terminals (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
+  --MemUnit.terminals memunit
+  unimplemented
+  
     {-
 -- a function to possible create an edge given a wire and a part
 makePartEdge :: Wire -> Part -> J (Maybe Edge)
