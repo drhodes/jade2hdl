@@ -1,15 +1,7 @@
 module TestCoord where
 
-import qualified Data.Map as DM
-import Jade.Types
-import qualified Jade.TopLevel as TopLevel
-import qualified Jade.Decode as Decode
-import qualified Jade.Module as Module
-import qualified Jade.Vhdl as Vhdl
-import qualified Data.Hashable as H
-import Text.Format
-import Control.Monad
-import qualified Jade.Coord as Coord
+import Jade.Common
+import qualified Jade.Decode.Coord as Coord
 
 c00 = Coord3 0 0 Rot0
 c10 = Coord3 1 0 Rot0
@@ -25,11 +17,16 @@ l4 = Coord5 16 16 Rot90 0 (-32)
 -- coord0 = print $ Coord.transform3 c00 c00
 -- coord11 = print $ Coord.transform3 c11 c11
 -- coordR90 = print $ Coord.transform3 c11 r90
-
 -- TODO: consider adding this test to TestAll module
+l5 = Coord5 10 10 Rot0 (-10) (-10) 
+l6 = Coord5 10 10 Rot90 0 10
+l7 = Coord5 0 10; Rot90 0 (-10)
+
 testAll = do
   print $ Coord.coord5ends l1
   print $ Coord.coord5ends l2
   print $ Coord.coord5ends l3
   print $ Coord.coord5ends l4
-  
+  print $ Coord.coord5ends l5
+  print $ Coord.coord5ends l6
+  print $ Coord.coord5ends l7

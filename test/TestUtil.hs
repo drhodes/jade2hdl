@@ -10,8 +10,8 @@ expected exp got = do
   nb $ "Expected : " ++ show exp
   nb $ "Got      : " ++ show got
 
-writeCallGraph filename topl func = do
-  let txt = runCallGraph topl func
-  writeFile filename txt
+-- writeCallGraph filename topl func = do
+--   let txt = runCallGraph topl func
+--   writeFile filename txt
 
 qualifiedModName modname = "/user/" ++ modname

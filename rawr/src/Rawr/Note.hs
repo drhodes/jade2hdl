@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveTraversable #-}
 
 module Rawr.Note where
 

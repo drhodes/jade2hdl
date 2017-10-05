@@ -16,7 +16,7 @@ testSigWidth sig expectedWidth = do
   let w = Sig.width sig
   if w == expectedWidth
     then return Pass
-    else return $ Fail $ printf "expected %d, got %d, sig: %s" expectedWidth w (show sig)
+    else return $ rawr $ printf "expected %d, got %d, sig: %s" expectedWidth w (show sig)
                
 testTreeSigWidth :: TestTree
 testTreeSigWidth = 
@@ -37,7 +37,7 @@ testTwosCompement val w exp = do
   let tc = Sig.twosComplement val w
   if tc == exp
     then return Pass
-    else return $ Fail $ printf "expected %s, got %s" (show exp) (show tc)
+    else return $ rawr $ printf "expected %s, got %s" (show exp) (show tc)
 
 testTreeTwosComplement :: TestTree
 testTreeTwosComplement = 

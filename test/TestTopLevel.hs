@@ -16,6 +16,8 @@ import Rawr.Types
 import Rawr.Rawr
 import Jade.Common
 import Text.Printf
+import qualified Text.PrettyPrint.Leijen as P
+
 
 testTree = TestTree "TopLevel" [ testTreeMiscEtc
                                --testTreeNumNets
@@ -38,7 +40,8 @@ testNumWireComponents modname exp = do
   return $ case runJ topl func of
     Right x -> if x == exp
                then Pass
-               else Fail $ printf "Expected %d: got: %d" exp x
+               else do let log = runLog topl func
+                       Fail $ log P.<> P.text (printf "Expected %d: got: %d" exp x)
     Left msg -> Fail msg
 
 testTreeMiscEtc =
@@ -64,11 +67,8 @@ testTreeMiscEtc =
                           , t "PortTest1" 1                          
                           , t "RepBuffer1" 3
                           , t "ShiftL1" 24
-                          , t "WireConnectMid2" 2 
+                          , t "WireConnectMid2" 2
                           ]
-
-
-
 
 
 -- foo2 = do

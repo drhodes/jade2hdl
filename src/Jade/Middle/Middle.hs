@@ -6,28 +6,27 @@
 
 
 module Jade.Middle.Middle where
-{-
+
+
 import Control.Monad
-import Data.Aeson
-import GHC.Generics
 import Jade.Common
 import Jade.Middle.Types
-import Text.Format
-import qualified Data.List as DL
-import qualified Data.Map as DM
-import qualified Data.Set as DS
-import qualified Data.Vector as V
-import qualified Jade.Bundle as Bundle
-import qualified Jade.Decode.Decode as Decode
-import qualified Jade.Val as Val
-import qualified Jade.MemUnit as MemUnit
-import qualified Jade.Module as Module
-import qualified Jade.Net as Net
-import qualified Jade.TopLevel as TopLevel
-  
+-- import qualified Data.List as DL
+-- import qualified Data.Map as DM
+-- import qualified Data.Set as DS
+-- import qualified Data.Vector as V
+-- import qualified Jade.Bundle as Bundle
+-- import qualified Jade.Decode.Decode as Decode
+-- import qualified Jade.Val as Val
+-- import qualified Jade.MemUnit as MemUnit
+-- import qualified Jade.Module as Module
+-- import qualified Jade.Net as Net
+-- import qualified Jade.TopLevel as TopLevel
+
 flipAssign (ValAssign src tgt) = ValAssign tgt src
 
 -----------------------------------------------------------------------------
+{-
                                       
 -- | take .input(s) then find the nets they belong to and assign them.
 assignBundle :: Direction -> String -> ValBundle -> J [ValAssign]

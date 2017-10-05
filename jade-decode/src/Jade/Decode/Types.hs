@@ -5,7 +5,7 @@
 
 module Jade.Decode.Types where
 
-import GHC.Generics
+import GHC.Generics hiding (from, to)
 import qualified Data.Vector as V
 import qualified Data.Map as DM
 import qualified Data.List as DL
@@ -16,6 +16,8 @@ import Jade.Decode.Util
 import Data.Hashable
 import Text.Printf
 import Data.Aeson
+import Control.Monad
+import Data.Maybe
 
 ------------------------------------------------------------------
 -- Icon Types
@@ -44,6 +46,8 @@ data IconPart = IconLine Line
               | IconArc
                 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
+type ModuleName = String
+
 data Icon = Icon { iconParts :: [IconPart]
                    -- ^ A flat list of icon elements found in the icon view
                  } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
@@ -54,16 +58,8 @@ data ModPath = ModPath { modPath :: FilePath
 
 newtype Vdd = Vdd Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-------------------------------------------------------------------
--- Schematic Types
-type ModuleName = String
-
 data Direction = In | Out | InOut
                deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
-
--- data SigNum = Bin String
---             | Num Integer
---             deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data Sig = SigSimple String
          | SigIndex String Integer
@@ -92,7 +88,7 @@ data Rot = Rot0
          | FlipY
          | TransposePos
            deriving (Show, Enum, Eq, Generic, Hashable, Ord, ToJSON)
-
+  
 data Coord3 = Coord3 { c3x :: Integer
                      , c3y :: Integer
                      , c3r :: Rot
@@ -114,11 +110,12 @@ data Coord5 = Coord5 { c5x :: Integer
 data Port = Port { portCoord3 :: Coord3                 
                  , portSignal :: Maybe Signal
                  } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
-      
+
 data SubModule = SubModule { subName :: String
                            , subCoord3 :: Coord3 } 
                | SubMemUnit MemUnit
                deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+
 
 data Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
@@ -134,10 +131,6 @@ data MemUnit = MemUnit { memName :: String
                        } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 type PartId = Integer
-
-data Stage = StageDecode
-           | StageWire
-
 
 data Part = PortC Port
           | SubModuleC SubModule
@@ -179,7 +172,7 @@ instance LocRot Coord5 where locrot (Coord5 x y r _ _) = Coord3 x y r
 -- Test Types
 
 newtype Power = Power { powerVdd :: Double } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
-  
+
 data Thresholds = Thresholds { thVol :: Double
                              , thVil :: Double
                              , thVih :: Double
@@ -187,6 +180,7 @@ data Thresholds = Thresholds { thVol :: Double
                              } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 newtype Inputs = Inputs [Sig] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+  
 newtype Outputs = Outputs [Sig] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data Mode = Device | Gate deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)

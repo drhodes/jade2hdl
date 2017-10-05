@@ -45,7 +45,7 @@ library
                      
                      , TestModule
                      , TestUtil
-
+                     
   build-depends: QuickCheck >= 2.9.2
                , aeson >= 1.0.2.1
                , ansi-terminal >= 0.6.3.1
@@ -63,6 +63,7 @@ library
                , parallel >= 3.2.1.1
                , parsec >= 3.1.11
                , parsec3-numbers >= 0.1.0
+               , wl-pprint >= 1.2
                , process >= 1.4.3.0
                , rawr
                , scientific
@@ -103,6 +104,7 @@ test-suite jade2hdl-test
                , jade2hdl
                , mtl >= 2.2.1
                , parallel >= 3.2.1.1
+               , wl-pprint >= 1.2
                , process >= 1.4.3.0
                , rawr
                , split >= 0.2.3.2
@@ -117,11 +119,12 @@ executable jade2hdl
   hs-source-dirs: app  
   main-is:        Main.hs
   ghc-options:    -eventlog -threaded -rtsopts -with-rtsopts=-N
-  
+    
   build-depends: base
                , jade-decode
                , jade2hdl
                , optparse-applicative >= 0.13.2.0
+               , wl-pprint >= 1.2
                , rawr
                , split >= 0.2.3.2
                , text >= 1.2.2.1

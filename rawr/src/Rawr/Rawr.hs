@@ -11,14 +11,14 @@ import qualified System.IO as SIO
 import qualified Control.Parallel.Strategies as CPS
 import qualified Data.List as DL
 import qualified System.Console.ANSI as SCA
+import qualified Text.PrettyPrint.Leijen as P 
 
 isTestCase (TestCase _ _) = True
 isTestCase _ = False
 
 showTestPath tp = DL.intercalate "/" tp
+
 runTree tp t = runTree' "?" tp t
-parMap f xs = map f xs `CPS.using` CPS.parList CPS.rseq
-allPass xs = length [Pass | Pass <- xs] == length xs
 
 runTree' :: String -> TestPath -> TestTree -> IO [TestState]
 runTree' c tp (TestTree s trees) = do
@@ -36,7 +36,7 @@ runTree' c tp (TestTree s trees) = do
   return $ xs ++ ys
   
 runTree' c tp (TestCase s f) = do
-  result <- f
+  result <- f  
   case result of
     Pass -> passes
     Fail _ -> fails    
@@ -44,7 +44,12 @@ runTree' c tp (TestCase s f) = do
   return [result]
 
 runLeaf :: TestPath -> TestTree -> IO [TestState]
-runLeaf tp tc = runTree' "." tp tc
+runLeaf tp tc = do
+  runTree' "." tp tc
+
+parMap f xs = map f xs `CPS.using` CPS.parList CPS.rseq
+allPass xs = length [Pass | Pass <- xs] == length xs
+
 
 passes = do
   SCA.setSGR [SCA.SetColor SCA.Foreground SCA.Vivid SCA.Green] 
@@ -59,9 +64,9 @@ fails = do
 rawrLog tp name state =  
   case state of
     Pass -> return ()
-    Fail logmsg -> do let fname = DL.intercalate "_" (tp ++ [name])
-                      let logPath = "./logs/" ++ fname ++ ".log"
-                      writeFile logPath logmsg
+    Fail doc -> do let fname = DL.intercalate "_" (tp ++ [name])
+                       logPath = "./logs/" ++ fname ++ ".log"
+                   writeFile logPath (show doc)
 
 doTree :: String -> Writer [TestTree] a -> TestTree
 doTree name doblock = TestTree name  $ execWriter doblock
@@ -70,4 +75,5 @@ report name state = TestCase name $ return state
 
 test :: MonadWriter [TestTree] m => String -> IO TestState -> m ()
 test name f = tell [TestCase name f]
+
 

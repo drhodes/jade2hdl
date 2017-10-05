@@ -1,6 +1,5 @@
 module Jade.Memo where
 
-
 emptyMemo = Memo DM.empty
 emptyTopl = TopLevel DM.empty
 

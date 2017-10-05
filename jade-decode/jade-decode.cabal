@@ -16,7 +16,8 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Jade.Decode.Decode
-                     , Jade.Decode.Util
+                     , Jade.Decode.Util 
+                     , Jade.Decode.Pretty
                      , Jade.Decode.Types
                      , Jade.Decode.ModTest
                      , Jade.Decode.Sig
@@ -26,14 +27,15 @@ library
                      , base >= 4.7 && < 5
                      , bytestring >= 0.10.8.1
                      , containers >= 0.5.7.1
-                     , hashable >= 1.2.6.1
                      , file-embed >= 0.0.10
-                     , string-class >= 0.1.6.5
+                     , hashable >= 1.2.6.1
                      , hashids >= 1.0.2.3
                      , mtl >= 2.2.1
                      , parsec >= 3.1.11
                      , parsec3-numbers >= 0.1.0
+                     , wl-pprint >= 1.2
                      , scientific >= 0.3.5.2
+                     , string-class >= 0.1.6.5
                      , text >= 1.2.2.2
                      , vector >= 0.12.0.1
   default-language:    Haskell2010
@@ -47,7 +49,6 @@ test-suite jade-decode-test
                  TestSig
   
   build-depends:       aeson >= 1.1.2.0
-                     , rawr
                      , base
                      , bytestring >= 0.10.8.1
                      , containers >= 0.5.7.1
@@ -55,6 +56,8 @@ test-suite jade-decode-test
                      , hashids >= 1.0.2.3
                      , jade-decode
                      , mtl >= 2.2.1
+                     , wl-pprint >= 1.2
+                     , rawr
                      , scientific >= 0.3.5.2
                      , text >= 1.2.2.2
                      , vector >= 0.12.0.1

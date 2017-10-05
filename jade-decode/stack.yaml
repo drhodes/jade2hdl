@@ -11,5 +11,4 @@ extra-deps:
 - ghc-mod-5.8.0.0
 - syz-0.2.0.0
 
-
 resolver: lts-9.4

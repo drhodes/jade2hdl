@@ -1,5 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
+
 module Jade.Common
   ( module Jade.Common
   , module Jade.Types
@@ -13,33 +13,24 @@ import Jade.Types
 import Rawr.Note
 import Jade.Util
 import Jade.Decode.Types
-import Data.FileEmbed as DF
-import qualified Data.Text.Encoding as DTE
- 
-import qualified Data.String.Class as DSC
-import qualified Data.Map as DM
-import qualified Data.Vector as V
-import qualified Data.Map as DM
-import qualified Data.List as DL
-import qualified Data.ByteString as DB
-import qualified Data.ByteString.Lazy as DBL
+import qualified Data.Map as DM 
 import qualified Data.ByteString.Lazy.Char8 as DBL8 
 import Data.Aeson
-import Data.Hashable
 import Text.Format
+import qualified Text.PrettyPrint.Leijen as P
+import Data.Monoid
 
 import Control.Monad.Except 
 import Control.Monad.Writer
-import Control.Monad.Reader
 import Control.Monad.State
 
 --         Exception handling.
---         |               Global state for memoization.
---         |               |      State type, global
---         |               |      |      Log handling.
---         |               |      |      |                return val.
---         |               |      |      |                |
-type J a = ExceptT String (StateT Global (Writer [Note])) a 
+--         |              Global state for memoization.
+--         |              |      State type, global
+--         |              |      |       Log handling.
+--         |              |      |       |              return val.
+--         |              |      |       |              |
+type J a = ExceptT P.Doc (StateT Global (Writer P.Doc)) a 
 
 data Global = Global { globalTopLevel :: TopLevel
                      , globalMemo :: Memo
@@ -47,11 +38,17 @@ data Global = Global { globalTopLevel :: TopLevel
 
 data Memo = Memo { memoComps :: DM.Map String [Net] }
 
+
+instance Monoid P.Doc where
+  mappend p q = p P.<> P.softline  P.<> q
+  mempty = P.empty
+
 emptyMemo = Memo DM.empty
 emptyTopl = TopLevel DM.empty
 
 getMemo :: J Memo
 getMemo = globalMemo <$> get
+
 
 putMemo memo = do
   Global x _ <- get
@@ -62,44 +59,39 @@ getTop = globalTopLevel <$> get
 
 globalInit topl = Global topl emptyMemo
 
-runX :: TopLevel -> J a -> (Either String a, [Note])
+runX :: TopLevel -> J a -> (Either P.Doc a, P.Doc)
 runX topl x = let stateV = runExceptT x
                   writerV = evalStateT stateV (globalInit topl)
               in runWriter writerV
 
-runLog :: TopLevel -> J a -> String
-runLog topl x = let log = snd $ runX topl x
-                in notesToString log
-
-runCallGraph :: TopLevel -> J a -> String
-runCallGraph topl x = let log = snd $ runX topl x
-                      in dotGraph log
+runLog :: TopLevel -> J a -> P.Doc
+runLog topl x = snd $ runX topl x
 
 runJ topl x = fst (runX topl x)
 
 printJ topl x = case runJ topl x of
-                  Left msg -> putStrLn msg
+                  Left doc -> putStrLn $ show doc
                   Right val -> print val
 
 putStrJ topl x = case runJ topl x of
-                   Left msg -> putStrLn msg
+                   Left doc -> putStrLn $ show doc
                    Right val -> putStr val
 
-runJIO :: TopLevel -> J (IO a) -> IO String
+runJIO :: TopLevel -> J (IO a) -> IO P.Doc
 runJIO topl x =
   case runX topl x of
-    (Left msg, log) -> return $ DBL8.unpack $ encode (uniq log ++ [Note msg])
-    (Right f, log) -> f >> (return $ DBL8.unpack $ encode (uniq log))
+    (Left doc, log) -> return $ doc P.<$$> log
+    (Right f, log) -> f >> return log
 
 --die msg = throwError ("! Oops" ++ "\n" ++ "! " ++ msg)
-die msg = throwError msg
-dief msg xs = die (format msg xs)
+die msg = throwError $ P.text msg
+dief msg xs = die $ format msg xs
 
 silentBail :: J ()
-silentBail = throwError ("" :: String)
+silentBail = die ""
 
 
-impossible msg = die $ "The impossible happened: " ++ msg
+impossible msg = die $ "The impossible happened:" ++ msg
 
 unimplemented :: J a
 unimplemented = die "unimplemented."
@@ -107,30 +99,25 @@ unimplemented = die "unimplemented."
 cnb _ = return ()
 
 nb :: String -> J ()
-nb s = tell [Note $ DBL8.unpack $ encode s]
+nb s = tell (P.text s)
 nbf s xs = nb $ format s xs
-
 
 assert cond reason = unless cond (die reason)
 
-enb :: ToJSON a => a -> J ()
-enb x = tell [Note $ DBL8.unpack $ encode x]
+enb x = tell (P.pretty x)
 list xs = enb xs
 
 bail :: J a
 bail = die "bailing!"
 bailWhen cond = when cond bail
 
-
-
-(?) x msg = let crash e = throwError $ e ++ "\n" ++ "! " ++ msg
+(?) x msg = let crash e = throwError $ e P.<+> (P.text ("\n" ++ "! " ++ msg))
             in x `catchError` crash
 
 -- | for building execution traces.
 (<?) msg f = do
-  tell [Func msg]
+  tell $ do P.empty P.<+> (P.nest 2 $ P.text msg)
   result <- f ? msg
-  tell [EndFunc]
   return result
 
 safeCycle [] = "Jade/Types.safeCycle" <? die "empty list"

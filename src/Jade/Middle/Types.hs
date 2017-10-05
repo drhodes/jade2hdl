@@ -4,12 +4,11 @@
 {-# LANGUAGE DeriveTraversable #-}
 
 module Jade.Middle.Types where
-{-
+
 import GHC.Generics
 import Data.Aeson
 import Control.Monad
 import Jade.Common
-import Text.Format
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import qualified Data.Set as DS
@@ -18,9 +17,10 @@ import qualified Jade.Decode.Decode as Decode
 import qualified Jade.Net as Net
 import qualified Jade.Module as Module
 import qualified Jade.MemUnit as MemUnit
-import qualified Jade.Decode.Val as Val
+import qualified Jade.Val as Val
 import qualified Jade.TopLevel as TopLevel
-import qualified Jade.Decode.Bundle as Bundle
+import qualified Jade.Bundle as Bundle
+
 
 data TermAssoc = TermAssoc { taDir :: Direction
                            , taSrc :: Val
@@ -54,4 +54,4 @@ data SubModuleRep = SubModuleRep { smrTermMapInput :: [TermMap]
 
 data ModOutput = ModOutput TermMap deriving (Generic, ToJSON, Show, Eq)
 
--}
+

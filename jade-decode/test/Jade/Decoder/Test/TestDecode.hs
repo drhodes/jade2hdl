@@ -56,13 +56,13 @@ doTestString name tstring exp =
   case eitherDecode tstring of
     Right got -> if exp == ok got
                  then report name Pass
-                 else report name $ Fail $ expectedStr exp got
-    Left msg -> report name $ Fail msg
+                 else report name $ rawr $ expectedStr exp got
+    Left msg -> report name $ rawr msg
 
 doTestEither name eitherResult =
   case eitherResult of
     Right _ -> report name Pass
-    Left msg -> report name $ Fail msg
+    Left msg -> report name $ rawr msg
 
 testMem1 = 
   let tstring = "[ \"memory\", [ 0, 0, 0 ], { \"name\": \"Mem1\", \"contents\": \"\" } ]"

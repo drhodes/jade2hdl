@@ -1,12 +1,6 @@
 module Main where
 
--- import qualified TestVhdl as TV
--- import qualified TestModule as TM
--- import qualified TestMiddle
--- import qualified TestIcon as TI
 import qualified TestTopLevel as TTL
--- import qualified TestWire as TW
--- import qualified TestSchematic 
 import qualified Rawr.Types as RT
 import qualified Rawr.Rawr as RR
 import qualified Control.Parallel.Strategies as CPS

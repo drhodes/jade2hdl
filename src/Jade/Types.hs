@@ -18,8 +18,9 @@ import Text.Format
 import Data.Aeson
 import Rawr.Note
 import Jade.Decode.Types
-
-
+import Jade.Decode.Pretty
+import Text.Printf
+import Text.PrettyPrint.Leijen 
 
 newtype Bundle a = Bundle [a] deriving (Show, Eq, Generic, Hashable, Ord, Foldable, ToJSON)
 
@@ -34,8 +35,12 @@ data Val = ValIndex { valIdxName :: String
          | Lit { litBinVal :: BinVal }
          deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 
-type ValBundle = Bundle Val
+instance Pretty Val where
+  pretty (ValIndex name idx) = text (printf "ValIndex name:%s, idx:%d" name idx)
+  pretty (NetIndex name idx) = text (printf "NetIndex name:%s, idx:%d" name idx)
+  pretty (Lit binval) = text "Lit" <+> pretty binval
 
+type ValBundle = Bundle Val
 
 instance Functor Bundle where
   fmap f (Bundle xs) = Bundle (map f xs) 
@@ -51,14 +56,12 @@ instance Monoid (Bundle a) where
 
 
 ------------------------------------------------------------------
--- introducing another stage for inferring wire size and things.
-
+-- introducing another stage for inferring wire size 
 
 data PostSignal = PostSignal { postSignalBundle :: Maybe ValBundle
                              , postSignalWidth :: Int
                              , postSignalDirection :: Maybe Direction
                              } deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
-
 
 ------------------------------------------------------------------
 data Node = Node { nodeLocation :: (Integer, Integer)
@@ -73,8 +76,8 @@ data Edge = Edge { edgeNode1 :: Node
                  , edgeNode2 :: Node
                  } deriving (Generic, Show, Hashable, Ord, Eq, ToJSON)
 
-data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
-                                   , store :: DM.Map a Int
-                                   , curId :: Int
-                                   } deriving (Show)
+-- data QuickUnionUF a = QuickUnionUF { ids :: V.Vector Int
+--                                    , store :: DM.Map a Int
+--                                    , curId :: Int
+--                                    } deriving (Show)
 

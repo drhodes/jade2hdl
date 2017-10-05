@@ -8,6 +8,7 @@ import qualified Jade.Back.Viz as Viz
 import qualified Jade.Decode.Decode as Decode
 import qualified Data.Text.IO as TIO
 import qualified Data.Text as T
+import qualified Text.PrettyPrint.Leijen as P
 
 data Opts = Opts { infile :: String
                  , topLevelMod :: String
@@ -73,6 +74,6 @@ generateViz opts = when (viz opts) $ do
         Right topl -> runJ topl $ do
           return (T.pack "viz src gen stub") -- Viz.mkAllMods (topLevelMod opts)
   case dotSrc of
-    Left msg -> putStrLn msg
+    Left doc -> putStrLn (show doc)
     Right src -> TIO.putStrLn src
 

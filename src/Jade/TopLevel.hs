@@ -110,7 +110,7 @@ deanonymizeWires componentSet = "TopLevel.deanonymizeWires" <? do
                   then let w = fromIntegral $ head xs
                            -- todo: Sig data constructors should take Int not Integer.
                        in return $ Signal (Just $ SigRange name (w-1) 0) (fromIntegral w) Nothing
-                     else die "Found more than one signal width in this component"
+                  else die "Found more than one signal width in this component"
     _ -> die "Found more than one signal in this component"
   return $ putSignal component (Just signal)
 
@@ -121,6 +121,7 @@ getAllPartsNoTerms modname = Schematic.getAllParts <$> getSchematic modname
 -- don't wait to do simple things after it's complex.
 -- what's it?
 
+getAllPartsAndTerms :: String -> J [Part]
 getAllPartsAndTerms modname = do
   terms <- map TermC <$> getAllTerminals modname
   parts <- getAllPartsNoTerms modname
@@ -136,8 +137,8 @@ getAllTerminals modname = do
 terminals :: SubModule -> J [Terminal]
 terminals (SubModule modname offset) = do --"TopLevel.terminals" <? do
   nb $ show ("TopLevel.terminals checks submodule: " ++ modname)
-  mod <- getModule modname
-  Module.terminals mod offset
+  m <- getModule modname
+  Module.terminals m offset
 
 terminals (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
   --MemUnit.terminals memunit
