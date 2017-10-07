@@ -1,5 +1,5 @@
 module TestModule where
-{-
+
 import qualified Data.Map as DM
 import qualified Data.List as DL
 import Jade.Common
@@ -8,6 +8,7 @@ import qualified Jade.Decode.Decode as Decode
 import qualified Jade.Module as Module
 import qualified Jade.Icon as Icon
 import qualified Data.Hashable as H
+{-
 import qualified Jade.Decode.Bundle as Bundle
 import Text.Format
 import Control.Monad

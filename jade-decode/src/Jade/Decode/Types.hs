@@ -62,15 +62,15 @@ data Direction = In | Out | InOut
                deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data Sig = SigSimple String
-         | SigIndex String Integer
-         | SigHash String Integer
-         | SigRange String Integer Integer
-         | SigRangeStep String Integer Integer Integer
-         | SigQuote Integer Integer
+         | SigIndex String Int
+         | SigHash String Int
+         | SigRange String Int Int 
+         | SigRangeStep String Int Int Int
+         | SigQuote Int Int
          | SigConcat [Sig]
          deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 
-type Index = Integer
+type Index = Int
 
 --newtype SignalName = SignalName String deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 
@@ -155,7 +155,14 @@ data Module = Module { moduleName :: String
             | BuiltInModule String
             deriving (Generic, Show, Eq, Hashable, Ord, ToJSON) -- todo add test
 
+
+
+
+
+
 newtype TopLevel = TopLevel (DM.Map String Module) deriving  (Generic, Show, Eq, ToJSON)
+
+
 
 data BoundingBox = BB { bbLeft :: Integer
                       , bbTop :: Integer

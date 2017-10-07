@@ -71,6 +71,9 @@ isPort _ = False
 isTerm (TermC _) = True
 isTerm _ = False
 
+isSubModule (SubModuleC _) = True
+isSubModule _ = False
+
 isNamedConnector :: Part -> Bool
 isNamedConnector = forSome [isWire, isJumper, isPort] 
 
@@ -120,12 +123,6 @@ hasVal part val = Bundle.hasVal (bundle part) val
 toWire (WireC w) = Just w
 toWire _ = Nothing
 
-isSubModule (SubModuleC _) = True
-isSubModule _ = False
-
-
-isTerm (TermC _) = True
-isTerm _ = False
 
 getValsWithIdent :: Part -> String -> [Val]
 getValsWithIdent part ident = Bundle.getValsWithIdent (bundle part) ident

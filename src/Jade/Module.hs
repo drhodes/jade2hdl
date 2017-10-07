@@ -26,6 +26,35 @@ getIcon :: Module -> J Icon
 getIcon (Module _ _ _ (Just x)) = return x
 getIcon _ = die "No icon found in module"
 
+
+name = moduleName
+schem = moduleSchem
+test = moduleTest
+icon = moduleIcon
+
+getInputTerminals :: Module -> Coord3 -> J [Terminal]
+getInputTerminals mod offset = "Module.getInputTerminals" <? do
+  ts <- terminals mod offset
+  (Inputs ins) <- getInputs mod
+  let result = [term | term@(Terminal _ sig1) <- ts, sig2 <- ins, sig1 == sig2]
+  return result
+      
+getInputs :: Module -> J Inputs
+getInputs m = "Module.getInputs" <? do
+  case moduleTest m of
+    Just mod ->
+      case modInputs mod of
+        Just (Inputs ins) -> return $ Inputs $ ins ++ setSignals m
+        Nothing -> do nb $ format "Is there a test script in module: {0}?" [moduleName m]
+                      die $ "Module.getInputs couldn't find inputs in module: " ++ (moduleName m)
+    Nothing ->  die $ "Module.getInputs could not find test script in module: " ++ (moduleName m)
+
+setSignals m =
+  case moduleTest m of
+    Just mt -> [sig | s@(SetSignal sig _) <- ModTest.setSignals mt]
+    Nothing -> []
+
+
 {-
 
 getSchematic :: Module -> J Schematic
@@ -43,12 +72,6 @@ boundingBox (Module _ _ _ icon) offset = "Module.boundingBox" <? do
                       return $ BoundingBox.transRot bb offset
     Nothing -> die "No icon found in, can't find bounding box."
 
-getInputTerminals :: Module -> Coord3 -> J [Terminal]
-getInputTerminals mod offset = "Module.getInputTerminals" <? do
-  ts <- terminals mod offset
-  (Inputs ins) <- getInputs mod
-  let result = [term | term@(Terminal _ sig1) <- ts, sig2 <- ins, sig1 == sig2]
-  return result
 
 getOutputTerminals :: Module -> Coord3 -> J [Terminal]
 getOutputTerminals mod offset = "Module.getOutputTerminals" <? do
@@ -57,16 +80,6 @@ getOutputTerminals mod offset = "Module.getOutputTerminals" <? do
   let result = [term | term@(Terminal _ sig1) <- ts, sig2 <- outs, sig1 == sig2]
   enb ("CO", result)
   return result
-      
-getInputs :: Module -> J Inputs
-getInputs m = "Module.getInputs" <? do
-  case moduleTest m of
-    Just mod ->
-      case modInputs mod of
-        Just (Inputs ins) -> return $ Inputs $ ins ++ setSignals m
-        Nothing -> do nb $ format "Is there a test script in module: {0}?" [moduleName m]
-                      die $ "Module.getInputs couldn't find inputs in module: " ++ (moduleName m)
-    Nothing ->  die $ "Module.getInputs could not find test script in module: " ++ (moduleName m)
 
 getInputsNoSetSigs :: Module -> J Inputs
 getInputsNoSetSigs m = "Module.getInputsNoSetSigs" <? do
@@ -102,11 +115,6 @@ cycleLine m = "Module.cycleLine" <? do
     Just mt -> case modCycleLine mt of
       Nothing -> die "Not cycle line found in this module test"
       Just cl -> return cl
-
-setSignals m =
-  case moduleTest m of
-    Just mt -> ModTest.setSignals mt
-    Nothing -> []
 
 testLines :: Module -> J [TestLine]
 testLines m = "Module.testLines" <? do

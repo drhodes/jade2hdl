@@ -56,6 +56,8 @@ putMemo memo = do
 
 getTop :: J TopLevel
 getTop = globalTopLevel <$> get
+putTop top = do g <- get
+                put g{globalTopLevel=top}
 
 globalInit topl = Global topl emptyMemo
 

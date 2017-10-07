@@ -21,7 +21,6 @@ import qualified Jade.Val as Val
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Bundle as Bundle
 
-
 data TermAssoc = TermAssoc { taDir :: Direction
                            , taSrc :: Val
                            , taTgt :: Val
@@ -30,7 +29,6 @@ data TermAssoc = TermAssoc { taDir :: Direction
 data ValAssign = ValAssign { sigAssignSrc :: Val
                            , sigAssignTgt :: Val
                            } deriving (Generic, ToJSON, Show, Eq)
-
 
 flipDir In = Out
 flipDir Out = In

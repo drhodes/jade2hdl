@@ -27,7 +27,7 @@ testTreeSigWidth =
                         , t (SigRangeStep "" 31 0 1) 32
                         , t (SigRangeStep "" 28 0 4) 8
                         , t (SigRangeStep "" 0 0 0) 1
-                        ] ++ [t (SigRangeStep "" i 0 1) (i+1) | i <- [0 .. 12]]
+                        ] ++ [t (SigRangeStep "" i 0 1) ((fromIntegral i)+1) | i <- [0 .. 12]]
 
 testTree = TestTree "Sig" [ testTreeSigWidth
                           , testTreeTwosComplement

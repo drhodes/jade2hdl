@@ -74,7 +74,7 @@ genbits n | n == 0 = []
           | otherwise = H : (genbits next)
   where next = n `div` 2
 
-twosComplement :: Integral a => a -> Integer -> [BinVal]
+twosComplement :: Integral a => a -> Int -> [BinVal]
 twosComplement val numBits = Prelude.reverse $
-                             take (fromInteger numBits) $
+                             take numBits $
                              (genbits val) ++ repeat L

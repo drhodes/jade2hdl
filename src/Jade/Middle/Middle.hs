@@ -19,13 +19,72 @@ import Jade.Middle.Types
 -- import qualified Jade.Decode.Decode as Decode
 -- import qualified Jade.Val as Val
 -- import qualified Jade.MemUnit as MemUnit
--- import qualified Jade.Module as Module
+import qualified Jade.Module as Module
 -- import qualified Jade.Net as Net
--- import qualified Jade.TopLevel as TopLevel
+import qualified Jade.TopLevel as TopLevel
 
 flipAssign (ValAssign src tgt) = ValAssign tgt src
 
 -----------------------------------------------------------------------------
+
+{-
+replicateOneTerminal :: String -> Int -> Direction -> Terminal -> Net -> J TermMap
+replicateOneTerminal modname numReplications dir term@(Terminal _ sig) = --net@(Net nid _) =
+  "Middle/Middle.replicateOneTerminal" <? do
+  --netWidth <- fromIntegral <$> Net.width net
+  --
+  
+  netWidth <- 
+  let termWidth = Bundle.width bndl 
+      Bundle termSigs = bndl
+      totalWidth = fromIntegral (termWidth * numReplications) :: Int
+  case compare netWidth totalWidth of
+    GT -> do {
+      ; cnb "case netWidth > totalWidth"
+      ; impossible "This can't happen if the JADE modules tests pass in JADE"
+      }
+    _ -> do {
+      ; cnb "case netWidth <= totalWidth"
+      ; let singles = map (NetIndex nid) $ downFrom (fromIntegral (netWidth - 1))
+            srcs = concat $ DL.transpose $ chunk numReplications singles
+      ; safeSrcs <- safeCycle srcs ? "safeSrcs"
+      ; safeTerms <- safeCycle termSigs ? "termSigs"
+      ; let tmap = take totalWidth (zipWith (TermAssoc In) safeSrcs safeTerms)
+      ; return $ case dir of
+                   In -> tmap
+                   Out -> flipTermMap tmap
+      }
+-}
+
+
+{-
+subModuleInstances :: String -> SubModule -> J [SubModuleRep]
+subModuleInstances modname submod@(SubModule name loc) = "Middle.Types.subModuleInstances" <? do
+  repd <- TopLevel.replicationDepth modname submod
+  m <- getModule name 
+  
+  inputTerms <- Module.getInputTerminals m loc
+  unimplemented
+  inputNets <- mapM (TopLevel.netWithTerminal modname) inputTerms
+ 
+  -- outputTerms <- Module.getOutputTerminals m loc
+  -- outputNets <- mapM (TopLevel.netWithTerminal modname) outputTerms
+
+  -- inputTermMaps <- zipWithM (replicateOneTerminal modname repd In) inputTerms (map Net.removeTerms inputNets)
+  -- outputTermMaps <- zipWithM (replicateOneTerminal modname repd Out) outputTerms (map Net.removeTerms outputNets)
+
+  -- let itms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- inputTermMaps] :: [[TermMap]]
+  --     otms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- outputTermMaps] :: [[TermMap]]
+
+  -- buildSubModuleReps itms otms submod (repd - 1)
+
+-}
+
+
+
+
+
+
 {-
                                       
 -- | take .input(s) then find the nets they belong to and assign them.
@@ -71,30 +130,6 @@ assignConstantNet net = "Middle.Types/connectConstantNet" <? do
 pickNetValsWithLit :: Bundle Val -> Bundle Val -> [ValAssign]
 pickNetValsWithLit (Bundle inVals) (Bundle netVals) =
   [ValAssign v1 v2 | (v1@(Lit n1), v2) <- zip inVals netVals, Val.isLit v1]
-  
-replicateOneTerminal :: String -> Int -> Direction -> Terminal -> Net -> J TermMap
-replicateOneTerminal modname numReplications dir term@(Terminal _ bndl) net@(Net nid _) =
-  "Middle/Middle.replicateOneTerminal" <? do
-  netWidth <- fromIntegral <$> Net.width net
-  let termWidth = Bundle.width bndl 
-      Bundle termSigs = bndl
-      totalWidth = fromIntegral (termWidth * numReplications) :: Int
-  case compare netWidth totalWidth of
-    GT -> do {
-      ; cnb "case netWidth > totalWidth"
-      ; impossible "This can't happen if the JADE modules tests pass in JADE"
-      }
-    _ -> do {
-      ; cnb "case netWidth <= totalWidth"
-      ; let singles = map (NetIndex nid) $ downFrom (fromIntegral (netWidth - 1))
-            srcs = concat $ DL.transpose $ chunk numReplications singles
-      ; safeSrcs <- safeCycle srcs ? "safeSrcs"
-      ; safeTerms <- safeCycle termSigs ? "termSigs"
-      ; let tmap = take totalWidth (zipWith (TermAssoc In) safeSrcs safeTerms)
-      ; return $ case dir of
-                   In -> tmap
-                   Out -> flipTermMap tmap
-      }
 
 buildSubModuleReps :: [[TermMap]] -> [[TermMap]] -> SubModule -> Int -> J [SubModuleRep]
 buildSubModuleReps inputTermMaps outputTermMaps submod zidx =
@@ -107,24 +142,6 @@ buildSubModuleReps inputTermMaps outputTermMaps submod zidx =
                            (map tail inputTermMaps)
                            (map tail outputTermMaps) submod (zidx-1))
 
-subModuleInstances :: String -> SubModule -> J [SubModuleRep]
-subModuleInstances modname submod@(SubModule name loc) = "Middle.Types.subModuleInstances" <? do
-  repd <- TopLevel.replicationDepth modname submod
-  m <- TopLevel.getModule name 
-  
-  inputTerms <- Module.getInputTerminals m loc
-  inputNets <- mapM (TopLevel.netWithTerminal modname) inputTerms
- 
-  outputTerms <- Module.getOutputTerminals m loc
-  outputNets <- mapM (TopLevel.netWithTerminal modname) outputTerms
-
-  inputTermMaps <- zipWithM (replicateOneTerminal modname repd In) inputTerms (map Net.removeTerms inputNets)
-  outputTermMaps <- zipWithM (replicateOneTerminal modname repd Out) outputTerms (map Net.removeTerms outputNets)
-
-  let itms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- inputTermMaps] :: [[TermMap]]
-      otms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- outputTermMaps] :: [[TermMap]]
-
-  buildSubModuleReps itms otms submod (repd - 1)
 
 subModuleInstances modname (SubMemUnit memunit) = "Middle.Types.subModuleInstances" <?
   die "This should not be called on SubMemUnit, instead call memUnitInstance"

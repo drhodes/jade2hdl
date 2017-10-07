@@ -6,5 +6,6 @@ if [ $? -eq 0 ]
 then 
     TESTEXE=$(find ./.stack-work/ -type f -name jade2hdl-test)
     $TESTEXE
+    sleep 10
 fi
 

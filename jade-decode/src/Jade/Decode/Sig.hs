@@ -79,23 +79,23 @@ sigRangeStep = do name <- symbol
                   char ']'
                   return $ SigRangeStep name (read from) (read to) (read step)
 
-hex :: Parser Integer
+hex :: Parser Int
 hex = do string "0"
          n <- TPN.hexadecimal
          return n
 
 hspaces = do many $ oneOf " \t"
            
-bin :: Parser Integer
+bin :: Parser Int
 bin = do string "0b"
          n <- TPN.binary
          return n
 
-number :: Parser Integer
+number :: Parser Int
 number = choice [ try hex
                 , try bin
                 , do n <- try $ many1 digit
-                     return $ (read n :: Integer)
+                     return $ (read n :: Int)
                 ]
   
 -- := number'size // generate appropriate list of vdd, gnd to represent number

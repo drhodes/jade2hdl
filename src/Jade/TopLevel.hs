@@ -17,6 +17,7 @@ import qualified Jade.Part as Part
 import qualified Jade.Wire as Wire
 import qualified Jade.Module as Module
 import qualified Jade.QUF as QUF
+import qualified Jade.Term as Term
 
 {-
 import qualified Jade.Decode.Bundle as Bundle
@@ -24,16 +25,16 @@ import qualified Jade.Decode.Decode as D
 import qualified Jade.Jumper as Jumper
 import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Net as Net
-import qualified Jade.Term as Term
 import qualified Jade.UnionFindST as UF
 import qualified Web.Hashids as WH
 -}
+
 
 getSubModules :: String -> J [SubModule]
 getSubModules modname = do --"TopLevel.getSubModules" <? do
   (Module _ schem _ _) <- getModule modname
   case schem of 
-    Just schem -> return $ Schematic.getSubModules schem
+    Just s -> return $ Schematic.getSubModules s
     Nothing -> die "No schematics found"
 
 type Id = Int
@@ -43,12 +44,12 @@ type IdPointTable = DM.Map Point Id
 type PointIdTable = DM.Map Id Point 
 type PointPartTable = DM.Map Point (DS.Set Part) -- parts at point
 
-wirePass :: String -> J TopLevel
-wirePass modname = "TopLevel.wirePass" <? do
-  schem <- getSchematic modname
-  let parts = Schematic.getAllParts schem
-      anonWires = Schematic.getAnonWires schem
-  unimplemented
+-- wirePass :: String -> J 
+-- wirePass modname = "TopLevel.wirePass" <? do
+--   schem <- getSchematic modname
+--   let parts = Schematic.getAllParts schem
+--       anonWires = Schematic.getAnonWires schem
+--   unimplemented
 
 addPointPartToTable :: (Point, Part) -> PointPartTable -> PointPartTable
 addPointPartToTable (point, part) table =
@@ -114,12 +115,32 @@ deanonymizeWires componentSet = "TopLevel.deanonymizeWires" <? do
     _ -> die "Found more than one signal in this component"
   return $ putSignal component (Just signal)
 
+--deanonymizeModule :: Module -> J [Part]
+
 getAllPartsNoTerms :: String -> J [Part]
 getAllPartsNoTerms modname = Schematic.getAllParts <$> getSchematic modname
-
 -- do the most you can with simple things while they're simple.
 -- don't wait to do simple things after it's complex.
 -- what's it?
+
+deanonymizeSchematic modname = "TopLevel.deanonymizeSchematic" <? do
+  Schematic parts <- getSchematic modname
+  let noWires = DL.filter (not . Part.isWire) parts
+  comps <- wireComponents modname
+  namedWires <- concatMapM deanonymizeWires comps
+  let partsWithNewWires = noWires ++ (filter Part.isWire namedWires)
+  return $ Schematic partsWithNewWires
+  
+deanonymizeModule modname = "TopLevel.deanonymizeModule" <? do
+  mod <- getModule modname
+  s <- deanonymizeSchematic modname
+  return $ mod{moduleSchem=Just s}
+
+deanonymizeTopLevel = "TopLevel.deanonymizeTopLevel" <? do
+  TopLevel table <- getTop
+  let (keys, mods) = unzip $ DM.toList table
+  mods' <- mapM deanonymizeModule keys
+  putTop $ TopLevel $ DM.fromList (zip keys mods')
 
 getAllPartsAndTerms :: String -> J [Part]
 getAllPartsAndTerms modname = do
@@ -129,8 +150,8 @@ getAllPartsAndTerms modname = do
 
 getAllTerminals :: String -> J [Terminal]
 getAllTerminals modname = do
-  schem <- getSchematic modname
-  concatMapM terminals $ Schematic.getSubModules schem
+  submods <- Schematic.getSubModules <$> getSchematic modname
+  concatMapM terminals submods
 
 -- | Get a list of input and output terminals in a submodule offset by
 -- the position of the submodule
@@ -143,6 +164,31 @@ terminals (SubModule modname offset) = do --"TopLevel.terminals" <? do
 terminals (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
   --MemUnit.terminals memunit
   unimplemented
+
+getRatio :: Terminal -> Part -> J (Int, Int)
+getRatio terminal part = "TopLevel.getTerminalRatio" <? do
+  let tw = fromIntegral $ Term.width terminal        
+  pw <- Part.width part
+  return (tw, pw)
+
+getRatios modname term = do
+  parts <- getPartsConnectedToTerminal modname term
+  mapM (getRatio term) (filter (not . Part.isSubModule) parts)
+
+replicationDepth :: String -> SubModule -> J Int
+replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
+  terms <- terminals submod
+  ratios <- concatMapM (getRatios modname) terms
+  return $ maximum [if tw >= pw then 1 else pw `div` tw | (tw, pw) <- ratios]
+
+getPartsConnectedToTerminal :: String -> Terminal -> J [Part]
+getPartsConnectedToTerminal modname terminal = "TopLevel.getPartsConnectedToTerminal" <? do
+  schem <- getSchematic modname
+  Schematic.getAllPartsAtPoint schem (Term.point terminal)
+
+-- deanonTopLevel = "TopLevel.deanonTopLevel" <? do  
+--   TopLevel moduleMap <- getTop 
+--   DM.map
   
     {-
 -- a function to possible create an edge given a wire and a part
@@ -365,11 +411,6 @@ getNetWithTerminal modname term  = "getNetWithTerminal" <? do
               return c
     _ -> impossible $ "More than one net found with terminal: " ++ show term
 
-getPartsConnectedToTerminal :: String -> Terminal -> J [Part]
-getPartsConnectedToTerminal modname terminal = "TopLevel.getPartsConnectedToTerminal" <? do
-  let (Terminal (Coord3 x y _) _) = terminal
-  schem <- getSchematic modname
-  Schem.getAllPartsAtPoint schem (Point x y)
 
 getWidthOfPartsAtTerminal :: String -> Terminal -> J Int
 getWidthOfPartsAtTerminal modname terminal = "TopLevel.getWidthOfPartsAtTerminal" <? do
@@ -383,21 +424,7 @@ getTerminalsAtPoint modname point@(Point x1 y1) = "TopLevel.getTerminalAtPoint" 
   allTerms <- concatMapM terminals subs
   return $ filter (flip Term.atPoint point) allTerms
 
-getRatio :: Terminal -> Part -> J (Int, Int)
-getRatio terminal part = "TopLevel.getTerminalRatio" <? do
-  let tw = Term.width terminal        
-  pw <- Part.width part
-  return (tw, pw)
 
-getRatios modname term = do
-  parts <- getPartsConnectedToTerminal modname term
-  mapM (getRatio term) (filter (not . Part.isSubModule) parts)
-
-replicationDepth :: String -> SubModule -> J Int
-replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
-  terms <- terminals submod
-  ratios <- concatMapM (getRatios modname) terms
-  return $ maximum [if tw >= pw then 1 else pw `div` tw | (tw, pw) <- ratios]
 
 getNetsWithName :: String -> String -> J [Net]
 getNetsWithName modname signame = "TopLevel.getNetsWithName" <? do

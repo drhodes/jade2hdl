@@ -2,6 +2,7 @@ module Rawr.Types ( TestTree(..)
                   , TestState(..)
                   , TestPath
                   , rawr
+                  , P.hcat
                   ) where
 
 import Prelude hiding (pow)
@@ -25,3 +26,4 @@ data TestState = Pass
 rawr = Fail . P.text 
 
 type TestPath = [String]
+

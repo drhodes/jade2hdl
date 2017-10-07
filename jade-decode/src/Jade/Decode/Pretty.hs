@@ -4,6 +4,7 @@ import Text.PrettyPrint.Leijen hiding (Mode)
 import Jade.Decode.Types
 import Control.Monad
 import Data.Maybe
+import qualified Data.Map as DM
 
 instance Pretty Line where
   pretty (Line c5) = text "Line: " <+> pretty c5
@@ -18,7 +19,7 @@ instance Pretty Txt where
   pretty (Txt loc txt _) = brackets $ text "Txt" <+> pretty loc <+> text txt
 
 instance Pretty Circle where
-  pretty (Circle x y r) = brackets $ text "Circle" <+> pretty (x, y) <+> text "radius:" <> pretty r
+  pretty (Circle x y r) = brackets $ text "Circle" <+> pretty (x, y) <+> text "radius:" <+> pretty r
 
 instance Pretty IconPart where
   pretty (IconLine x) = pretty x
@@ -29,7 +30,7 @@ instance Pretty IconPart where
   pretty x = brackets $ text $ "unsupported iconpart: " ++ show x
 
 instance Pretty Icon where
-  pretty (Icon parts) = brackets $ text "Icon" <+> hsep (map pretty parts)
+  pretty (Icon parts) = brackets $ text "Icon" <+> vsep (map pretty parts)
 
 instance Pretty Jumper where
   pretty (Jumper c3) = brackets $ text "Jumper" <+> pretty c3
@@ -53,11 +54,18 @@ instance Pretty Sig where
           SigSimple s -> text "SigSimple" <+> text s
           SigIndex s n -> text "SigIndex" <+> text s <+> pretty n
           SigHash s n -> text "SigHash" <+> text s <+> pretty n
-          SigRange s from to -> text "SigRange" <+> text s <+> (brackets $ pretty from <> text ":" <> pretty to)
+          SigRange s from to -> text "SigRange" <+> text s
+                                <+> (brackets $ pretty from <> text ":" <> pretty to)
           SigRangeStep s from to step -> text "SigRangeStep" <+> text s
-            <+> (brackets $ pretty from <> text ":" <> pretty to <> text ":" <> pretty step)          
-          SigQuote size val -> text "SigQuote" <+> (brackets (text "size:" <> pretty size)
-                                                     <+> (text "val:" <> pretty val))
+                                         <+> (brackets
+                                               $ pretty from
+                                               <> text ":"
+                                               <> pretty to
+                                               <> text ":"
+                                               <> pretty step)          
+          SigQuote size val -> text "SigQuote"
+                               <+> (brackets (text "size:" <> pretty size)
+                                     <+> (text "val:" <> pretty val))
           SigConcat sigs -> text "SigConcat" <+> hcat (map pretty sigs)
     in brackets psig
 
@@ -125,10 +133,10 @@ instance Pretty Thresholds where
     <+> text "voh:" <> pretty voh
 
 instance Pretty Inputs where
-  pretty (Inputs sigs) = brackets $ text "Inputs:" <+> (hsep $ map pretty sigs)
+  pretty (Inputs sigs) = brackets $ text "Inputs:" <+> (list $ map pretty sigs)
 
 instance Pretty Outputs where
-  pretty (Outputs sigs) = brackets $ text "Outputs:" <+> (hsep $ map pretty sigs)
+  pretty (Outputs sigs) = brackets $ text "Outputs:" <+> (list $ map pretty sigs)
 
 instance Pretty Mode where
   pretty x = text $ show x
@@ -144,17 +152,17 @@ instance Pretty Action where
     Tran dur -> brackets $ text "Tran:" <+> pretty dur
 
 instance Pretty CycleLine where
-  pretty (CycleLine actions) = brackets $ text "Action" <> (hsep $ map pretty actions)
+  pretty (CycleLine actions) = brackets $ text "Action" <> (list $ map pretty actions)
 
 instance Pretty BinVal where
   pretty x = text (show x)
 
 instance Pretty TestLine where
   pretty (TestLine binvals comment) =    
-    brackets $ text "TestLine" <+> (hsep $ map pretty binvals) <+> fromMaybe empty (liftM pretty comment)
+    brackets $ text "TestLine" <+> (hcat $ map pretty binvals) <+> fromMaybe empty (liftM pretty comment)
 
 instance Pretty PlotDef where
-  pretty (PlotDef sig xs) = brackets $ text "PlotDef" <+> pretty sig <+> hsep (map pretty xs) 
+  pretty (PlotDef sig xs) = brackets $ text "PlotDef" <+> pretty sig <+> list (map pretty xs) 
 
 instance Pretty PlotStyle where
   pretty (BinStyle sig) = brackets $ text "BinStyle" <+> pretty sig
@@ -168,13 +176,25 @@ instance Pretty ModTest where
     let f select = brackets $ fromMaybe empty $ liftM pretty (select mt)
     brackets
       $ f modPower
-      <+> f modThresholds
-      <+> f modInputs
-      <+> f modOutputs
-      <+> f modMode
-      <+> f modCycleLine
-      <+> hsep (map pretty $ modTestLines mt)
-      <+> hsep (map pretty $ modPlotDef mt)
-      <+> hsep (map pretty $ modPlotStyles mt)
+      <$$> f modThresholds
+      <$$> f modInputs
+      <$$> f modOutputs
+      <$$> f modMode
+      <$$> f modCycleLine
+      <$$> list (map pretty $ modTestLines mt)
+      <$$> list (map pretty $ modPlotDef mt)
+      <$$> list (map pretty $ modPlotStyles mt)
 
+instance Pretty Module where
+  pretty (Module name schem test icon) = braces
+                                         $ text "Module:"
+                                         <+> text name
+                                         <+> pretty schem
+                                         <+> pretty test
+                                         <+> pretty icon
 
+instance Pretty Schematic where
+  pretty (Schematic parts) = braces $ text "Schematic:" <+> pretty parts
+
+instance Pretty TopLevel where
+  pretty (TopLevel m) = braces $ text "TopLevel:" <+> pretty (DM.toList m)

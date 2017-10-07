@@ -17,15 +17,15 @@ import Rawr.Rawr
 import Jade.Common
 import Text.Printf
 import qualified Text.PrettyPrint.Leijen as P
+import Data.Monoid
 
-
-testTree = TestTree "TopLevel" [ testTreeMiscEtc
-                               --testTreeNumNets
+testTree = TestTree "TopLevel" [ testTreeNumWireComponents
+                               , testTreeReplicationDepth
+                               --   testTreeNumNets
                                -- , testTreeNumSubModules
                                -- , testTreeNumTerminals
                                -- , testTreeGetNetsWithNameAll
                                -- , testTreeConnectWiresWithSameSigName
-                               -- , testTreeReplicationDepth
                                -- , testTreeGetWidthOfSigName
                                -- , testTreeMiscEtc
                                -- , testTreeGetInternalSigNames
@@ -40,35 +40,66 @@ testNumWireComponents modname exp = do
   return $ case runJ topl func of
     Right x -> if x == exp
                then Pass
-               else do let log = runLog topl func
-                       Fail $ log P.<> P.text (printf "Expected %d: got: %d" exp x)
+               else let log = runLog topl func
+                    in Fail $ log <> P.text (printf "Expected %d: got: %d" exp x)
     Left msg -> Fail msg
 
-testTreeMiscEtc =
+testTreeNumWireComponents =
   let t modname exp = TestCase modname (testNumWireComponents modname exp)
-  in TestTree "MiscEtc" $ [ t "Jumper21" 4
-                          , t "Jumper3" 3
-                          , t "Jumper41" 13                          
-                          , t "Jumper41Rot90" 13
-                          , t "Jumper5" 2 
-                          , t "Jumper6" 2
-                          , t "Jumper7" 1
-                          , t "Jumper8" 1
-                          , t "AnonWire3" 1
-                          , t "JumperPort1" 1
-                          , t "JumperPort2" 1
-                          , t "Mux21Rep32" 4
-                          , t "Mux4Rep1" 6
-                          , t "NoRepFA2" 9
-                          , t "Nor32Arith" 15
-                          , t "Nor32Arith2" 15
-                          , t "Nor32Arith4" 10
-                          , t "Nor32Arith5" 6
-                          , t "PortTest1" 1                          
-                          , t "RepBuffer1" 3
-                          , t "ShiftL1" 24
-                          , t "WireConnectMid2" 2
-                          ]
+  in TestTree "numWireComponents" $
+     [ t "Jumper21" 4
+     , t "Jumper3" 3
+     , t "Jumper41" 13                          
+     , t "Jumper41Rot90" 13
+     , t "Jumper5" 2 
+     , t "Jumper6" 2
+     , t "Jumper7" 1
+     , t "Jumper8" 1
+     , t "AnonWire3" 1
+     , t "JumperPort1" 1
+     , t "JumperPort2" 1
+     , t "Mux21Rep32" 4
+     , t "Mux4Rep1" 6
+     , t "NoRepFA2" 9
+     , t "Nor32Arith" 15
+     , t "Nor32Arith2" 15
+     , t "Nor32Arith4" 10
+     , t "Nor32Arith5" 6
+     , t "PortTest1" 1                          
+     , t "RepBuffer1" 3
+     , t "ShiftL1" 24
+     , t "WireConnectMid2" 2
+     ]
+
+testReplicationDepth :: String -> Int -> IO TestState
+testReplicationDepth modname expDepth = do
+  Right topl <- Decode.decodeTopLevel (printf "./test-data/%s.json" modname)
+  let func = do
+        let parentModuleName = "/user/" ++ modname
+        subs <- TopLevel.getSubModules parentModuleName
+        let sub = subs !! 0
+        d <- TopLevel.replicationDepth ("/user/" ++ modname) sub
+        nb $ show d
+        if (expDepth == d)
+          then die "BWAHAHAHA!" --return ()
+          else die $ printf "expected: %d, got: %d" expDepth d
+        
+  case runJ topl func of
+    Right _ -> return Pass
+    Left msg -> return $ Fail $ runLog topl func <> msg <> P.pretty topl
+
+testTreeReplicationDepth =
+  let t modname exp = TestCase modname (testReplicationDepth modname exp)
+  in TestTree "getReplicationDepth" [ t "And2Ports" 1 
+                                    , t "And2Ports2" 1
+                                    , t "And2Ports3" 1
+                                    , t "And2Ports4" 1
+                                    , t "RepAnd2" 2
+                                    , t "RepAnd3" 4
+                                    , t "RepAnd4" 4
+                                    , t "RepWonkyBuffer1" 2
+                                    , t "RangeStep2" 8
+                                    ]
 
 
 -- foo2 = do
@@ -91,9 +122,6 @@ testTreeMiscEtc =
 --                then print "ok"
 --                else putStrLn $ printf "Expected %d: got: %d" exp x
 --     Left msg -> error msg
-
-
-
     
 {-
 bendyWire1 :: IO TestState
@@ -126,22 +154,6 @@ testTreeMiscEtc =
                         , t "portTest1" portTest1
                         ]
      
-testReplicationDepth :: String -> Int -> IO TestState
-testReplicationDepth modname expDepth = do
-  Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
-  let func = do
-        let parentModuleName = "/user/" ++ modname
-        subs <- TopLevel.getSubModules parentModuleName
-        let sub = subs !! 0
-        d <- TopLevel.replicationDepth ("/user/" ++ modname) sub
-        nb $ show d
-        if (expDepth == d)
-          then return ()
-          else die $ format "expected: {0}, got: {1}" [show expDepth, show d]
-        
-  case runJ topl func of
-    Right _ -> return Pass
-    Left msg -> return $ Fail $ runLog topl func ++ msg
 
 testNumNets2 modname numcomps = do
   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
@@ -151,7 +163,6 @@ testNumNets2 modname numcomps = do
         list nets
         return (length nets, nets)
         
-  
   case runJ topl func of
     Right (n, comps) ->
       if n == numcomps
@@ -207,7 +218,6 @@ testTreeConnectWiresWithSameSigName =
   let t modname exp = TestCase modname (testConnectWiresWithSameSigName modname exp)
   in TestTree "ConnectWiresWithSameSigName" [t "RepAnd2" 9
                                             ]
-
 testTreeGetNetsWithNameAll =
   let t modname signame exp = TestCase modname (testGetNetsWithName modname signame exp)
   in TestTree "getNetsWithName" [ t "RepAnd2" "IN2" 1
@@ -218,20 +228,6 @@ testTreeGetNetsWithNameAll =
                                 , t "Jumper1" "VOUT" 1
                                 , t "BuiltInAnd4Messy" "VOUT" 1                                
                                 ]
-
-testTreeReplicationDepth =
-  let t modname exp = TestCase modname (testReplicationDepth modname exp)
-  in TestTree "getReplicationDepth" [ t "And2Ports" 1 
-                                    , t "And2Ports2" 1
-                                    , t "And2Ports3" 1
-                                    , t "And2Ports4" 1
-                                    , t "RepAnd2" 2
-                                    , t "RepAnd3" 4
-                                    , t "RepAnd4" 4
-                                    , t "RepWonkyBuffer1" 2
-                                    , t "RangeStep2" 8
-                                    ]
-
 
 
 testGetWidthOfSigName modname signame expectedWidth = do
@@ -348,7 +344,6 @@ testExplodeConnect1 = do
       w2 = Wire c2 (Just $ Signal (Just valBundle2) 2 Nothing)
   TopLevel.explodeConnect (w1, w2) 
      
-
 testGetTerminalsAtPoint modname point expected = do
   testExpGot modname expected $ do    
     length <$> TopLevel.getTerminalsAtPoint (qualifiedModName modname) point

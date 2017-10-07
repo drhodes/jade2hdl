@@ -24,7 +24,7 @@ import Text.PrettyPrint.Leijen
 
 newtype Bundle a = Bundle [a] deriving (Show, Eq, Generic, Hashable, Ord, Foldable, ToJSON)
 
-type NetId = Integer
+type NetId = Int
 
 data Val = ValIndex { valIdxName :: String
                     , valIdxIdx :: Index
@@ -53,7 +53,6 @@ instance Monoid (Bundle a) where
   mconcat bs = Bundle $ concat [x | Bundle x <- bs]
   mappend (Bundle x) (Bundle y) = Bundle (x ++ y)
   mempty = Bundle []
-
 
 ------------------------------------------------------------------
 -- introducing another stage for inferring wire size 

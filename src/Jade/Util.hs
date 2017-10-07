@@ -127,3 +127,4 @@ takeFirst f xs =
 
 forSome fs x = or [f x | f <- fs]
 forAll fs x = and [f x | f <- fs]
+

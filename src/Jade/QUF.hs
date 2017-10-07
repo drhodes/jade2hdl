@@ -81,7 +81,6 @@ testQUF filename = do
   print ("num pairs", length pairs)
   print c
 
-
 oneNeighborhood quf elId remaining = filterM (connected quf elId) remaining
 
 allNeighbors quf [] = return []
