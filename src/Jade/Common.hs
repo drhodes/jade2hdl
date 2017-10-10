@@ -6,7 +6,6 @@ module Jade.Common
   , module Rawr.Note
   , module Jade.Util
   , module Jade.Decode.Types
-  
   ) where
 
 import Jade.Types
@@ -19,6 +18,7 @@ import Data.Aeson
 import Text.Format
 import qualified Text.PrettyPrint.Leijen as P
 import Data.Monoid
+import Text.Printf
 
 import Control.Monad.Except 
 import Control.Monad.Writer
@@ -38,17 +38,15 @@ data Global = Global { globalTopLevel :: TopLevel
 
 data Memo = Memo { memoComps :: DM.Map String [Net] }
 
-
 instance Monoid P.Doc where
   mappend p q = p P.<> P.softline  P.<> q
   mempty = P.empty
 
 emptyMemo = Memo DM.empty
-emptyTopl = TopLevel DM.empty
+emptyTopl stage = TopLevel stage DM.empty
 
 getMemo :: J Memo
 getMemo = globalMemo <$> get
-
 
 putMemo memo = do
   Global x _ <- get
@@ -58,6 +56,9 @@ getTop :: J TopLevel
 getTop = globalTopLevel <$> get
 putTop top = do g <- get
                 put g{globalTopLevel=top}
+                
+getCurStage = topLevelStage <$> getTop
+
 
 globalInit topl = Global topl emptyMemo
 
@@ -103,11 +104,13 @@ cnb _ = return ()
 nb :: String -> J ()
 nb s = tell (P.text s)
 nbf s xs = nb $ format s xs
-
+nbd doc = tell doc
 assert cond reason = unless cond (die reason)
 
 enb x = tell (P.pretty x)
 list xs = enb xs
+listd xs = tell $ P.list $ map P.pretty xs
+
 
 bail :: J a
 bail = die "bailing!"
@@ -128,20 +131,39 @@ safeCycle xs = return $ cycle xs
 ------------------------------------------------------------------
 -- RESOLVING CIRCUILAR IMPORTS :/
 
+-- -- |Get a module from a TopLevel given a module name
+-- getModule :: String -> J Module
+-- getModule name = do -- "TopLevel.getModule" <? do  
+--   if name `startsWith` "/gate"
+--     then return $ BuiltInModule name
+--     else do TopLevel stage m <- getTop
+--             case DM.lookup name m of
+--               Just mod -> return mod{moduleName = name}
+--               Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
 
 -- |Get a module from a TopLevel given a module name
 getModule :: String -> J Module
 getModule name = do -- "TopLevel.getModule" <? do  
   -- if name `startsWith` "/gate"
   -- then return $ BuiltInModule name
-  TopLevel m <- getTop
+  TopLevel _ m <- getTop
   case DM.lookup name m of
     Just mod -> return mod{moduleName = name}
-    Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name   
+    Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name
 
+
+getSchematic :: String -> J Schematic
 getSchematic name = do
   m <- getModule name
   case moduleSchem m of
     Just s -> return s
-    Nothing -> dief "No schematic found in module" [name]
+    Nothing -> die $ printf "(No schematic found in module: <%s>)" name
 
+assertEq :: (Eq a, Show a) => a -> a -> String -> J ()
+assertEq x y msg = when (x /= y) (die $ printf "Assertion failed: %s, %s" msg (show (x, y)))
+
+
+assertStage expstage = do
+  s <- getCurStage
+  let msg = printf "In wrong stage, expected: %s, got: %s" (show expstage) (show s)
+  assertEq expstage s msg

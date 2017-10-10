@@ -10,3 +10,6 @@ points (SubModule modname loc) = "SubModule.locs" <? do
    ts <- Module.terminals m loc 
    return $ concat $ map Term.points ts
 
+name (SubModule name _) = name
+loc (SubModule _ loc) = loc
+

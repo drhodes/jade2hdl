@@ -116,7 +116,6 @@ data SubModule = SubModule { subName :: String
                | SubMemUnit MemUnit
                deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
-
 data Jumper = Jumper Coord3 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data MemUnit = MemUnit { memName :: String
@@ -152,17 +151,16 @@ data Module = Module { moduleName :: String
                      , moduleTest :: Maybe ModTest
                      , moduleIcon :: Maybe Icon
                      } 
-            | BuiltInModule String
+            -- | BuiltInModule String
             deriving (Generic, Show, Eq, Hashable, Ord, ToJSON) -- todo add test
 
+data ProcStage = StageDecode
+               | StageWire
+               deriving (Generic, Show, Eq, Hashable, Ord, ToJSON) -- todo add test
 
-
-
-
-
-newtype TopLevel = TopLevel (DM.Map String Module) deriving  (Generic, Show, Eq, ToJSON)
-
-
+data TopLevel = TopLevel { topLevelStage :: ProcStage
+                         , topLevelModMap :: (DM.Map String Module)
+                         } deriving  (Generic, Show, Eq, ToJSON)
 
 data BoundingBox = BB { bbLeft :: Integer
                       , bbTop :: Integer
@@ -178,7 +176,8 @@ instance LocRot Coord5 where locrot (Coord5 x y r _ _) = Coord3 x y r
 ------------------------------------------------------------------
 -- Test Types
 
-newtype Power = Power { powerVdd :: Double } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
+newtype Power = Power { powerVdd :: Double
+                      } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data Thresholds = Thresholds { thVol :: Double
                              , thVil :: Double
@@ -187,7 +186,6 @@ data Thresholds = Thresholds { thVol :: Double
                              } deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 newtype Inputs = Inputs [Sig] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
-  
 newtype Outputs = Outputs [Sig] deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)
 
 data Mode = Device | Gate deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)

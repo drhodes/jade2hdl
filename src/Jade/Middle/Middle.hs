@@ -11,41 +11,55 @@ module Jade.Middle.Middle where
 import Control.Monad
 import Jade.Common
 import Jade.Middle.Types
--- import qualified Data.List as DL
+import qualified Data.List as DL
 -- import qualified Data.Map as DM
 -- import qualified Data.Set as DS
 -- import qualified Data.Vector as V
 -- import qualified Jade.Bundle as Bundle
 -- import qualified Jade.Decode.Decode as Decode
+import qualified Jade.Decode.Sig as Sig
 -- import qualified Jade.Val as Val
 -- import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Module as Module
 -- import qualified Jade.Net as Net
 import qualified Jade.TopLevel as TopLevel
+import qualified Jade.Part as Part
+import qualified Jade.Term as Term
 
 flipAssign (ValAssign src tgt) = ValAssign tgt src
 
 -----------------------------------------------------------------------------
 
-{-
-replicateOneTerminal :: String -> Int -> Direction -> Terminal -> Net -> J TermMap
-replicateOneTerminal modname numReplications dir term@(Terminal _ sig) = --net@(Net nid _) =
+explode sig =
+  case sig of 
+    SigSimple name -> [ValIndex name 0]
+    SigIndex name x -> [ValIndex name x]
+    SigHash name x -> error "Decode.Decode.Sig.explode doesn't handle SigHash yet"
+    SigRange name from to -> map (ValIndex name) (Sig.range from to 1)
+    SigRangeStep name from to step -> map (ValIndex name) (Sig.range from to step)
+    SigQuote val width -> map Lit $ Sig.twosComplement val (fromIntegral width)
+    SigConcat sigs -> concatMap explode sigs
+
+
+replicateOneTerminal :: String -> Int -> Direction -> Terminal -> J TermMap
+replicateOneTerminal modname numReplications dir term@(Terminal _ sig) = -- net@(Net nid _) =
   "Middle/Middle.replicateOneTerminal" <? do
   --netWidth <- fromIntegral <$> Net.width net
-  --
+  netWidth <- TopLevel.connectedWidth =<< TopLevel.getPartsConnectedToTerminal modname term
   
-  netWidth <- 
-  let termWidth = Bundle.width bndl 
-      Bundle termSigs = bndl
-      totalWidth = fromIntegral (termWidth * numReplications) :: Int
+  let termWidth = (fromIntegral $ Term.width term) :: Int
+      totalWidth = termWidth * numReplications
+      termSigs = explode sig
+      
   case compare netWidth totalWidth of
     GT -> do {
       ; cnb "case netWidth > totalWidth"
       ; impossible "This can't happen if the JADE modules tests pass in JADE"
       }
+    
     _ -> do {
       ; cnb "case netWidth <= totalWidth"
-      ; let singles = map (NetIndex nid) $ downFrom (fromIntegral (netWidth - 1))
+      ; let singles = map (NetIndex (-42)) $ downFrom (fromIntegral (netWidth - 1))
             srcs = concat $ DL.transpose $ chunk numReplications singles
       ; safeSrcs <- safeCycle srcs ? "safeSrcs"
       ; safeTerms <- safeCycle termSigs ? "termSigs"
@@ -54,50 +68,35 @@ replicateOneTerminal modname numReplications dir term@(Terminal _ sig) = --net@(
                    In -> tmap
                    Out -> flipTermMap tmap
       }
--}
 
+subModuleInstances :: String -> SubModule -> J [SubModuleRep] 
+subModuleInstances modname submod@(SubModule name loc) = "Middle.subModuleInstances" <? do
+  repd <- TopLevel.replicationDepth modname submod
+  m <- getModule name
+  inputTerms <- Module.getInputTerminals m loc
+  outputTerms <- Module.getOutputTerminals m loc
+
+  nb "inputTerms"
+  listd inputTerms
+  listd outputTerms
+  return []
 
 {-
 subModuleInstances :: String -> SubModule -> J [SubModuleRep]
 subModuleInstances modname submod@(SubModule name loc) = "Middle.Types.subModuleInstances" <? do
   repd <- TopLevel.replicationDepth modname submod
   m <- getModule name 
-  
   inputTerms <- Module.getInputTerminals m loc
   unimplemented
   inputNets <- mapM (TopLevel.netWithTerminal modname) inputTerms
- 
   -- outputTerms <- Module.getOutputTerminals m loc
   -- outputNets <- mapM (TopLevel.netWithTerminal modname) outputTerms
-
   -- inputTermMaps <- zipWithM (replicateOneTerminal modname repd In) inputTerms (map Net.removeTerms inputNets)
   -- outputTermMaps <- zipWithM (replicateOneTerminal modname repd Out) outputTerms (map Net.removeTerms outputNets)
-
   -- let itms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- inputTermMaps] :: [[TermMap]]
   --     otms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- outputTermMaps] :: [[TermMap]]
-
   -- buildSubModuleReps itms otms submod (repd - 1)
 
--}
-
-
-
-
-
-
-{-
-                                      
--- | take .input(s) then find the nets they belong to and assign them.
-assignBundle :: Direction -> String -> ValBundle -> J [ValAssign]
-assignBundle dir modname inputBundle = "Middle/Middle.assignOneInputBundle" <? do
-  case uniq $ Bundle.getNames inputBundle of
-    [] -> dief "No input name found for this input bundle {0}" [show inputBundle]
-    [inputName] -> do
-      -- find nets with signame
-      nets <- TopLevel.getNetsWithName modname inputName
-      -- for each net, assign the signame
-      concatMapM (assignSig dir modname inputName) nets
-    xs -> impossible "A Jade module input has more than one name?? Can't happen"
   
 -- is this net connected to the output terminal of a submodule or
 -- an input terminal?
@@ -191,3 +190,17 @@ getInputNetIdsFromTermMap ins = [nid | TermAssoc _ src@(NetIndex nid _) tgt <- i
 
 
 -}
+
+
+
+-- -- | take .input(s) then find the nets they belong to and assign them.
+-- assignBundle :: Direction -> String -> ValBundle -> J [ValAssign]
+-- assignBundle dir modname inputBundle = "Middle/Middle.assignOneInputBundle" <? do
+--   case uniq $ Bundle.getNames inputBundle of
+--     [] -> dief "No input name found for this input bundle {0}" [show inputBundle]
+--     [inputName] -> do
+--       -- find nets with signame
+--       nets <- TopLevel.getNetsWithName modname inputName
+--       -- for each net, assign the signame
+--       concatMapM (assignSig dir modname inputName) nets
+--     xs -> impossible "A Jade module input has more than one name?? Can't happen"

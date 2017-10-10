@@ -18,6 +18,7 @@ import qualified Jade.Wire as Wire
 import qualified Jade.Module as Module
 import qualified Jade.QUF as QUF
 import qualified Jade.Term as Term
+import qualified Text.PrettyPrint.Leijen as P
 
 {-
 import qualified Jade.Decode.Bundle as Bundle
@@ -98,6 +99,16 @@ getSignals parts = mapMaybe Part.getSignal parts
 getWidths :: [Part] -> J [Int]
 getWidths parts = mapM Part.width parts
 
+connectedWidth :: [Part] -> J Int
+connectedWidth componentList = "TopLevel.connectedWidth" <? do
+  assertStage StageWire
+  compWidths <- getWidths componentList
+  case compWidths of
+    [] -> return 1
+    xs -> if DL.nub xs == xs
+          then return $ fromIntegral $ head xs
+          else die "Huh? Found more than one signal width in this component."
+
 deanonymizeWires :: DS.Set Part -> J [Part]
 deanonymizeWires componentSet = "TopLevel.deanonymizeWires" <? do
   let component = DS.toList componentSet
@@ -115,13 +126,8 @@ deanonymizeWires componentSet = "TopLevel.deanonymizeWires" <? do
     _ -> die "Found more than one signal in this component"
   return $ putSignal component (Just signal)
 
---deanonymizeModule :: Module -> J [Part]
-
 getAllPartsNoTerms :: String -> J [Part]
 getAllPartsNoTerms modname = Schematic.getAllParts <$> getSchematic modname
--- do the most you can with simple things while they're simple.
--- don't wait to do simple things after it's complex.
--- what's it?
 
 deanonymizeSchematic modname = "TopLevel.deanonymizeSchematic" <? do
   Schematic parts <- getSchematic modname
@@ -136,11 +142,27 @@ deanonymizeModule modname = "TopLevel.deanonymizeModule" <? do
   s <- deanonymizeSchematic modname
   return $ mod{moduleSchem=Just s}
 
+builtInModuleName :: [Char] -> Bool
+builtInModuleName name = name `startsWith` "/gates/"
+
+allBuiltInMods :: J ([String], [Module])
+allBuiltInMods = "TopLevel.allBuiltInMods" <? do
+  TopLevel _ table <- getTop
+  return $ unzip $ DM.toList $ DM.filterWithKey (\k _ -> builtInModuleName k) table
+
+allUserMods :: J ([String], [Module])
+allUserMods = "TopLevel.allBuiltInMods" <? do
+  TopLevel _ table <- getTop
+  return $ unzip $ DM.toList $ DM.filterWithKey (\k _ -> not $ builtInModuleName k) table
+
+deanonymizeTopLevel :: J ()
 deanonymizeTopLevel = "TopLevel.deanonymizeTopLevel" <? do
-  TopLevel table <- getTop
-  let (keys, mods) = unzip $ DM.toList table
-  mods' <- mapM deanonymizeModule keys
-  putTop $ TopLevel $ DM.fromList (zip keys mods')
+  assertStage StageDecode
+  (userKeys, _) <- allUserMods
+  (builtInKeys, builtInMods) <- allBuiltInMods  
+  userMods <- mapM deanonymizeModule userKeys
+  putTop $ TopLevel StageWire
+         $ DM.fromList $ (zip userKeys userMods) ++ (zip builtInKeys builtInMods)
 
 getAllPartsAndTerms :: String -> J [Part]
 getAllPartsAndTerms modname = do
@@ -161,30 +183,51 @@ terminals (SubModule modname offset) = do --"TopLevel.terminals" <? do
   m <- getModule modname
   Module.terminals m offset
 
-terminals (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
-  --MemUnit.terminals memunit
-  unimplemented
+-- terminals (SubMemUnit memunit) = "TopLevel.terminals/memunit" <? do
+--   --MemUnit.terminals memunit
+--   unimplemented
 
 getRatio :: Terminal -> Part -> J (Int, Int)
 getRatio terminal part = "TopLevel.getTerminalRatio" <? do
+  assertStage StageWire
   let tw = fromIntegral $ Term.width terminal        
   pw <- Part.width part
   return (tw, pw)
 
 getRatios modname term = do
+  assertStage StageWire
   parts <- getPartsConnectedToTerminal modname term
   mapM (getRatio term) (filter (not . Part.isSubModule) parts)
 
 replicationDepth :: String -> SubModule -> J Int
 replicationDepth modname submod  = "TopLevel.replicationDepth" <? do
+  assertStage StageWire
   terms <- terminals submod
   ratios <- concatMapM (getRatios modname) terms
   return $ maximum [if tw >= pw then 1 else pw `div` tw | (tw, pw) <- ratios]
 
 getPartsConnectedToTerminal :: String -> Terminal -> J [Part]
 getPartsConnectedToTerminal modname terminal = "TopLevel.getPartsConnectedToTerminal" <? do
+  assertStage StageWire
   schem <- getSchematic modname
   Schematic.getAllPartsAtPoint schem (Term.point terminal)
+
+getNameConnectedToTerminal :: String -> Terminal -> J ()
+getNameConnectedToTerminal modname terminal = "TopLevel.getNameConnectedToTerminal" <? do
+  parts <- getPartsConnectedToTerminal modname terminal
+  listd $ map P.pretty parts
+  return ()
+  
+-- | VHDL requires that modules be instantiated in dependency order,
+dependencyOrder :: String -> J [String]
+dependencyOrder modname = "TopLevel.dependencyOrder" <? 
+  if not $ modname `startsWith` "/user/" then return []
+  else do m <- getModule modname
+          schem <- Module.getSchematic m
+          let subnames = DL.nub [subname | (SubModule subname _) <- Schematic.getSubModules schem]
+          children <- concatMapM dependencyOrder subnames
+          return $ filter (`startsWith` "/user") $ DL.nub $ children ++ subnames 
+
 
 -- deanonTopLevel = "TopLevel.deanonTopLevel" <? do  
 --   TopLevel moduleMap <- getTop 
@@ -342,15 +385,6 @@ getEdges modname = "TopLevel.getEdges" <? do
   edges <- processEdges allWires termcs 
   return (wireEdges ++ edges)
 
--- | VHDL requires that modules be instantiated in dependency order,
-dependencyOrder :: String -> J [String]
-dependencyOrder modname = "TopLevel.dependencyOrder" <? 
-  if not $ modname `startsWith` "/user/" then return []
-  else do m <- getModule modname
-          schem <- Module.getSchematic m
-          let subnames = DL.nub [subname | (SubModule subname _) <- Schem.getSubModules schem]
-          children <- concatMapM dependencyOrder subnames
-          return $ filter (`startsWith` "/user") $ DL.nub $ children ++ subnames 
 
 -- |Get the graph net which contains the terminals.
 netWithTerminal :: [Char] -> Terminal -> J Net

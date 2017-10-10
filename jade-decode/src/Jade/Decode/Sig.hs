@@ -2,6 +2,7 @@ module Jade.Decode.Sig ( parseSig
                        , oneSig
                        , width
                        , twosComplement
+                       , range
                        ) where
 
 import Control.Monad
@@ -145,25 +146,6 @@ width sig = case sig of
                                              in fromIntegral $ length range
               SigQuote _ w -> fromIntegral w
 
-{-
-explode :: Sig -> Sig
-explode sig =
-  let result =
-        case sig of 
-          SigSimple name -> [ValIndex name 0]
-          SigIndex name x -> [ValIndex name x]
-          SigHash name x -> error "Decode.Decode.Sig.explode doesn't handle SigHash yet"
-          SigRange name from to ->
-            map (ValIndex name) (range from to 1)
-          SigRangeStep name from to step ->
-            map (ValIndex name) (range from to step)
-          SigQuote val width -> map Lit $ twosComplement val width
-  in Bundle result
--}
-
-range from to step = if from < to 
-                     then [from, from+step .. to] -- ascending
-                     else [from, from-step .. to] -- descending
 
 genbits n | n == 0 = []
           | n `mod` 2 == 0 = L : (genbits next)
@@ -172,3 +154,8 @@ genbits n | n == 0 = []
 
 twosComplement :: Integral a => a -> Integer -> [BinVal]
 twosComplement val numBits = reverse $ take (fromInteger numBits) $ (genbits val) ++ repeat L
+
+range from to step = if from < to 
+                     then [from, from+step .. to] -- ascending
+                     else [from, from-step .. to] -- descending
+

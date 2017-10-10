@@ -1,6 +1,7 @@
 module Main where
 
 import qualified TestTopLevel as TTL
+import qualified TestVhdl
 import qualified Rawr.Types as RT
 import qualified Rawr.Rawr as RR
 import qualified Control.Parallel.Strategies as CPS
@@ -19,8 +20,8 @@ main = do
              -- , TI.testTree
              -- , TM.testTree
              -- , TestMiddle.testTree
-             TTL.testTree             
-             --, TV.testTree
+               TTL.testTree             
+             , TestVhdl.testTree
              ]
 
   putStrLn "" -- newline

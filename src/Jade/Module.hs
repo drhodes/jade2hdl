@@ -11,6 +11,7 @@ import qualified Jade.Decode.ModTest as ModTest
 import qualified Jade.BoundingBox as BoundingBox
 import Jade.Common hiding (replace)
 import Text.Format
+import Text.Printf
 import qualified Jade.Bundle as Bundle
 
 
@@ -24,8 +25,7 @@ terminals mod p@(Coord3 mx my mr) = do --"Module.terminals" <? do
 
 getIcon :: Module -> J Icon
 getIcon (Module _ _ _ (Just x)) = return x
-getIcon _ = die "No icon found in module"
-
+getIcon (Module modname _ _ _) = die $ printf "No icon found in module: %s" modname
 
 name = moduleName
 schem = moduleSchem
@@ -55,13 +55,22 @@ setSignals m =
     Nothing -> []
 
 
-{-
-
 getSchematic :: Module -> J Schematic
 getSchematic (Module name schem _ __) = "Module.getSchematic" <?
   case schem of
     Just schem -> return schem
     Nothing -> die $ "No schematic found for module: " ++ name
+
+
+getOutputs :: Module -> J Outputs
+getOutputs m = "Module.getOutputs" <? do
+  case moduleTest m of
+    Just mod ->
+      case modOutputs mod of
+        Just outs -> return outs
+        Nothing -> die "Module.getOutputs couldn't find outputs"
+    Nothing ->  die "Module.getOutputs could not find test script"
+
 
 boundingBox :: Module -> Coord3 -> J BoundingBox
 boundingBox (Module _ _ _ icon) offset = "Module.boundingBox" <? do
@@ -90,15 +99,7 @@ getInputsNoSetSigs m = "Module.getInputsNoSetSigs" <? do
         Nothing -> die $ "Module.getInputs couldn't find inputs in module: " ++ (moduleName m)
     Nothing ->  die $ "Module.getInputs could not find test script in module: " ++ (moduleName m)
 
-getOutputs :: Module -> J Outputs
-getOutputs m = "Module.getOutputs" <? do
-  case moduleTest m of
-    Just mod ->
-      case modOutputs mod of
-        Just outs -> return outs
-        Nothing -> die "Module.getOutputs couldn't find outputs"
-    Nothing ->  die "Module.getOutputs could not find test script"
-
+{-
 -- | For a given testline, extract the expected sample output values
 -- associated with a output name.
 getSamplesWithName :: Module -> TestLine -> String -> J ValBundle
@@ -107,6 +108,7 @@ getSamplesWithName m testline outputName = "Module.getSamples" <? do
   Outputs bundles <- getOutputs m
   let names = concatMap Bundle.getNames bundles 
   return $ Bundle [Lit bv | (name, bv)  <- zip names binvals, name == outputName]
+-}
 
 cycleLine :: Module -> J CycleLine
 cycleLine m = "Module.cycleLine" <? do
@@ -129,4 +131,3 @@ mangleModName modname = "mod" ++ replace "/" "_" modname
 
 testBenchName modname = mangleModName modname ++ "_tb"
 
--}

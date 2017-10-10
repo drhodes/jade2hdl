@@ -18,6 +18,7 @@ import Jade.Common
 import Text.Printf
 import qualified Text.PrettyPrint.Leijen as P
 import Data.Monoid
+import TestUtil
 
 testTree = TestTree "TopLevel" [ testTreeNumWireComponents
                                , testTreeReplicationDepth
@@ -75,18 +76,19 @@ testReplicationDepth :: String -> Int -> IO TestState
 testReplicationDepth modname expDepth = do
   Right topl <- Decode.decodeTopLevel (printf "./test-data/%s.json" modname)
   let func = do
+        TopLevel.deanonymizeTopLevel
         let parentModuleName = "/user/" ++ modname
         subs <- TopLevel.getSubModules parentModuleName
         let sub = subs !! 0
         d <- TopLevel.replicationDepth ("/user/" ++ modname) sub
         nb $ show d
         if (expDepth == d)
-          then die "BWAHAHAHA!" --return ()
+          then return ()
           else die $ printf "expected: %d, got: %d" expDepth d
         
   case runJ topl func of
     Right _ -> return Pass
-    Left msg -> return $ Fail $ runLog topl func <> msg <> P.pretty topl
+    Left msg -> return $ Fail $ runLog topl func <> msg
 
 testTreeReplicationDepth =
   let t modname exp = TestCase modname (testReplicationDepth modname exp)

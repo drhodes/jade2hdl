@@ -171,6 +171,9 @@ instance Pretty PlotStyle where
   pretty (SimplePlot sig) = brackets $ text "SimplePlot" <+> pretty sig
   pretty (PlotDefStyle s sig) = brackets $ text "PlotDefStyle" <+> pretty sig
 
+instance Pretty ProcStage where
+  pretty x = braces $ text "Stage: " <+> (text (show x))
+
 instance Pretty ModTest where
   pretty mt = do
     let f select = brackets $ fromMaybe empty $ liftM pretty (select mt)
@@ -197,4 +200,7 @@ instance Pretty Schematic where
   pretty (Schematic parts) = braces $ text "Schematic:" <+> pretty parts
 
 instance Pretty TopLevel where
-  pretty (TopLevel m) = braces $ text "TopLevel:" <+> pretty (DM.toList m)
+  pretty (TopLevel s m) = braces
+                          $    text "TopLevel:"
+                          <+>  text "Stage: " <> pretty s
+                          <$$> text "Mods:  " <> (list $ map pretty $ DM.toList m)

@@ -4,7 +4,6 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 
 module Jade.Vhdl where
-{-
 import Control.Monad
 import Data.FileEmbed
 import Data.Text.Encoding
@@ -17,16 +16,18 @@ import qualified Data.Map as DM
 import qualified Data.Text as T
 import qualified Data.Text.IO as DT
 import qualified Jade.Decode.Decode as Decode
+import qualified Jade.Decode.Sig as Sig
 import qualified Jade.Net as Net
 import qualified Jade.Decode.ModTest as ModTest
 import qualified Jade.Module as Module
 import qualified Jade.TopLevel as TopLevel
-import qualified Jade.Decode.Bundle as Bundle
+import qualified Jade.Bundle as Bundle
 import qualified Data.ByteString.Lazy.Char8 as DBL8
 import Data.Aeson
-
+import Jade.Middle.Types as JMT
 import Jade.Common
 import qualified Jade.Middle.Middle as JMM
+import qualified Text.PrettyPrint.Leijen as P
 
 splitAssert _ [] = []
 splitAssert [] xs = [xs]
@@ -38,7 +39,6 @@ mkTestLine :: Module -> [Action] -> TestLine -> Integer -> J [String]
 mkTestLine _ [] _ _ = return []
 mkTestLine m (act:actions) testline testnum = "Vhdl.mkTestLine" <? do  
   let recurse x = (x++) <$> mkTestLine m actions testline testnum
-
   let Just modt = moduleTest m
   
   case act of
@@ -60,26 +60,28 @@ mkTestLine m (act:actions) testline testnum = "Vhdl.mkTestLine" <? do
       otherwise -> die $ "SetSignal needs to be 1 or 0, got: " ++ (show x)
     x -> dief "not unimplemented {0}" [show x]
 
-mkAssert m modt testline = "Vhdl.mkAssert" <? do
-  -- a <= '0'; b <= '0'; c <= '0'; d <= '0';
-  asserts <- ModTest.assertBitVals modt testline
-  Inputs bundles <- Module.getInputs m
-  let tgts = concatMap Bundle.getVals bundles  
-  if (length tgts == length tgts)
-    then return $ map sigAssert (zip tgts asserts)
-    else die "expecteds not the same length as lits."
+mkAssert _ _ _ = unimplemented
+-- mkAssert m modt testline = "Vhdl.mkAssert" <? do
+--   -- a <= '0'; b <= '0'; c <= '0'; d <= '0';
+--   asserts <- unimplemented --ModTest.assertBitVals modt testline
+--   Inputs bundles <- Module.getInputs m
+--   let tgts = unimplemented --concatMap Bundle.getVals bundles  
+--   if (length tgts == length tgts)
+--     then unimplemented -- return $ map sigAssert (zip tgts asserts)
+--     else die "expecteds not the same length as lits."
 
 sigAssert (ValIndex name idx, assert) = 
   format "{0}({1}) <= '{2}';" [name, show idx, [binValToChar assert]]
 
-mkSampleLine :: Integer -> ModTest -> TestLine -> Module -> J [T.Text]
-mkSampleLine testnum modt testline m = "Vhdl.mkSampleLine" <? do
-  expecteds <- ModTest.sampleBitVals modt testline
-  Outputs bundles <- Module.getOutputs m
-  let singles = concatMap Bundle.getVals bundles
-  if (length expecteds == length singles)
-    then mapM (mkSamplePair testnum modt testline m) (zip singles expecteds)
-    else die "expecteds not the same length as singles."
+mkSampleLine _ _ _ _ = return []
+-- mkSampleLine :: Integer -> ModTest -> TestLine -> Module -> J [T.Text]
+-- mkSampleLine testnum modt testline m = "Vhdl.mkSampleLine" <? do
+--   expecteds <- unimplemented -- ModTest.sampleBitVals modt testline
+--   Outputs bundles <- Module.getOutputs m
+--   let singles = concatMap Bundle.getVals bundles
+--   if (length expecteds == length singles)
+--     then mapM (mkSamplePair testnum modt testline m) (zip singles expecteds)
+--     else die "expecteds not the same length as singles."
 
 mkSamplePair testnum modt testline m (ValIndex name idx, exp) = "Vhdl.mkSamplePair" <? do
   let n = format "{0}({1})" [name, show idx]
@@ -115,14 +117,15 @@ portAssoc bndl = "Vhdl.portAssoc" <? do
   return $ format "{0}({1} downto 0) => {0}({1} downto 0)" [name,show w]
 
 --dut : entity work.AND23 port map (a => a, b => b, c => c, d => d, output => result);
-mkDUT m modname = "Vhdl.testDUT" <? do  
-  Inputs ins <- Module.getInputs m ? (format " in module: {0}" [modname])
-  Outputs outs <- Module.getOutputs m
-  portAssociates <- mapM portAssoc (ins ++ outs)
-  let portmap = DL.intercalate ", \n" portAssociates
-      template = "dut : entity work.{0} port map ({1});"
-      mn = Module.mangleModName modname
-  return $ format template [mn, portmap]
+mkDUT = unimplemented
+-- mkDUT m modname = "Vhdl.testDUT" <? do  
+--   Inputs ins <- Module.getInputs m ? (format " in module: {0}" [modname])
+--   Outputs outs <- Module.getOutputs m
+--   portAssociates <- mapM portAssoc (ins ++ outs)
+--   let portmap = DL.intercalate ", \n" portAssociates
+--       template = "dut : entity work.{0} port map ({1});"
+--       mn = Module.mangleModName modname
+--   return $ format template [mn, portmap]
 
 mkSigDecl :: ValBundle -> J String 
 mkSigDecl bndl = "Vhdl.mkSignalDecl" <? do
@@ -138,57 +141,67 @@ mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
   let bundles = ins ++ outs
   if null bundles
     then return $ "-- no signal decls"
-    else do sigDecls <- mapM mkSigDecl bundles
+    else do sigDecls <- unimplemented -- mapM mkSigDecl bundles
             return $ DL.intercalate "\n" sigDecls
+
+mkTestBench _ = return (T.pack "mkTestBench unimplemented")   
+-- mkTestBench modname = "Jade.Vhdl.mkTestBench" <? do
+--   m <- getModule modname
+--   sigDecls <- mkSignalDecls m modname :: J String
+--   dut <- mkDUT m modname
+--   tlines <- Module.testLines m
+--   CycleLine actions <- Module.cycleLine m 
+--   cases <- sequence [mkTestLine m actions testline testnum | (testline, testnum) <- zip tlines [1..]]
   
-mkTestBench modname = "Jade.Vhdl.mkTestBench" <? do
-  m <- TopLevel.getModule modname
-  sigDecls <- mkSignalDecls m modname :: J String
-  dut <- mkDUT m modname
-  tlines <- Module.testLines m
-  CycleLine actions <- Module.cycleLine m 
-  cases <- sequence [mkTestLine m actions testline testnum | (testline, testnum) <- zip tlines [1..]]
-  
-  let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-testbench.mustache")
-      Right temp = compileTemplate "combinational-testbench.mustache" txt
-      mapping = DM.fromList [ ("testbench-name", toMustache $ (Module.mangleModName modname) ++ "_tb")
-                            , ("signal-decls", toMustache sigDecls)
-                            , ("dut", toMustache dut)
-                            , ("test-cases", toMustache (DL.intercalate  "\n" (concat cases)))
-                            ]
-  return $ substitute temp mapping
+--   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-testbench.mustache")
+--       Right temp = compileTemplate "combinational-testbench.mustache" txt
+--       mapping = DM.fromList [ ("testbench-name", toMustache $ (Module.mangleModName modname) ++ "_tb")
+--                             , ("signal-decls", toMustache sigDecls)
+--                             , ("dut", toMustache dut)
+--                             , ("test-cases", toMustache (DL.intercalate  "\n" (concat cases)))
+--                             ]
+--   return $ substitute temp mapping
+
+
 
 mkCombinationalTest modname = "Vhdl.mkCombinationalTest" <? mkTestBench modname
 
+portname sig = "Vhdl.portname" <? do
+  case sig of
+    SigSimple n -> return n
+    SigIndex n _ -> return n
+    SigRange n from to -> return n
+    x -> die $ "portname doesn't handle signal: " ++ (show x)
+                 
 ------------------------------------------------------------------
 --genPort dir (SigConcat _) = die "Vhdl.mkModule/genPort doesn't support SigConcat"
-genPort :: String -> ValBundle -> J String
-genPort dir bundle = "Vhdl.genPort" <? do
-  let name = uniq $ Bundle.getNames bundle
-      width = Bundle.width bundle
-  case name of 
-    [name] -> return $ format "{0}: {1} std_logic_vector({2} downto 0)" [ name, dir, show $ width-1 ]
-    [] -> die "No name found in bundle"
+genPort dir sig = "Vhdl.genPort" <? do
+  let width = fromIntegral $ Sig.width sig -- todo change this to return Int instead of Integer. 
+  name <- portname sig
+  return $ format "{0}: {1} std_logic_vector({2} downto 0)" [ name, dir, show $ width-1 ]
 
-genPorts :: [ValBundle] -> [ValBundle] -> J T.Text
 genPorts ins outs = "Vhdl.genPorts" <? do
   portIns <- mapM (genPort "in") ins
   portOuts <- mapM (genPort "out") outs
   return $ T.pack $ DL.intercalate ";\n" (concat [portIns, portOuts])
 
 mkModule modname = "Vhdl.mkModule" <? do
-  m <- TopLevel.getModule modname ? modname
+  m <- getModule modname
   schem <- Module.getSchematic m
   subs <- TopLevel.getSubModules modname
   instances <- mapM (mkSubModuleInstance modname) subs
+  nb "INSTANCES!!!"
+  nb $ show instances
   
   Inputs ins <- Module.getInputs m
   Outputs outs <- Module.getOutputs m
-  
-  ports <- genPorts ins outs 
-  nodeDecls <- mkNodeDecls modname
-  outMap <- mapM (connectOutput modname) outs
-  outputWires <- T.intercalate (T.pack "\n") <$> (return outMap)
+  ports <- genPorts ins outs
+  --nodeDecls <- mkNodeDecls modname
+
+  -- outMap <- mapM (connectOutput modname) outs
+  -- outputWires <- T.intercalate (T.pack "\n") <$> (return outMap)
+  unimplemented
+  {-
   inputWires <- assignAllInputs modname ins
 
   -- internalAssignments <- mkInternalAssignmentsTxt modname
@@ -227,10 +240,12 @@ mkModule modname = "Vhdl.mkModule" <? do
         , ("maybe-wire-output", toMustache outputWires)
         ]
   return $ substitute temp mapping
+-}
 
 mkAllMods modname = "Vhdl.mkAllMods" <? do
   userModNames <- TopLevel.dependencyOrder modname
   T.concat <$> mapM mkModule (userModNames ++ [modname])
+
 
 ------------------------------------------------------------------
 comma = T.pack ", \n"
@@ -245,8 +260,8 @@ mkValName val = "Vhdl.mkValName" <? do
     Lit Z -> p "'Z'"
     NetIndex netid idx -> p $ format "net{0}({1})" [show netid, show idx]
 
-mkTermAssoc :: JMM.TermAssoc -> J T.Text
-mkTermAssoc (JMM.TermAssoc dir src tgt) = "Vhdl.mkTermAssoc" <? do
+mkTermAssoc :: JMT.TermAssoc -> J T.Text
+mkTermAssoc (JMT.TermAssoc dir src tgt) = "Vhdl.mkTermAssoc" <? do
   -- TermAssoc {taDir = In, taSrc = SigIndex "A" 0, taTgt = SigIndex "in1" 0}
   srcTxt <- mkValName src
   tgtTxt <- mkValName tgt
@@ -254,24 +269,24 @@ mkTermAssoc (JMM.TermAssoc dir src tgt) = "Vhdl.mkTermAssoc" <? do
     In -> return $ T.concat [ tgtTxt , T.pack " => " , srcTxt ]
     Out -> return $ T.concat [ srcTxt , T.pack " => " , tgtTxt ]
   
-mkTermAssign :: JMM.ValAssign -> J T.Text
-mkTermAssign (JMM.ValAssign src tgt) = "Vhdl.mkTermAssign" <? do
+mkTermAssign :: JMT.ValAssign -> J T.Text
+mkTermAssign (JMT.ValAssign src tgt) = "Vhdl.mkTermAssign" <? do
   srcTxt <- mkValName src
   tgtTxt <- mkValName tgt
   return $ T.concat [ tgtTxt , T.pack " <= " , srcTxt ]
 
-mkValAssign :: JMM.ValAssign -> J T.Text
-mkValAssign (JMM.ValAssign src tgt) = "Vhdl.mkValAssign" <? do
+mkValAssign :: JMT.ValAssign -> J T.Text
+mkValAssign (JMT.ValAssign src tgt) = "Vhdl.mkValAssign" <? do
   srcTxt <- mkValName src
   tgtTxt <- mkValName tgt
   return $ T.concat [ tgtTxt , T.pack " <= " , srcTxt ]
 
-mkTermMap :: JMM.TermMap -> J T.Text
+mkTermMap :: JMT.TermMap -> J T.Text
 mkTermMap xs = "Vhdl.mkTermMap" <? do
   ts <- mapM mkTermAssoc xs
   return $ T.concat $ DL.intersperse comma ts
     
-mkPortMap :: [JMM.TermMap] -> [JMM.TermMap] -> J T.Text
+mkPortMap :: [JMT.TermMap] -> [JMT.TermMap] -> J T.Text
 mkPortMap ins outs = "Vhdl.mkPortMap" <? do
   portIns <- mapM mkTermMap ins
   portOuts <- mapM mkTermMap outs
@@ -289,7 +304,7 @@ mkSubModuleInstance modname submod@(SubModule name loc) =
   "Jade.Vhdl.mkSubModuleInstance" <? do
   subModuleReps <- JMM.subModuleInstances modname submod
 
-  let mkOneInstance submodrep@(JMM.SubModuleRep ins outs _ zIdx) = do
+  let mkOneInstance submodrep@(JMT.SubModuleRep ins outs _ zIdx) = do
         portmap <- mkPortMap ins outs
         let label = replicatedLabel name loc zIdx        
         -- u1 : entity work.AND2 port map (in1 => a, in2 => b, out1 => w1);
@@ -302,6 +317,7 @@ mkSubModuleInstance modname submod@(SubModule name loc) =
         return $ substitute template mapping
   T.intercalate (T.pack "\n") <$> mapM mkOneInstance subModuleReps
 
+{- the memory mod, todo  
 mkSubModuleInstance modname mem@(SubMemUnit memunit) = "Jade.Vhdl.mkSubModuleInstance" <? do
   JMM.SubModuleRep ins outs _ zIdx <- JMM.memUnitInstance modname memunit
 
@@ -317,6 +333,10 @@ mkSubModuleInstance modname mem@(SubMemUnit memunit) = "Jade.Vhdl.mkSubModuleIns
                             , ("port-map", toMustache portmap)
                             ]
   return $ substitute template mapping
+-}
+
+
+{-
   
 ------------------------------------------------------------------
 mkNetName net = "Vhdl.mkNetName" <? do        
@@ -327,12 +347,13 @@ mkNetName net = "Vhdl.mkNetName" <? do
 
 -- get all node names needed for wiring.
 -- no input names.
+
 mkNodeDecls modname = "Jade.Vhdl.mkNodeDecls" <? do
   cnb "These ins and outs aren't going to be SigConcats, ever."
   Inputs ins <- TopLevel.getInputs modname
   Outputs outs <- TopLevel.getOutputs modname
   let ignore = concat $ map Bundle.getNames (ins ++ outs)
-  nets <- TopLevel.nets modname
+  -- nets <- TopLevel.nets modname
   
   let netIds = map netId nets
       keepers = [net | (n, net) <- zip netIds nets, (format "net{0}" [show n]) `notElem` ignore]
@@ -341,7 +362,7 @@ mkNodeDecls modname = "Jade.Vhdl.mkNodeDecls" <? do
     then return "-- no node decls"
     else do sigDecls <- mapM mkNetName keepers
             return $ concat $ DL.intersperse "\n" sigDecls
-
+            
 declareSigName :: String -> String -> J String
 declareSigName modname signame = "Vhdl.declareSigName" <? do
   width <- TopLevel.getWidthOfValName modname signame
@@ -443,11 +464,6 @@ assignInternalBundles' modname bundle dir netids = "Vhdl.assignInternalBundles" 
 
 withSemiColonNewLines txts = T.concat [T.append t (T.pack ";\n") | t <- txts]
 
--- If output signals are not connected directly to a submodule output,
--- then there is no structural output to that output.
-connectOutput modname outBundle = "Vhdl.connectOutput" <? do
-  assignMap <- JMM.assignBundle Out modname outBundle
-  withSemiColonNewLines <$> mapM mkTermAssign assignMap
 
 -- If input signals are not connected directly to a submodule output,
 -- then there is no structural input for that input.
@@ -469,4 +485,12 @@ assignAllOutputs' :: String -> [ValBundle] -> J [JMM.ValAssign]
 assignAllOutputs' modname modInputBundles = "Vhdl.assignAllOutputs" <? do
   concatMapM (JMM.assignBundle Out modname) modInputBundles
   
+-}
+
+{-
+-- If output signals are not connected directly to a submodule output,
+-- then there is no structural output to that output.
+connectOutput modname outBundle = "Vhdl.connectOutput" <? do
+  assignMap <- JMM.assignBundle Out modname outBundle
+  withSemiColonNewLines <$> mapM mkTermAssign assignMap
 -}

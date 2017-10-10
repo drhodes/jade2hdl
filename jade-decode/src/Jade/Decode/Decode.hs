@@ -277,7 +277,7 @@ instance FromJSON TopLevel where
     let msg = "Decode.TopLevel.parseJson fails because array not long enough: "
     when (V.length arr < 2) (fail $ msg ++ show arr)
     mods <- parseJSON $ arr V.! 1
-    return $ TopLevel mods
+    return $ TopLevel StageDecode mods
 
   parseJSON (Object o) = "Decode.TopLevel:Object" <?? do
     fail $ show o
@@ -289,11 +289,11 @@ builtInGates = eitherDecode (DSC.toLazyByteString builtInTxt)
 decodeTopLevel :: FilePath -> IO (Either String TopLevel)
 decodeTopLevel filename = do
   case builtInGates of
-    Right (TopLevel gates) -> do 
+    Right (TopLevel _ gates) -> do 
       top <- DBL.readFile filename
       case eitherDecode top of
-        Right (TopLevel mods) -> do
-          return $ Right $ TopLevel (DM.union gates mods)
+        Right (TopLevel _ mods) -> do
+          return $ Right $ TopLevel StageDecode (DM.union gates mods)
         Left msg -> fail ("Decode.decodeTopLevel: " ++ msg)
     Left msg -> do
       let gatemsg = "\nDecode.decodeTopLevel fails to decode 'app-data/gates.json'"

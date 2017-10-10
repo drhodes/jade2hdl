@@ -29,6 +29,7 @@ import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Vhdl as Vhdl
 import qualified System.Directory as SD
 import qualified System.IO as SIO
+import qualified Text.PrettyPrint.Leijen as P
        
 spawnOneTest jadefile modname = do
   let autoTestPath = format "test-data/auto-vhdl/{0}/" [hashid modname]
@@ -38,15 +39,15 @@ spawnOneTest jadefile modname = do
       
   SD.removePathForcibly autoTestPath
   SD.createDirectoryIfMissing False "test-data/auto-vhdl"
-  SD.createDirectory autoTestPath
+  SD.createDirectory autoTestPath  
   Right topl <- Decode.decodeTopLevel jadefile
   
   let func = do
         nb $ "spawnOneTest: " ++ modname
+        TopLevel.deanonymizeTopLevel
         moduleCode <- Vhdl.mkAllMods modname
         testCode <- Vhdl.mkTestBench modname    
         return $ TIO.writeFile outfile (T.concat [moduleCode, testCode])
-        
   errlog <- runJIO topl func
     
   let sh s = (shell s) { cwd = Just autoTestPath , std_out = CreatePipe , std_err= CreatePipe }
@@ -64,37 +65,37 @@ spawnOneTest jadefile modname = do
           return Pass        
         ExitFailure err' -> do
           --writeCallGraph (format "logs/dots/{0}-FAIL.dot" [hashid modname]) topl func
-          return $ Fail $ unlines [ format "[{ \"module\": {0}}, " [show modname]
-                                  , format "{ \"hashcode\": {0}}, " [show $ hashid modname]
-                                  , format "{ \"ecode\":  {0}}, " [show $ show ecode']
-                                  , format "{ \"errlog\": {0}}, " [errlog]
-                                  , format "{ \"stdout\": {0}}, " [show $ show stdout']
-                                  , format "{ \"stderr\": {0}}, " [show stderr']
-                                  , format "{ \"err\": {0}} ] " [ show $ show err']
-                                  ]
+          return $ Fail $ P.text $ unlines [ format "[{ \"module\": {0}}, " [show modname]
+                                           , format "{ \"hashcode\": {0}}, " [show $ hashid modname]
+                                           , format "{ \"ecode\":  {0}}, " [show $ show ecode']
+                                           , format "{ \"errlog\": {0}}, " [show errlog]
+                                           , format "{ \"stdout\": {0}}, " [show $ show stdout']
+                                           , format "{ \"stderr\": {0}}, " [show stderr']
+                                           , format "{ \"err\": {0}} ] " [ show $ show err']
+                                           ]
                                  
     ExitFailure err -> do
       --writeCallGraph (format "/tmp/dots/{0}-FAIL.dot" [hashid modname]) topl func
-      return $ Fail $ unlines [ format "[{ \"module\": {0}}, " [show modname]
-                              , format "{ \"ecode\":  {0}}, " [show $ show ecode]
-                              , format "{ \"errlog\": {0}}, " [errlog]
-                              , format "{ \"stdout\": {0}}, " [show $ show stdout]
-                              , format "{ \"stderr\": {0}}, " [show stderr]
-                              , format "{ \"err\": {0}} ] " [ show $ show err]
-                              ]
+      return $ Fail $ P.text $ unlines [ format "[{ \"module\": {0}}, " [show modname]
+                                       , format "{ \"ecode\":  {0}}, " [show $ show ecode]
+                                       , format "{ \"errlog\": {0}}, " [show errlog]
+                                       , format "{ \"stdout\": {0}}, " [show $ show stdout]
+                                       , format "{ \"stderr\": {0}}, " [show stderr]
+                                       , format "{ \"err\": {0}} ] " [ show $ show err]
+                                       ]
 
 node s = TestCase s (spawn (ModPath "./test-data" s))
 tree s xs = TestTree s $ Prelude.map node xs
 
 testTree = TestTree "Vhdl" [ testTreeInnerSignal
-                           , testTreeReplication
-                           , testTreeBuffer
-                           , testTreeBeta
-                           , testTreeJumpers
-                           , testTreeMisc
-                           --, testTreeMemUnit
-                           , testTree1
-                           , testTree2
+                           -- , testTreeReplication
+                           -- , testTreeBuffer
+                           -- , testTreeBeta
+                           -- , testTreeJumpers
+                           -- , testTreeMisc
+                           -- , testTree1
+                           -- , testTree2
+                           -- , testTreeMemUnit
                            ]
 
 testTreeReplication = tree "Replication" [ "Rep1FA2"
