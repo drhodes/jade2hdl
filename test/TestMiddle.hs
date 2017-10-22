@@ -11,7 +11,6 @@ import qualified Jade.Net as Net
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Wire as Wire
 import qualified Text.PrettyPrint.Leijen as P 
--- (
 
 testSkeleton :: String -> (J Bool) -> IO TestState
 testSkeleton modname func = do
@@ -20,7 +19,39 @@ testSkeleton modname func = do
     Right True -> return Pass
     Right False -> return $ Fail $ runLog topl func
     Left doc -> return $ Fail $ doc
-runLog topl func P.<> doc
+
+
+--replicateOneTerminal :: String -> Int -> Direction -> Terminal -> J TermMap
+
+-- testReplicateOneTerminal modname exp = do
+--   Right topl <- Decode.decodeTopLevel (format "./test-data/{0}.json" [modname])
+--   let func = do tm <- replicateOneTerminal modname 3 dir term
+--                 return $ tm == exp
+--   case runJ topl func of
+--     Right True -> return Pass
+--     Right False -> return $ Fail $ runLog topl func
+--     Left doc -> return $ Fail $ doc
+
+
+
+
+testTree = TestTree "Middle"
+  [
+    -- tree "InnerSignal" [ checkSubModuleInstances "And41"
+    --                    , checkSubModuleInstances "RepAnd2" 
+    --                    , checkSubModuleInstances "RepAnd3" 
+    --                    , checkSubModuleInstances "RepAnd4"
+    --                    ]
+
+    tree "replicateOneTerminal" [ testReplicateOneTerminal "Buffer5_1" ]
+    
+  -- , tree "InnerSignal" [ checkConnectOneOutput "BuiltInAnd4Messy" (Bundle [ValIndex "vout" 0])
+                         
+  --                      ]
+  ]
+
+
+--runLog topl func P.<> doc
 
 -- todo, keep or trash these tests? they don't do anything right now.
 checkSubModuleInstances :: String -> IO TestState
@@ -35,19 +66,6 @@ checkSubModuleInstances modname = do
 
 node s f = TestCase s f
 tree s xs = TestTree s $ mapF (map node [s ++ "_" ++ show x | x<- [1..]]) xs
-
-testTree = TestTree "Middle"
-  [ tree "InnerSignal" [ checkSubModuleInstances "And41"
-                       , checkSubModuleInstances "RepAnd2" 
-                       , checkSubModuleInstances "RepAnd3" 
-                       , checkSubModuleInstances "RepAnd4"
-                       ]
-    
-  -- , tree "InnerSignal" [ checkConnectOneOutput "BuiltInAnd4Messy" (Bundle [ValIndex "vout" 0])
-                         
-  --                      ]
-  ]
-
 
 {-
 checkConnectOneOutput modname outsig = do

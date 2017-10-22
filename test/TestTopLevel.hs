@@ -22,6 +22,7 @@ import TestUtil
 
 testTree = TestTree "TopLevel" [ testTreeNumWireComponents
                                , testTreeReplicationDepth
+                               -- , testTreeNameConnectedToTerminal
                                --   testTreeNumNets
                                -- , testTreeNumSubModules
                                -- , testTreeNumTerminals
@@ -102,6 +103,31 @@ testTreeReplicationDepth =
                                     , t "RepWonkyBuffer1" 2
                                     , t "RangeStep2" 8
                                     ]
+     
+testNameConnectedToTerminal :: String -> String -> IO TestState
+testNameConnectedToTerminal modname expName = do
+  Right topl <- Decode.decodeTopLevel (printf "./test-data/%s.json" modname)
+  let func = do
+        TopLevel.deanonymizeTopLevel
+        terms <- TopLevel.getAllTerminals (qualifiedModName modname)
+        list terms
+        assertEq (length terms) 2 "There should only be 2 terminal in this module!"
+        names <- mapM (TopLevel.getNameConnectedToTerminal (qualifiedModName modname)) terms
+        nb $ show names
+        if (expName `elem` names)
+          then return True
+          else die $ printf "couldn't find: %s, in name set: %s" expName (show names)
+        
+  case runJ topl func of
+    Right True -> return Pass
+    Right False -> return $ Fail $ runLog topl func 
+    Left msg -> return $ Fail $ runLog topl func <> msg
+
+testTreeNameConnectedToTerminal =
+  let t modname expName = TestCase modname (testNameConnectedToTerminal modname expName)
+  in TestTree "getNameConnectedToTerminal"
+     [ t "Buffer1" "A" ]
+
 
 
 -- foo2 = do

@@ -59,6 +59,7 @@ putTop top = do g <- get
                 
 getCurStage = topLevelStage <$> getTop
 
+todo msg = nb $ "todo: " ++ msg
 
 globalInit topl = Global topl emptyMemo
 
@@ -125,7 +126,7 @@ bailWhen cond = when cond bail
   result <- f ? msg
   return result
 
-safeCycle [] = "Jade/Types.safeCycle" <? die "empty list"
+safeCycle [] = "Jade/Common.safeCycle" <? die "empty list"
 safeCycle xs = return $ cycle xs
 
 ------------------------------------------------------------------

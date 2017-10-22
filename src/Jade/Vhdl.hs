@@ -162,8 +162,6 @@ mkTestBench _ = return (T.pack "mkTestBench unimplemented")
 --                             ]
 --   return $ substitute temp mapping
 
-
-
 mkCombinationalTest modname = "Vhdl.mkCombinationalTest" <? mkTestBench modname
 
 portname sig = "Vhdl.portname" <? do

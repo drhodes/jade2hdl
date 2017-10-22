@@ -15,6 +15,7 @@ import qualified Data.Vector as DV
 import qualified Jade.Schematic as Schematic
 import qualified Jade.Part as Part
 import qualified Jade.Wire as Wire
+import qualified Jade.Decode.Sig as Sig
 import qualified Jade.Module as Module
 import qualified Jade.QUF as QUF
 import qualified Jade.Term as Term
@@ -29,7 +30,6 @@ import qualified Jade.Net as Net
 import qualified Jade.UnionFindST as UF
 import qualified Web.Hashids as WH
 -}
-
 
 getSubModules :: String -> J [SubModule]
 getSubModules modname = do --"TopLevel.getSubModules" <? do
@@ -173,7 +173,8 @@ getAllPartsAndTerms modname = do
 getAllTerminals :: String -> J [Terminal]
 getAllTerminals modname = do
   submods <- Schematic.getSubModules <$> getSchematic modname
-  concatMapM terminals submods
+  todo "get rid of this DL.nub"
+  DL.nub <$> concatMapM terminals submods
 
 -- | Get a list of input and output terminals in a submodule offset by
 -- the position of the submodule
@@ -212,11 +213,16 @@ getPartsConnectedToTerminal modname terminal = "TopLevel.getPartsConnectedToTerm
   schem <- getSchematic modname
   Schematic.getAllPartsAtPoint schem (Term.point terminal)
 
-getNameConnectedToTerminal :: String -> Terminal -> J ()
+getNameConnectedToTerminal :: String -> Terminal -> J String
 getNameConnectedToTerminal modname terminal = "TopLevel.getNameConnectedToTerminal" <? do
+  assertStage StageWire
   parts <- getPartsConnectedToTerminal modname terminal
+
+  Part.getSignal
+  
+  
   listd $ map P.pretty parts
-  return ()
+  return "implement-getNameConnectedToTerminal"
   
 -- | VHDL requires that modules be instantiated in dependency order,
 dependencyOrder :: String -> J [String]
@@ -228,12 +234,11 @@ dependencyOrder modname = "TopLevel.dependencyOrder" <?
           children <- concatMapM dependencyOrder subnames
           return $ filter (`startsWith` "/user") $ DL.nub $ children ++ subnames 
 
-
 -- deanonTopLevel = "TopLevel.deanonTopLevel" <? do  
 --   TopLevel moduleMap <- getTop 
 --   DM.map
   
-    {-
+{-
 -- a function to possible create an edge given a wire and a part
 makePartEdge :: Wire -> Part -> J (Maybe Edge)
 makePartEdge wire part = "TopLevel.makePartEdge" <? do
@@ -245,7 +250,6 @@ makePartEdge wire part = "TopLevel.makePartEdge" <? do
     else if ploc == loc2
          then return $ Just $ Edge (Node loc2 (WireC wire)) (Node ploc part)
          else return Nothing
-
 
 makeWire2WireEdge :: Wire -> Wire -> J (Maybe Edge)
 makeWire2WireEdge w1 w2 = "TopLevel.makeWire2WireEdge" <? 

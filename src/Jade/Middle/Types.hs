@@ -20,11 +20,22 @@ import qualified Jade.MemUnit as MemUnit
 import qualified Jade.Val as Val
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Bundle as Bundle
+import Text.PrettyPrint.Leijen hiding (Mode)
 
 data TermAssoc = TermAssoc { taDir :: Direction
                            , taSrc :: Val
                            , taTgt :: Val
                            } deriving (Generic, ToJSON, Show, Eq)
+
+instance Pretty TermAssoc where
+  pretty (TermAssoc dir src tgt) = brackets
+                                   $ text "TermAssoc"
+                                   <+> text "dir:" <> pretty dir
+                                   <+> text "src:" <> pretty src
+                                   <+> text "tgt:" <> pretty tgt
+
+
+
 
 data ValAssign = ValAssign { sigAssignSrc :: Val
                            , sigAssignTgt :: Val

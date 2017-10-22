@@ -29,7 +29,6 @@ import qualified Jade.Term as Term
 flipAssign (ValAssign src tgt) = ValAssign tgt src
 
 -----------------------------------------------------------------------------
-
 explode sig =
   case sig of 
     SigSimple name -> [ValIndex name 0]
@@ -40,17 +39,23 @@ explode sig =
     SigQuote val width -> map Lit $ Sig.twosComplement val (fromIntegral width)
     SigConcat sigs -> concatMap explode sigs
 
-
 replicateOneTerminal :: String -> Int -> Direction -> Terminal -> J TermMap
 replicateOneTerminal modname numReplications dir term@(Terminal _ sig) = -- net@(Net nid _) =
   "Middle/Middle.replicateOneTerminal" <? do
+  assertStage StageWire
+  
   --netWidth <- fromIntegral <$> Net.width net
   netWidth <- TopLevel.connectedWidth =<< TopLevel.getPartsConnectedToTerminal modname term
   
   let termWidth = (fromIntegral $ Term.width term) :: Int
       totalWidth = termWidth * numReplications
       termSigs = explode sig
-      
+
+  enb ("termWidth", termWidth)
+  enb ("totalWidth", totalWidth)
+  enb ("termSigs", termSigs)
+  enb ("terminal", term)
+  
   case compare netWidth totalWidth of
     GT -> do {
       ; cnb "case netWidth > totalWidth"
@@ -61,6 +66,9 @@ replicateOneTerminal modname numReplications dir term@(Terminal _ sig) = -- net@
       ; cnb "case netWidth <= totalWidth"
       ; let singles = map (NetIndex (-42)) $ downFrom (fromIntegral (netWidth - 1))
             srcs = concat $ DL.transpose $ chunk numReplications singles
+      ; nb "singles"
+      ; listd singles
+            
       ; safeSrcs <- safeCycle srcs ? "safeSrcs"
       ; safeTerms <- safeCycle termSigs ? "termSigs"
       ; let tmap = take totalWidth (zipWith (TermAssoc In) safeSrcs safeTerms)
@@ -68,17 +76,17 @@ replicateOneTerminal modname numReplications dir term@(Terminal _ sig) = -- net@
                    In -> tmap
                    Out -> flipTermMap tmap
       }
-
+    
 subModuleInstances :: String -> SubModule -> J [SubModuleRep] 
 subModuleInstances modname submod@(SubModule name loc) = "Middle.subModuleInstances" <? do
   repd <- TopLevel.replicationDepth modname submod
   m <- getModule name
   inputTerms <- Module.getInputTerminals m loc
   outputTerms <- Module.getOutputTerminals m loc
-
-  nb "inputTerms"
   listd inputTerms
   listd outputTerms
+  inputTermMaps <- mapM (replicateOneTerminal modname repd In) inputTerms
+  listd inputTermMaps
   return []
 
 {-
