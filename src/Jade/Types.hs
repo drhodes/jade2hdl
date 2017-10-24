@@ -19,7 +19,6 @@ import Data.Aeson
 import Rawr.Note
 import Jade.Decode.Types
 import Jade.Decode.Pretty
-import Text.Printf
 import Text.PrettyPrint.Leijen 
 
 newtype Bundle a = Bundle [a] deriving (Show, Eq, Generic, Hashable, Ord, Foldable, ToJSON)
@@ -36,8 +35,8 @@ data Val = ValIndex { valIdxName :: String
          deriving (Show, Eq, Generic, Hashable, Ord, ToJSON)
 
 instance Pretty Val where
-  pretty (ValIndex name idx) = text (printf "ValIndex name:%s, idx:%d" name idx)
-  pretty (NetIndex name idx) = text (printf "NetIndex name:%s, idx:%d" name idx)
+  pretty (ValIndex name idx) = text $ "ValIndex name:" ++ name ++ ", idx" ++ (show idx)
+  pretty (NetIndex name idx) = text $ "NetIndex name:" ++ show name ++ ", idx" ++ (show idx)
   pretty (Lit binval) = text "Lit" <+> pretty binval
 
 type ValBundle = Bundle Val

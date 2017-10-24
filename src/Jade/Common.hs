@@ -158,13 +158,13 @@ getSchematic name = do
   m <- getModule name
   case moduleSchem m of
     Just s -> return s
-    Nothing -> die $ printf "(No schematic found in module: <%s>)" name
+    Nothing -> die $ printf "(No schematic found in module: <%s>)" name --ok
 
 assertEq :: (Eq a, Show a) => a -> a -> String -> J ()
-assertEq x y msg = when (x /= y) (die $ printf "Assertion failed: %s, %s" msg (show (x, y)))
+assertEq x y msg = when (x /= y) (die $ printf "Assertion failed: %s, %s" (show msg) (show (x, y))) --ok
 
 
 assertStage expstage = do
   s <- getCurStage
-  let msg = printf "In wrong stage, expected: %s, got: %s" (show expstage) (show s)
+  let msg = printf "In wrong stage, expected: %s, got: %s" (show expstage) (show s) --ok
   assertEq expstage s msg

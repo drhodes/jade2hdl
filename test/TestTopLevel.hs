@@ -15,7 +15,6 @@ import Control.Monad
 import Rawr.Types 
 import Rawr.Rawr
 import Jade.Common
-import Text.Printf
 import qualified Text.PrettyPrint.Leijen as P
 import Data.Monoid
 import TestUtil
@@ -36,14 +35,14 @@ testTree = TestTree "TopLevel" [ testTreeNumWireComponents
                                ]
 
 testNumWireComponents modname exp = do
-  Right topl <- Decode.decodeTopLevel (printf "./test-data/%s.json" modname)
-  let func = do cs <- TopLevel.wireComponents (printf "/user/%s" modname)
+  Right topl <- Decode.decodeTopLevel ("./test-data/" ++ modname ++ ".json")
+  let func = do cs <- TopLevel.wireComponents ("/user/" ++ modname) --ok
                 return (length cs)
   return $ case runJ topl func of
     Right x -> if x == exp
                then Pass
                else let log = runLog topl func
-                    in Fail $ log <> P.text (printf "Expected %d: got: %d" exp x)
+                    in Fail $ log <> (P.text $ "Expected: " ++ show exp ++ " got: " ++ show x)
     Left msg -> Fail msg
 
 testTreeNumWireComponents =
@@ -75,7 +74,7 @@ testTreeNumWireComponents =
 
 testReplicationDepth :: String -> Int -> IO TestState
 testReplicationDepth modname expDepth = do
-  Right topl <- Decode.decodeTopLevel (printf "./test-data/%s.json" modname)
+  Right topl <- Decode.decodeTopLevel $ "./test-data/" ++ modname ++ ".json"
   let func = do
         TopLevel.deanonymizeTopLevel
         let parentModuleName = "/user/" ++ modname
@@ -85,7 +84,7 @@ testReplicationDepth modname expDepth = do
         nb $ show d
         if (expDepth == d)
           then return ()
-          else die $ printf "expected: %d, got: %d" expDepth d
+          else die $ concat ["expected: ", show expDepth, " got: ", show d]
         
   case runJ topl func of
     Right _ -> return Pass
@@ -106,7 +105,7 @@ testTreeReplicationDepth =
      
 testNameConnectedToTerminal :: String -> String -> IO TestState
 testNameConnectedToTerminal modname expName = do
-  Right topl <- Decode.decodeTopLevel (printf "./test-data/%s.json" modname)
+  Right topl <- Decode.decodeTopLevel ("./test-data/" ++ modname ++ ".json")
   let func = do
         TopLevel.deanonymizeTopLevel
         terms <- TopLevel.getAllTerminals (qualifiedModName modname)
@@ -116,7 +115,7 @@ testNameConnectedToTerminal modname expName = do
         nb $ show names
         if (expName `elem` names)
           then return True
-          else die $ printf "couldn't find: %s, in name set: %s" expName (show names)
+          else die $ concat ["couldn't find: ", expName, "in name set: ", show names]
         
   case runJ topl func of
     Right True -> return Pass
@@ -127,8 +126,6 @@ testTreeNameConnectedToTerminal =
   let t modname expName = TestCase modname (testNameConnectedToTerminal modname expName)
   in TestTree "getNameConnectedToTerminal"
      [ t "Buffer1" "A" ]
-
-
 
 -- foo2 = do
 --   Right topl <- Decode.decodeTopLevel "./test-data/AnonWire1.json"

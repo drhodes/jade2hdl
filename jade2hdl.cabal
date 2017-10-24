@@ -55,6 +55,7 @@ library
                , containers >= 0.5.7.1
                , directory >= 1.3.0.0
                , file-embed >= 0.0.10
+               , fmt >= 0.3.0.0
                , hashable >= 1.2.6.0
                , hashids >= 1.0.2.3
                , jade-decode
@@ -63,7 +64,6 @@ library
                , parallel >= 3.2.1.1
                , parsec >= 3.1.11
                , parsec3-numbers >= 0.1.0
-               , wl-pprint >= 1.2
                , process >= 1.4.3.0
                , rawr
                , scientific
@@ -74,6 +74,7 @@ library
                , text-format-simple >= 1.1.0
                , transformers >= 0.5.2.0
                , vector >= 0.11.0.0
+               , wl-pprint >= 1.2
                
   default-language:    Haskell2010
   ghc-options:         -eventlog
@@ -99,20 +100,21 @@ test-suite jade2hdl-test
                , containers >= 0.5.7.1
                , directory >= 1.3.0.0
                , file-embed >= 0.0.10
+               , fmt >= 0.3.0.0
                , hashable >= 1.2.6.0
                , jade-decode
                , jade2hdl
                , mtl >= 2.2.1
                , parallel >= 3.2.1.1
-               , wl-pprint >= 1.2
                , process >= 1.4.3.0
                , rawr
                , split >= 0.2.3.2
                , string-class >= 0.1.6.5
                , text >= 1.2.2.1
                , text-format-simple >= 1.1.0
+               , wl-pprint >= 1.2
                                         
-  ghc-options: -j8 -threaded -rtsopts -with-rtsopts=-N 
+  ghc-options: -j8 -threaded
   default-language:    Haskell2010
 
 executable jade2hdl
@@ -121,13 +123,14 @@ executable jade2hdl
   ghc-options:    -eventlog -threaded -rtsopts -with-rtsopts=-N
     
   build-depends: base
+               , fmt >= 0.3.0.0
                , jade-decode
                , jade2hdl
                , optparse-applicative >= 0.13.2.0
-               , wl-pprint >= 1.2
                , rawr
                , split >= 0.2.3.2
                , text >= 1.2.2.1
+               , wl-pprint >= 1.2
                
   default-language: Haskell2010
   

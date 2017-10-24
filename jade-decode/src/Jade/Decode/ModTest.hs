@@ -1,7 +1,7 @@
 module Jade.Decode.ModTest ( parseModTestString
                            , setSignals      --these will probably have to move out to another module.
-                           -- , assertBitVals
-                           -- , sampleBitVals
+                           , assertBitVals
+                           , sampleBitVals
                            , getTestlineComment
                            ) where
 
@@ -287,19 +287,16 @@ parseModTestString s =
   let xs = lines s
       linePairs = zip [1..] xs
   in acreteAll "change-me" defaultModTest linePairs
-
-{-
+  
 assertBitVals modt (TestLine bvs _) = do
   let Just (Inputs inSigs) = modInputs modt
-      inWidths = map Bundle.width inSigs
+      inWidths = map Sig.width inSigs
       totalInWidth = sum inWidths
   return $ take (fromIntegral totalInWidth) bvs
--}
 
-
--- sampleBitVals modt testline@(TestLine bvs _) = do
---   assertBvs <- assertBitVals modt testline
---   return $ drop (length assertBvs) bvs
+sampleBitVals modt testline@(TestLine bvs _) = do
+  assertBvs <- assertBitVals modt testline
+  return $ drop (length assertBvs) bvs
 
 {-
 setSignals :: ModTest -> [ValBundle]
@@ -319,3 +316,32 @@ setSignals modt =
 
 getTestlineComment (TestLine _ (Just s)) = s
 getTestlineComment _ = "empty comment"
+
+
+
+-- mkSigDecl (SigConcat sigs) 
+
+-- mkSigDecl sig = "Vhdl.mkSignalDecl" <? do
+--   case 
+--   let [name] = uniq $ getNames bndl
+--   let width = Bundle.width bndl
+--       initialVal = quote $ take (fromIntegral width) (repeat 'U')
+--       fmtargs = [name, show (width - 1), initialVal]
+--   return $ format "signal {0}: std_logic_vector({1} downto 0) := {2};" fmtargs
+
+
+-- width :: Sig -> Integer
+-- width sig = case sig of
+--               SigSimple _ -> 
+--               SigIndex _ _ -> 1
+--               SigHash _ n -> fromIntegral n
+--               SigRange _ from to -> fromIntegral $ abs (from - to) + 1
+--               SigRangeStep name from to 0 -> width (SigRangeStep name from to 1)
+--               SigRangeStep _ from to step -> let range = if from < to 
+--                                                          then [from, from+step .. to]
+--                                                          else [from, from-step .. to]
+--                                              in fromIntegral $ length range
+--               SigQuote _ w -> fromIntegral w
+--               SigConcat xs -> sum $ map width xs
+--               x -> error $ "Sig.width doesn't handle: " ++ show x
+

@@ -88,7 +88,7 @@ width part = do
     WireC (Wire _ Nothing) -> return 1
     JumperC _ -> return (-1)
     TermC (Terminal _ s) -> return $ fromIntegral $ Sig.width s
-    SubModuleC _ -> return (-1)
+    --SubModuleC _ -> return (-1)
     x -> die $ "Part.width: Not implemented for: " ++ show x
 
 {-

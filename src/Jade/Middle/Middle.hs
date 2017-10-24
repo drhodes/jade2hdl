@@ -7,7 +7,6 @@
 
 module Jade.Middle.Middle where
 
-
 import Control.Monad
 import Jade.Common
 import Jade.Middle.Types
@@ -40,18 +39,18 @@ explode sig =
     SigConcat sigs -> concatMap explode sigs
 
 replicateOneTerminal :: String -> Int -> Direction -> Terminal -> J TermMap
-replicateOneTerminal modname numReplications dir term@(Terminal _ sig) = -- net@(Net nid _) =
+replicateOneTerminal modname numReplications dir term@(Terminal _ sig) =
   "Middle/Middle.replicateOneTerminal" <? do
   assertStage StageWire
-  
-  --netWidth <- fromIntegral <$> Net.width net
   netWidth <- TopLevel.connectedWidth =<< TopLevel.getPartsConnectedToTerminal modname term
+  connectedSig <- TopLevel.getSigConnectedToTerminal modname term
   
   let termWidth = (fromIntegral $ Term.width term) :: Int
       totalWidth = termWidth * numReplications
       termSigs = explode sig
 
   enb ("termWidth", termWidth)
+  enb ("netWidth", netWidth)
   enb ("totalWidth", totalWidth)
   enb ("termSigs", termSigs)
   enb ("terminal", term)
@@ -61,16 +60,14 @@ replicateOneTerminal modname numReplications dir term@(Terminal _ sig) = -- net@
       ; cnb "case netWidth > totalWidth"
       ; impossible "This can't happen if the JADE modules tests pass in JADE"
       }
-    
     _ -> do {
       ; cnb "case netWidth <= totalWidth"
-      ; let singles = map (NetIndex (-42)) $ downFrom (fromIntegral (netWidth - 1))
-            srcs = concat $ DL.transpose $ chunk numReplications singles
-      ; nb "singles"
-      ; listd singles
-            
+      ; let srcs = concat $ DL.transpose $ chunk numReplications (explode connectedSig)
       ; safeSrcs <- safeCycle srcs ? "safeSrcs"
       ; safeTerms <- safeCycle termSigs ? "termSigs"
+      -- TermAssoc has "In" here but that gets rectified by looking at
+      -- dir and doing flipTermMap which produces an output TermMap if
+      -- necessary.
       ; let tmap = take totalWidth (zipWith (TermAssoc In) safeSrcs safeTerms)
       ; return $ case dir of
                    In -> tmap
@@ -86,8 +83,22 @@ subModuleInstances modname submod@(SubModule name loc) = "Middle.subModuleInstan
   listd inputTerms
   listd outputTerms
   inputTermMaps <- mapM (replicateOneTerminal modname repd In) inputTerms
-  listd inputTermMaps
-  return []
+  outputTermMaps <- mapM (replicateOneTerminal modname repd Out) outputTerms
+  let itms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- inputTermMaps] :: [[TermMap]]
+      otms = [chunk (length tmap `div` fromIntegral repd) tmap | tmap <- outputTermMaps] :: [[TermMap]]
+  buildSubModuleReps itms otms submod (repd - 1)
+
+buildSubModuleReps :: [[TermMap]] -> [[TermMap]] -> SubModule -> Int -> J [SubModuleRep]
+buildSubModuleReps inputTermMaps outputTermMaps submod zidx =
+  "Middle/Middle.buildSubModuleRep" <? do
+  if zidx < 0 then return []
+    else do let itms = map head inputTermMaps
+                otms = map head outputTermMaps
+                smr = SubModuleRep itms otms submod zidx
+            liftM (smr:) (buildSubModuleReps
+                           (map tail inputTermMaps)
+                           (map tail outputTermMaps) submod (zidx-1))
+
 
 {-
 subModuleInstances :: String -> SubModule -> J [SubModuleRep]
@@ -138,16 +149,6 @@ pickNetValsWithLit :: Bundle Val -> Bundle Val -> [ValAssign]
 pickNetValsWithLit (Bundle inVals) (Bundle netVals) =
   [ValAssign v1 v2 | (v1@(Lit n1), v2) <- zip inVals netVals, Val.isLit v1]
 
-buildSubModuleReps :: [[TermMap]] -> [[TermMap]] -> SubModule -> Int -> J [SubModuleRep]
-buildSubModuleReps inputTermMaps outputTermMaps submod zidx =
-  "Middle/Middle.buildSubModuleRep" <? do
-  if zidx < 0 then return []
-    else do let itms = map head inputTermMaps
-                otms = map head outputTermMaps
-                smr = SubModuleRep itms otms submod zidx
-            liftM (smr:) (buildSubModuleReps
-                           (map tail inputTermMaps)
-                           (map tail outputTermMaps) submod (zidx-1))
 
 
 subModuleInstances modname (SubMemUnit memunit) = "Middle.Types.subModuleInstances" <?

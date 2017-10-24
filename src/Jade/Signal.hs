@@ -15,8 +15,8 @@ width (Signal _ w _) = w
 getSig :: Signal -> Maybe Sig
 getSig (Signal ms _ _) = ms
 
-hasSigName (Signal (Just b) _ _) = Bundle.hasSigName b
-hasSigName (Signal Nothing _ _) = False
+-- hasSigName (Signal (Just b) _ _) = Bundle.hasSigName b
+-- hasSigName (Signal Nothing _ _) = False
 
 
 {-

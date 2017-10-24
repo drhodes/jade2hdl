@@ -17,7 +17,7 @@ clean: ## clean all the things
 	bash clean.sh
 
 work: ## open all files in editor
-	$(shell emacs makefile jade2hdl.cabal \
+	$(shell emacs -nw makefile jade2hdl.cabal \
 		`find jade-decode/src src app test -type f -name '*.hs' -o -name '*.yaml'`)
 workgui: ## open all files in editor
 	$(shell emacs makefile jade2hdl.cabal \

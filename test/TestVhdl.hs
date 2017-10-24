@@ -88,8 +88,8 @@ node s = TestCase s (spawn (ModPath "./test-data" s))
 tree s xs = TestTree s $ Prelude.map node xs
 
 testTree = TestTree "Vhdl" [ testTreeInnerSignal
+                           , testTreeBuffer
                            -- , testTreeReplication
-                           -- , testTreeBuffer
                            -- , testTreeBeta
                            -- , testTreeJumpers
                            -- , testTreeMisc

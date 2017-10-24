@@ -145,12 +145,15 @@ width sig = case sig of
                                                          else [from, from-step .. to]
                                              in fromIntegral $ length range
               SigQuote _ w -> fromIntegral w
-
+              SigConcat xs -> sum $ map width xs
+              x -> error $ "Sig.width doesn't handle: " ++ show x
 
 genbits n | n == 0 = []
           | n `mod` 2 == 0 = L : (genbits next)
           | otherwise = H : (genbits next)
   where next = n `div` 2
+
+
 
 twosComplement :: Integral a => a -> Integer -> [BinVal]
 twosComplement val numBits = reverse $ take (fromInteger numBits) $ (genbits val) ++ repeat L

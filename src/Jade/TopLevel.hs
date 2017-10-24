@@ -97,7 +97,7 @@ getSignals :: [Part] -> [Signal]
 getSignals parts = mapMaybe Part.getSignal parts
 
 getWidths :: [Part] -> J [Int]
-getWidths parts = mapM Part.width parts
+getWidths parts = mapM Part.width (filterOut Part.isSubModule parts)
 
 connectedWidth :: [Part] -> J Int
 connectedWidth componentList = "TopLevel.connectedWidth" <? do
@@ -213,14 +213,20 @@ getPartsConnectedToTerminal modname terminal = "TopLevel.getPartsConnectedToTerm
   schem <- getSchematic modname
   Schematic.getAllPartsAtPoint schem (Term.point terminal)
 
+getSigConnectedToTerminal :: String -> Terminal -> J Sig
+getSigConnectedToTerminal modname term = "TopLevel.getSigConnectedToTerminal" <? do
+  assertStage StageWire
+  parts <- getPartsConnectedToTerminal modname term
+  let sigs = catMaybes $ map Part.getSig parts
+  when (length sigs > 1) $ do nb "there should only one sig attached to this terminal, GOT:"
+                              enb sigs >> bail
+  return $ head sigs
+
 getNameConnectedToTerminal :: String -> Terminal -> J String
 getNameConnectedToTerminal modname terminal = "TopLevel.getNameConnectedToTerminal" <? do
+  todo "consider removing this function"
   assertStage StageWire
   parts <- getPartsConnectedToTerminal modname terminal
-
-  Part.getSignal
-  
-  
   listd $ map P.pretty parts
   return "implement-getNameConnectedToTerminal"
   

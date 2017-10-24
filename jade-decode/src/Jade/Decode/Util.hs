@@ -67,7 +67,7 @@ readHex c = let wrap x = Right $ fromIntegral x
   'D' -> wrap 0xD
   'E' -> wrap 0xE
   'F' -> wrap 0xF
-  _ -> Left $ printf "Couldn't parse '%s' as a hex digit" c
+  _ -> Left $ printf "Couldn't parse '%c' as a hex digit" c
   
 ok :: a -> Either String a
 ok x = Right x

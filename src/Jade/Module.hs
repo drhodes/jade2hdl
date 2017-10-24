@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Jade.Module where
 
 import Control.Monad
@@ -25,7 +26,7 @@ terminals mod p@(Coord3 mx my mr) = do --"Module.terminals" <? do
 
 getIcon :: Module -> J Icon
 getIcon (Module _ _ _ (Just x)) = return x
-getIcon (Module modname _ _ _) = die $ printf "No icon found in module: %s" modname
+getIcon (Module modname _ _ _) = die $ printf "No icon found in module: %s" (modname :: String) --ok
 
 name = moduleName
 schem = moduleSchem
@@ -53,6 +54,29 @@ setSignals m =
   case moduleTest m of
     Just mt -> [sig | s@(SetSignal sig _) <- ModTest.setSignals mt]
     Nothing -> []
+
+
+getSigName sig = "Module.getSigName" <? do
+  case sig of 
+    SigSimple name -> return name 
+    SigIndex name _ -> return name 
+    SigRange name _ _ -> return name 
+    SigRangeStep name _ _ _ -> return name 
+    x -> die $ "Module.getSigName doesn't support: " ++ (show x)
+
+getInputsNames m = "Module.getInputsNames" <? do
+  (Inputs ins) <- getInputs m
+  mapM getSigName ins 
+
+getOutputsNames m = "Module.getOutputsNames" <? do
+  (Outputs outs) <- getOutputs m
+  mapM getSigName outs 
+
+getInputOutputNames :: Module -> J [String]
+getInputOutputNames m = "Module.getInputOutputNames" <? do
+  ins <- getInputsNames m
+  outs <- getOutputsNames m
+  return $ ins ++ outs
 
 
 getSchematic :: Module -> J Schematic
