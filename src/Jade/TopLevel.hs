@@ -21,16 +21,6 @@ import qualified Jade.QUF as QUF
 import qualified Jade.Term as Term
 import qualified Text.PrettyPrint.Leijen as P
 
-{-
-import qualified Jade.Decode.Bundle as Bundle
-import qualified Jade.Decode.Decode as D
-import qualified Jade.Jumper as Jumper
-import qualified Jade.MemUnit as MemUnit
-import qualified Jade.Net as Net
-import qualified Jade.UnionFindST as UF
-import qualified Web.Hashids as WH
--}
-
 getSubModules :: String -> J [SubModule]
 getSubModules modname = do --"TopLevel.getSubModules" <? do
   (Module _ schem _ _) <- getModule modname
@@ -86,10 +76,30 @@ wireComponents modname = "TopLevel.wireComponents" <? do
   parts <- Part.filterConnectors <$> getAllPartsNoTerms modname
   connections <- buildPointConnections parts
   table <- buildPointPartTable parts
-  
   let lookupComponent net = DS.unions $ map (lookupPointPartTable table) net 
   let components = QUF.components connections
   return $ map lookupComponent components
+
+nets :: String -> J [DS.Set Part] 
+nets modname = "TopLevel.nets" <? do
+  assertStage StageWire
+  -- memoize, TODO: abstract this away.
+  Memo table <- getMemo
+  case DM.lookup modname table of
+    -- Already computed this net, so return it.
+    Just nets -> return nets
+    -- Compute the net, insert it into the memo map, then return the net
+    Nothing -> do cs <- wireComponents modname
+                  putMemo $ Memo (DM.insert modname cs table)
+                  return cs
+
+-- nets'  :: String -> J [Net] 
+-- nets' modname = do --"TopLevel.nets_" <? do
+--   edges <- getEdges modname
+--   let nets_ = UF.components $ edges
+--   nb "let nets = UF.components $ edges ++ wireEdges"
+--   enb nets_
+--   return nets_
 
 putSignal parts signal = [Part.putSignal p signal | p <- parts]
 
@@ -109,21 +119,48 @@ connectedWidth componentList = "TopLevel.connectedWidth" <? do
           then return $ fromIntegral $ head xs
           else die "Huh? Found more than one signal width in this component."
 
+makeNetName :: DS.Set Part -> String
+makeNetName net = "wire_" ++ hashid (DS.toList net) :: String
+
+-- this function is a mess.
 deanonymizeWires :: DS.Set Part -> J [Part]
 deanonymizeWires componentSet = "TopLevel.deanonymizeWires" <? do
   let component = DS.toList componentSet
-      name = "wire_" ++ hashid component :: String
+      name = makeNetName componentSet -- "wire_" ++ hashid component :: String
   compWidths <- getWidths component
   signal <- case getSignals component of
-    [s] -> return s
+    --[] -> return $ Signal (Just $ SigSimple
     [] -> case compWidths of
+            -- there are no specfied widths, so the default to 1.
             [] -> return $ Signal (Just $ SigSimple name) 1 Nothing
-            xs -> if DL.nub xs == xs
-                  then let w = fromIntegral $ head xs
-                           -- todo: Sig data constructors should take Int not Integer.
-                       in return $ Signal (Just $ SigRange name (w-1) 0) (fromIntegral w) Nothing
-                  else die "Found more than one signal width in this component"
-    _ -> die "Found more than one signal in this component"
+            -- there are widths found in the componentSet
+            xs -> let w = fromIntegral $ head xs
+                  in return $ Signal (Just $ SigRange name (w-1) 0) (fromIntegral w) Nothing
+                     
+              -- xs -> if DL.nub xs == xs
+            --       then let w = fromIntegral $ head xs
+            --                -- todo: Sig data constructors should take Int not Integer.
+            --            in return $ Signal (Just $ SigRange name (w-1) 0) (fromIntegral w) Nothing
+            --       else return $ Signal (Just $ SigRange name (w-1) 0) (fromIntegral w) Nothing
+                       --die "Found more than one signal width in this component"
+    -- One case where there is more than on signal in a component, is
+    -- when there is a jumper, but, when there is a jumper, then it's
+    -- guarenteed, since jumpers don't replicate, that both sides are
+    -- identical widths.  But the question arises: Which signal is the
+    -- driven signal? The two answers depend on if the signal is
+    -- always driven from one to the other, or if the jumper is
+    -- bidirectional.  Save the bidirectional case for later.  Maybe
+    -- it simply doesn't matter which of these jumpered signals is
+    -- returned as long as it has a name? Try it.
+    
+    -- OK GOOD. This is back to the sub module outputs to
+    -- wire_923982374, then wire_923982374 outputs to other signal,
+    -- jumpers don't matter because 
+    
+    --xs -> die $ "Found more than one signal in this component: " ++ show xs
+    xs -> let w = maximum compWidths
+          in return $ Signal (Just $ SigRange name (w-1) 0) (fromIntegral w) Nothing
+    
   return $ putSignal component (Just signal)
 
 getAllPartsNoTerms :: String -> J [Part]
@@ -163,7 +200,7 @@ deanonymizeTopLevel = "TopLevel.deanonymizeTopLevel" <? do
   userMods <- mapM deanonymizeModule userKeys
   putTop $ TopLevel StageWire
          $ DM.fromList $ (zip userKeys userMods) ++ (zip builtInKeys builtInMods)
-
+         
 getAllPartsAndTerms :: String -> J [Part]
 getAllPartsAndTerms modname = do
   terms <- map TermC <$> getAllTerminals modname

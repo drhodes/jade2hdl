@@ -83,21 +83,21 @@ spawnOneTest jadefile modname = do
                                        , format "{ \"stderr\": {0}}, " [show stderr]
                                        , format "{ \"err\": {0}} ] " [ show $ show err]
                                        ]
-
+        
 node s = TestCase s (spawn (ModPath "./test-data" s))
 tree s xs = TestTree s $ Prelude.map node xs
 
-testTree = TestTree "Vhdl" [ testTreeInnerSignal
-                           , testTreeBuffer
-                           -- , testTreeReplication
-                           -- , testTreeBeta
-                           -- , testTreeJumpers
-                           -- , testTreeMisc
-                           -- , testTree1
-                           -- , testTree2
-                           -- , testTreeMemUnit
+testTree = TestTree "Vhdl" [ testTreeBuffer
+                             -- , testTreeInnerSignal
+                             --, testTreeReplication
+                             --, testTreeBeta
+                             --, testTreeJumpers
+                             --, testTreeMisc
+                             --, testTree1
+                             --, testTree2
+                             --, testTreeMemUnit
                            ]
-
+  
 testTreeReplication = tree "Replication" [ "Rep1FA2"
                                          , "RepAnd2"
                                          , "RepAnd3"
@@ -152,13 +152,13 @@ testTreeMemUnit = tree "MemUnit" [ "MemUnit1"
                                  , "MemUnitRotate2"
                                  , "MemUnit2" ]
 
-testTreeJumpers = tree "One" [ "Jumper1" 
-                             , "SimpleJumper21"                             
-                             , "Jumper41"
-                             , "Jumper1Rot90"
-                             , "Jumper3"
-                             , "InternalJumper1"
-                             ]
+testTreeJumpers = tree "jumpers" [ "Jumper1" 
+                                 , "SimpleJumper21"                             
+                                 , "Jumper41"
+                                 , "Jumper1Rot90"
+                                 , "Jumper3"
+                                 , "InternalJumper1"
+                                 ]
 
 testTree1 = tree "One" [ "And41"
                        , "AndStuff4" 

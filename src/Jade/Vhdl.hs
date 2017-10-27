@@ -13,6 +13,7 @@ import Text.Mustache
 import Text.Mustache.Compile (mustache)
 import qualified Data.List as DL
 import qualified Data.Map as DM
+import qualified Data.Set as DS
 import qualified Data.Text as T
 import qualified Data.Text.IO as DT
 import qualified Jade.Decode.Decode as Decode
@@ -23,6 +24,7 @@ import qualified Jade.Module as Module
 import qualified Jade.TopLevel as TopLevel
 import qualified Jade.Signal as Signal
 import qualified Jade.Bundle as Bundle
+import qualified Jade.Part as Part
 import qualified Data.ByteString.Lazy.Char8 as DBL8
 import Data.Aeson
 import Jade.Middle.Types as JMT
@@ -30,6 +32,7 @@ import Jade.Common
 import qualified Jade.Middle.Middle as JMM
 import qualified Text.PrettyPrint.Leijen as P
 import Data.Maybe
+import qualified Data.Set as DS
 
 splitAssert _ [] = []
 splitAssert [] xs = [xs]
@@ -132,8 +135,6 @@ mkDUT m modname = "Vhdl.testDUT" <? do
       mn = Module.mangleModName modname
   return $ format template [mn, portmap]
 
-
-
 mkTestSigDecl (SigConcat sigs) = DL.intercalate "\n" <$> (mapM mkTestSigDecl sigs)
 mkTestSigDecl sig = "Vhdl.mkSigDecl" <? do
   name <- case sig of 
@@ -158,8 +159,6 @@ mkSignalDecls m modname = "Vhdl.mkSignalDecls" <? do
     then return $ "-- no signal decls"
     else do sigDecls <- mapM mkTestSigDecl sigs
             return $ DL.intercalate "\n" sigDecls
-
-
 
 --mkTestBench _ = return (T.pack "mkTestBench unimplemented")   
 mkTestBench modname = "Jade.Vhdl.mkTestBench" <? do
@@ -211,6 +210,12 @@ mkModule modname = "Vhdl.mkModule" <? do
   ports <- genPorts ins outs
 
   internalNodeDecls <- mkInternalNodeDecls modname
+
+  nets <- TopLevel.nets modname
+  enb (map DS.toList nets)
+  bail
+  
+  inputWires <- mkInputWires modname
   
   let txt = decodeUtf8 $(embedFile "app-data/vhdl/template/combinational-module.mustache")
       Right temp = compileTemplate "combinational-module.mustache" txt
@@ -220,12 +225,56 @@ mkModule modname = "Vhdl.mkModule" <? do
         --, ("node-declarations", toMustache (nodeDecls)) 
         , ("internal-node-declarations", toMustache internalNodeDecls)
         , ("submodule-entity-instances", toMustache  (T.intercalate  (T.pack "\n") instances))
-        -- , ("maybe-wire-input", toMustache inputWires)
+        , ("maybe-wire-input", toMustache inputWires)
         -- , ("maybe-internal-assignments", toMustache (internalAssignments :: T.Text))
         -- , ("maybe-wire-constants", toMustache constantWires)
         -- , ("maybe-wire-output", toMustache outputWires)
         ]
   return $ substitute temp mapping
+
+netHasName :: DS.Set Part -> String -> Bool
+netHasName net name = DS.null $ DS.filter (flip Part.hasName name) net
+
+getNetsWithName :: String -> String -> J [DS.Set Part]
+getNetsWithName modname signame = "Vhdl.getNetsWithName" <? do
+  assertStage StageWire
+  allNets <- TopLevel.nets modname
+  return $ filter (flip netHasName signame) allNets
+  -- all nets is a list of sets.
+
+f1 signame = do 
+  -- explode the net while preserving original names.
+  -- !! this isn't going to work, becuase asll the sioghanl names are ghone! LOL.
+  -- SO. Signal also needs to store the net name!
+
+  -- filter IndexVal with sigName
+  -- replicate sigName with netName.
+  unimplemented
+
+mkInputWire :: String -> Sig -> J T.Text
+mkInputWire modname inputSig = "Vhdl.mkInputWire" <? do
+  case inputSig of
+    SigSimple sigName -> do
+      -- Get list of net names that inputSig connectes to.
+      -- connectedNetNames <- mapM TopLevel.makeNetName <$> getNetsWithName modname sigName
+      
+      -- get a net that has sigName
+      -- explode the net while preserving original names.
+      
+      -- filter IndexVal with sigName
+      -- replicate sigName with netName.
+      -- Generate signals to components that inputSig
+      
+      -- SigRange n from to ->
+      unimplemented
+      
+    x -> die $ "bug: Vhdl.mkInputWire doesn't handle: " ++ (show x)
+
+  
+mkInputWires modname = "Vhdl.mkInputWires" <? do
+  -- get inputs to the module
+  inputs <- Module.getInputs =<< getModule modname  
+  return $ T.pack "-- unimplemented"
 
 mkAllMods modname = "Vhdl.mkAllMods" <? do
   userModNames <- TopLevel.dependencyOrder modname
@@ -233,21 +282,27 @@ mkAllMods modname = "Vhdl.mkAllMods" <? do
 
 mkVectorDecl name width = 
   T.pack $ format "signal {0}: std_logic_vector({1} downto 0);" [name, show $ width - 1]
-
-
-
   
 mkInternalNodeDecls modname = "Vhdl.mkInternalNodeDecks" <? do
   -- get the module input and output names.
   inOutNames <- Module.getInputOutputNames =<< getModule modname
   -- figure out the names of all the node signals in the module.
   signals <- TopLevel.getSignals <$> TopLevel.getAllPartsNoTerms modname
-  let sigs = mapMaybe Signal.getSig signals
 
-  -- GOOD PLACE TO STOP, For tomorrow, need to create a local function
-  -- in here getSigName that works.  Module.getSigName doesn't 
+  let weakNormalSigs (SigConcat xs) = concat $ map weakNormalSigs xs
+      weakNormalSigs sig = [sig] 
+      sigs = concatMap weakNormalSigs $ mapMaybe Signal.getSig signals
+
+  let weakNormalSigNames sig =
+        case sig of 
+          SigSimple name -> [name] 
+          SigIndex name _ -> [name] 
+          SigRange name _ _ -> [name]
+          SigRangeStep name _ _ _ -> [name]
+          SigConcat xs -> concat $ map weakNormalSigNames xs
+          x -> error $ "Module.getSigName doesn't support: " ++ (show x)
   
-  names <- mapM Module.getSigName sigs
+  let names = map weakNormalSigNames sigs
   
   let mkSig sig =
         do name <- Module.getSigName sig

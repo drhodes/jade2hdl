@@ -18,7 +18,7 @@ import Text.Printf
 import Data.Aeson
 import Control.Monad
 import Data.Maybe
-
+import qualified Data.Set as DS
 ------------------------------------------------------------------
 -- Icon Types
 newtype Line = Line Coord5 deriving (Generic, Show, Eq, Hashable, Ord, ToJSON)

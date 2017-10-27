@@ -46,6 +46,11 @@ getSig part = case part of
                 TermC x -> Just $ Term.getSig x
                 _ -> Nothing
 
+hasName part name =
+  case getSig part of
+    Just sig -> not . null $ [n | n <- Sig.getNames sig, n == name]
+    Nothing -> False
+    
 getSignal :: Part -> Maybe Signal
 getSignal part = case part of
                    PortC x -> Port.getSignal x

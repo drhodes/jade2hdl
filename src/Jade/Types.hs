@@ -70,6 +70,7 @@ data Net = Net { netId :: NetId
                , netNodes :: [Node]
                } deriving (Generic, Show, Eq, Ord, ToJSON)
 
+
 data Edge = Edge { edgeNode1 :: Node
                  , edgeNode2 :: Node
                  } deriving (Generic, Show, Hashable, Ord, Eq, ToJSON)

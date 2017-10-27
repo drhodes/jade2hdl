@@ -3,6 +3,7 @@ module Jade.Decode.Sig ( parseSig
                        , width
                        , twosComplement
                        , range
+                       , getNames
                        ) where
 
 import Control.Monad
@@ -146,7 +147,6 @@ width sig = case sig of
                                              in fromIntegral $ length range
               SigQuote _ w -> fromIntegral w
               SigConcat xs -> sum $ map width xs
-              x -> error $ "Sig.width doesn't handle: " ++ show x
 
 genbits n | n == 0 = []
           | n `mod` 2 == 0 = L : (genbits next)
@@ -162,3 +162,13 @@ range from to step = if from < to
                      then [from, from+step .. to] -- ascending
                      else [from, from-step .. to] -- descending
 
+
+getNames :: Sig -> [String]
+getNames sig = case sig of
+              SigSimple n -> [n]
+              SigIndex n _ -> [n]
+              SigHash n _ -> [n]
+              SigRange n _ _ -> [n]
+              SigRangeStep n _ _ _ -> [n]
+              SigQuote _ w -> []
+              SigConcat xs -> concatMap getNames xs

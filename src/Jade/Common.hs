@@ -13,6 +13,7 @@ import Rawr.Note
 import Jade.Util
 import Jade.Decode.Types
 import qualified Data.Map as DM 
+import qualified Data.Set as DS
 import qualified Data.ByteString.Lazy.Char8 as DBL8 
 import Data.Aeson
 import Text.Format
@@ -36,7 +37,7 @@ data Global = Global { globalTopLevel :: TopLevel
                      , globalMemo :: Memo
                      }
 
-data Memo = Memo { memoComps :: DM.Map String [Net] }
+data Memo = Memo { memoComps :: DM.Map String [DS.Set Part] }
 
 instance Monoid P.Doc where
   mappend p q = p P.<> P.softline  P.<> q
@@ -152,7 +153,6 @@ getModule name = do -- "TopLevel.getModule" <? do
     Just mod -> return mod{moduleName = name}
     Nothing -> die $ "TopLevel.getModule couldn't find module:" ++ name
 
-
 getSchematic :: String -> J Schematic
 getSchematic name = do
   m <- getModule name
@@ -162,7 +162,6 @@ getSchematic name = do
 
 assertEq :: (Eq a, Show a) => a -> a -> String -> J ()
 assertEq x y msg = when (x /= y) (die $ printf "Assertion failed: %s, %s" (show msg) (show (x, y))) --ok
-
 
 assertStage expstage = do
   s <- getCurStage
